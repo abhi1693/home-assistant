@@ -1,0 +1,15 @@
+{
+  "hacs": {
+    "version": "2.0.5",
+    "url": "https://github.com/hacs/integration/releases/download/2.0.5/hacs.zip",
+    "sha256": "97be6b824a4f38e683728cc6dd72367f6b8bad0a43428b1b3b987a3087adf413"
+  },
+  "assets": [
+    {
+      "name": "Bubble Card",
+      "url": "https://raw.githubusercontent.com/Clooos/Bubble-Card/v3.2.5/dist/bubble-card.js",
+      "sha256": "72b4575f19c8af99922e2dc2dd74e2d7c6b84162c4d48244fd08539cf08532b0",
+      "destination": "www/community/bubble-card/bubble-card.js"
+    }
+  ]
+}

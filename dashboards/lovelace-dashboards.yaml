@@ -1,0 +1,14 @@
+home-tablet:
+  mode: yaml
+  title: Home
+  icon: mdi:home-heart
+  show_in_sidebar: true
+  require_admin: false
+  filename: dashboards/home-tablet.yaml
+rack-admin:
+  mode: yaml
+  title: Rack
+  icon: mdi:server-network
+  show_in_sidebar: true
+  require_admin: true
+  filename: dashboards/rack-admin.yaml

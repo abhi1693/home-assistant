@@ -1,0 +1,89 @@
+views:
+  - title: Rack
+    path: overview
+    icon: mdi:server-network
+    type: sections
+    theme: Family Dark
+    max_columns: 3
+    dense_section_placement: true
+    header:
+      layout: responsive
+      badges_position: bottom
+      card:
+        type: markdown
+        text_only: true
+        content: |-
+          # Rack
+          Private infrastructure health at a glance.
+    badges:
+      - type: entity
+        entity: sensor.k8s_rpi1_kubernetes_ready
+        name: rpi1
+        show_name: true
+        show_state: true
+        color: green
+      - type: entity
+        entity: sensor.k8s_rpi2_kubernetes_ready
+        name: rpi2
+        show_name: true
+        show_state: true
+        color: green
+      - type: entity
+        entity: sensor.k8s_rpi3_kubernetes_ready
+        name: rpi3
+        show_name: true
+        show_state: true
+        color: green
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Kubernetes
+            icon: mdi:kubernetes
+          - type: tile
+            entity: sensor.k8s_rpi1_cpu_temperature
+            name: k8s-rpi1
+            icon: mdi:raspberry-pi
+            color: red
+          - type: tile
+            entity: sensor.k8s_rpi2_cpu_temperature
+            name: k8s-rpi2
+            icon: mdi:raspberry-pi
+            color: amber
+          - type: tile
+            entity: sensor.k8s_rpi3_cpu_temperature
+            name: k8s-rpi3
+            icon: mdi:raspberry-pi
+            color: green
+      - type: grid
+        cards:
+          - type: heading
+            heading: Network
+            icon: mdi:switch
+          - type: tile
+            entity: sensor.usw_pro_aggregation_temperature
+            name: USW Pro Aggregation
+            icon: mdi:switch
+            color: blue
+          - type: tile
+            entity: sensor.home_home_cpu_temperature
+            name: UniFi CPU
+            icon: mdi:router-network
+            color: purple
+          - type: tile
+            entity: sensor.home_home_local_temperature
+            name: Rack ambient
+            icon: mdi:thermometer
+            color: amber
+      - type: grid
+        cards:
+          - type: heading
+            heading: Protect
+            icon: mdi:shield-home-outline
+          - type: picture-entity
+            entity: camera.g5_turret_ultra_high_resolution_channel
+            name: Rack camera context
+            camera_view: auto
+            fit_mode: cover
+            aspect_ratio: "16:9"
+            show_state: false

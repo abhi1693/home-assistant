@@ -1,0 +1,64 @@
+{
+  "marker": ".area-migration-2026-08-13",
+  "area_backup": "backups/core.area_registry.pre-2026-08-13-migration",
+  "device_backup": "backups/core.device_registry.pre-2026-08-13-migration",
+  "areas": {
+    "computer_room": "Office",
+    "dining_room": "Dining Room",
+    "guest_bedroom": "Guest Room",
+    "kitchen": "Kitchen",
+    "living_room": "Living Room",
+    "manisha_bedroom": "Master Bedroom",
+    "mummy_bedroom": "Bedroom"
+  },
+  "devices": {
+    "e61679f2a9558b2cc0b24b3dd672f9c3": {
+      "name": "Bedroom Fan",
+      "area_id": "mummy_bedroom",
+      "manufacturer": "Atomberg",
+      "model": "aris_gladius"
+    },
+    "f8fdfa2c7661efe421985cb11438f295": {
+      "name": "Dining Fan",
+      "area_id": "dining_room",
+      "manufacturer": "Atomberg",
+      "model": "aris_gladius"
+    },
+    "6c9d169e783a8c553ce9ed128f349be3": {
+      "name": "Guest Fan",
+      "area_id": "guest_bedroom",
+      "manufacturer": "Atomberg",
+      "model": "aris_gladius"
+    },
+    "1ab3ef74487eb41beeaa521beeea752d": {
+      "name": "Kitchen Fan",
+      "area_id": "kitchen",
+      "manufacturer": "Atomberg",
+      "model": "aris_gladius"
+    },
+    "d7ee6dc478530b1df5f7ddfe4b4d0ad0": {
+      "name": "Living Room Fan 1",
+      "area_id": "living_room",
+      "manufacturer": "Atomberg",
+      "model": "aris_gladius"
+    },
+    "e4ccd099958b70618b2d656da3654f46": {
+      "name": "Living room Fan 2",
+      "area_id": "living_room",
+      "manufacturer": "Atomberg",
+      "model": "aris_gladius"
+    },
+    "b7d16f0d0f73fa1e22f02ce243eafee1": {
+      "name": "Master Bedroom Fan",
+      "area_id": "manisha_bedroom",
+      "manufacturer": "Atomberg",
+      "model": "aris_gladius"
+    },
+    "f14de4a691fc2e087bd8d2282c8e6b88": {
+      "name": "Office Fan",
+      "area_id": "computer_room",
+      "manufacturer": "Atomberg",
+      "model": "aris_gladius"
+    }
+  }
+}
