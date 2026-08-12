@@ -42,6 +42,23 @@ button_card_templates:
         - font-weight: 720
         - padding-top: 3px
 
+  rack_temperature:
+    template: rack_metric
+    state_display: |
+      [[[
+        if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
+          return 'Unavailable';
+        }
+        const value = Number(entity.state);
+        if (!Number.isFinite(value)) return `${entity.state} °C`;
+        const unit = entity.attributes.unit_of_measurement;
+        const celsius = unit === '°F'
+          ? (value - 32) * 5 / 9
+          : unit === 'K' ? value - 273.15 : value;
+        const precision = Math.abs(celsius - Math.round(celsius)) < 0.05 ? 0 : 1;
+        return `${celsius.toFixed(precision)} °C`;
+      ]]]
+
   rack_ready:
     template: rack_metric
     icon: mdi:kubernetes
@@ -155,7 +172,7 @@ views:
                 entity: sensor.k8s_rpi3_kubernetes_ready
                 name: k8s-rpi3
               - type: custom:button-card
-                template: rack_metric
+                template: rack_temperature
                 entity: sensor.k8s_rpi1_cpu_temperature
                 name: rpi1 CPU
                 icon: mdi:raspberry-pi
@@ -163,7 +180,7 @@ views:
                   card:
                     - --metric-accent: var(--purple)
               - type: custom:button-card
-                template: rack_metric
+                template: rack_temperature
                 entity: sensor.k8s_rpi2_cpu_temperature
                 name: rpi2 CPU
                 icon: mdi:raspberry-pi
@@ -171,7 +188,7 @@ views:
                   card:
                     - --metric-accent: var(--orange)
               - type: custom:button-card
-                template: rack_metric
+                template: rack_temperature
                 entity: sensor.k8s_rpi3_cpu_temperature
                 name: rpi3 CPU
                 icon: mdi:raspberry-pi
@@ -189,7 +206,7 @@ views:
             columns: 2
             cards:
               - type: custom:button-card
-                template: rack_metric
+                template: rack_temperature
                 entity: sensor.usw_pro_aggregation_temperature
                 name: USW Pro Aggregation
                 icon: mdi:switch
@@ -197,16 +214,16 @@ views:
                   card:
                     - --metric-accent: var(--blue)
               - type: custom:button-card
-                template: rack_metric
-                entity: sensor.home_home_cpu_temperature
+                template: rack_temperature
+                entity: sensor.unifi_cpu_temperature_celsius
                 name: UniFi CPU
                 icon: mdi:router-network
                 styles:
                   card:
                     - --metric-accent: var(--purple)
               - type: custom:button-card
-                template: rack_metric
-                entity: sensor.home_home_local_temperature
+                template: rack_temperature
+                entity: sensor.rack_ambient_temperature_celsius
                 name: Rack ambient
                 icon: mdi:thermometer
                 styles:

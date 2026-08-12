@@ -32,6 +32,11 @@ Home view includes a shared shopping list and `Family` calendar, and the Rack
 view shows the Home Assistant start time. These config entries are UI-owned on
 the persistent volume; the dashboard references remain Git-owned here.
 
+The source configuration fixes Home Assistant to the metric unit system. All
+temperature cards render an explicit `°C`, and package-owned template sensors
+convert the two UniFi readings that publish Fahrenheit into Celsius before they
+reach the Rack dashboard.
+
 Protect camera cards use snapshot-first rendering. Live RTSPS can be restored
 after the Protect console's port `7441` is reachable from Home Assistant; cards
 will automatically recover as cameras reconnect in Protect.

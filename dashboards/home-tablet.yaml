@@ -44,6 +44,23 @@ button_card_templates:
         - font-weight: 650
         - line-height: 18px
 
+  family_temperature:
+    template: family_status
+    state_display: |
+      [[[
+        if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
+          return 'Unavailable';
+        }
+        const value = Number(entity.state);
+        if (!Number.isFinite(value)) return `${entity.state} °C`;
+        const unit = entity.attributes.unit_of_measurement;
+        const celsius = unit === '°F'
+          ? (value - 32) * 5 / 9
+          : unit === 'K' ? value - 273.15 : value;
+        const precision = Math.abs(celsius - Math.round(celsius)) < 0.05 ? 0 : 1;
+        return `${celsius.toFixed(precision)} °C`;
+      ]]]
+
   family_room:
     show_icon: true
     show_state: false
@@ -133,7 +150,7 @@ views:
         text_only: true
         content: |-
           # {{ 'Good morning' if now().hour < 12 else 'Good afternoon' if now().hour < 17 else 'Good evening' }}, family
-          It is **{{ now().strftime('%A') }}**. Outside is **{{ states('weather.home') | replace('_', ' ') | title }}** at **{{ states('sensor.home_temperature') }}°**, with {{ states('sensor.home_humidity') }}% humidity.
+          It is **{{ now().strftime('%A') }}**. Outside is **{{ states('weather.home') | replace('_', ' ') | title }}** at **{{ states('sensor.home_temperature') }} °C**, with {{ states('sensor.home_humidity') }}% humidity.
         card_mod:
           style: |
             ha-card { background: transparent; padding: 8px 0 4px; }
@@ -229,7 +246,7 @@ views:
             columns: 6
             cards:
               - type: custom:button-card
-                template: family_status
+                template: family_temperature
                 entity: sensor.home_temperature
                 name: Outside
                 icon: mdi:thermometer
@@ -237,7 +254,7 @@ views:
                   card:
                     - --status-accent: var(--orange)
               - type: custom:button-card
-                template: family_status
+                template: family_temperature
                 entity: sensor.home_apparent_temperature
                 name: Feels like
                 icon: mdi:sun-thermometer-outline

@@ -1,0 +1,25 @@
+template:
+  - sensor:
+      - name: UniFi CPU Temperature Celsius
+        unique_id: unifi_cpu_temperature_celsius
+        device_class: temperature
+        state_class: measurement
+        unit_of_measurement: "°C"
+        availability: >-
+          {{ is_number(states('sensor.home_home_cpu_temperature')) }}
+        state: >-
+          {% set value = states('sensor.home_home_cpu_temperature') | float(0) %}
+          {% set unit = state_attr('sensor.home_home_cpu_temperature', 'unit_of_measurement') %}
+          {{ (((value - 32) * 5 / 9) if unit == '°F' else value) | round(1) }}
+
+      - name: Rack Ambient Temperature Celsius
+        unique_id: rack_ambient_temperature_celsius
+        device_class: temperature
+        state_class: measurement
+        unit_of_measurement: "°C"
+        availability: >-
+          {{ is_number(states('sensor.home_home_local_temperature')) }}
+        state: >-
+          {% set value = states('sensor.home_home_local_temperature') | float(0) %}
+          {% set unit = state_attr('sensor.home_home_local_temperature', 'unit_of_measurement') %}
+          {{ (((value - 32) * 5 / 9) if unit == '°F' else value) | round(1) }}
