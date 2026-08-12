@@ -20,7 +20,7 @@ button_card_templates:
         - border-radius: 20px
         - box-shadow: none
         - padding: 12px 14px
-        - height: 68px
+        - height: 74px
       img_cell:
         - align-self: center
         - justify-self: start
@@ -35,13 +35,13 @@ button_card_templates:
         - align-self: end
         - justify-self: start
         - color: var(--contrast10)
-        - font-size: 10px
+        - font-size: 11px
         - font-weight: 500
       state:
         - align-self: start
         - justify-self: start
         - color: var(--contrast20)
-        - font-size: 14px
+        - font-size: 16px
         - font-weight: 650
         - line-height: 18px
 
@@ -75,6 +75,18 @@ button_card_templates:
         if (!available.length) return 'Unavailable';
         const running = available.filter((fan) => fan.state === 'on').length;
         return running ? `${running} running` : 'All off';
+      ]]]
+
+  family_shopping_status:
+    template: family_status
+    state_display: |
+      [[[
+        if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
+          return 'Unavailable';
+        }
+        const count = Number(entity.state);
+        if (!Number.isFinite(count)) return entity.state;
+        return count === 1 ? '1 item' : `${count} items`;
       ]]]
 
   family_media:
@@ -177,7 +189,7 @@ button_card_templates:
                 ? 'var(--black)'
                 : 'var(--contrast20)';
             ]]]
-        - font-size: 15px
+        - font-size: 16px
         - font-weight: 650
       label:
         - align-self: end
@@ -188,7 +200,7 @@ button_card_templates:
                 ? 'rgba(0, 0, 0, 0.62)'
                 : 'var(--contrast10)';
             ]]]
-        - font-size: 11px
+        - font-size: 12px
         - font-weight: 500
         - padding-top: 4px
 
@@ -212,8 +224,8 @@ views:
         card_mod:
           style: |
             ha-card { background: transparent; padding: 8px 0 4px; }
-            h1 { font-size: 32px; letter-spacing: -1.2px; margin-bottom: 6px; }
-            p { color: var(--contrast11); font-size: 14px; }
+            h1 { font-size: 40px; letter-spacing: -1.4px; margin-bottom: 8px; }
+            p { color: var(--contrast11); font-size: 16px; line-height: 1.5; }
     badges:
       - type: entity
         entity: person.abhimanyu_saharan
@@ -234,8 +246,8 @@ views:
         show_state: true
         color: blue
       - type: entity
-        entity: sensor.jellyfin_5876476948_vc8dc_active_clients
-        name: Jellyfin
+        entity: media_player.living_room_speaker
+        name: Music
         show_name: true
         show_state: true
         color: purple
@@ -342,14 +354,14 @@ views:
                     - --status-accent: var(--teal)
               - type: custom:button-card
                 template: family_status
-                entity: person.abhimanyu_saharan
-                name: Presence
-                icon: mdi:account-circle-outline
+                entity: media_player.living_room_speaker
+                name: Music
+                icon: mdi:music-note
                 styles:
                   card:
-                    - --status-accent: var(--green)
+                    - --status-accent: var(--purple)
               - type: custom:button-card
-                template: family_status
+                template: family_shopping_status
                 entity: todo.shopping_list
                 name: Shopping
                 icon: mdi:cart-outline
@@ -474,15 +486,6 @@ views:
             heading: Rooms
             heading_style: title
             icon: mdi:floor-plan
-            badges:
-              - type: entity
-                entity: fan.office_fan
-                name: All controls
-                show_state: false
-                icon: mdi:arrow-right
-                tap_action:
-                  action: navigate
-                  navigation_path: /home-tablet/rooms
           - type: custom:button-card
             template: family_room
             entity: fan.living_room_fan_1
@@ -495,7 +498,8 @@ views:
                 const first = states['fan.living_room_fan_1'];
                 const second = states['fan.living_room_fan_2'];
                 const active = [first, second].filter((fan) => fan?.state === 'on');
-                if ([first, second].some((fan) => fan?.state === 'unavailable')) {
+                if (!first || !second ||
+                    [first, second].some((fan) => fan.state === 'unavailable')) {
                   return 'One or more unavailable';
                 }
                 if (!active.length) return 'Both fans off';
@@ -561,23 +565,23 @@ views:
     theme: Family Dark
     max_columns: 4
     dense_section_placement: true
-    header:
-      layout: responsive
-      badges_position: top
-      card:
-        type: markdown
-        text_only: true
-        content: |-
-          # Rooms
-          Every fan in one quiet, touch-friendly view. Tap power; drag the slider for speed.
-        card_mod:
-          style: |
-            ha-card { background: transparent; padding: 8px 0 4px; }
-            h1 { font-size: 32px; letter-spacing: -1.2px; margin-bottom: 6px; }
     sections:
       - type: grid
         column_span: 4
         cards:
+          - type: markdown
+            text_only: true
+            content: |-
+              # Rooms
+              Every fan in one quiet, touch-friendly view. Tap power; drag the slider for speed.
+            card_mod:
+              style: |
+                ha-card { background: transparent; padding: 8px 0 4px; }
+                h1 { font-size: 40px; letter-spacing: -1.4px; margin-bottom: 8px; }
+                p { color: var(--contrast11); font-size: 16px; line-height: 1.5; }
+            grid_options:
+              columns: 48
+              rows: 2
           - *family_navigation
       - type: grid
         cards:
@@ -682,25 +686,25 @@ views:
     icon: mdi:cctv
     type: sections
     theme: Family Dark
-    max_columns: 3
+    max_columns: 4
     dense_section_placement: true
-    header:
-      layout: responsive
-      badges_position: top
-      card:
-        type: markdown
-        text_only: true
-        content: |-
-          # Camera wall
-          Three live UniFi Protect views, arranged for a quick whole-home glance.
-        card_mod:
-          style: |
-            ha-card { background: transparent; padding: 8px 0 4px; }
-            h1 { font-size: 32px; letter-spacing: -1.2px; margin-bottom: 6px; }
     sections:
       - type: grid
-        column_span: 3
+        column_span: 4
         cards:
+          - type: markdown
+            text_only: true
+            content: |-
+              # Camera wall
+              Three UniFi Protect views for a quick whole-home glance.
+            card_mod:
+              style: |
+                ha-card { background: transparent; padding: 8px 0 4px; }
+                h1 { font-size: 40px; letter-spacing: -1.4px; margin-bottom: 8px; }
+                p { color: var(--contrast11); font-size: 16px; line-height: 1.5; }
+            grid_options:
+              columns: 48
+              rows: 2
           - *family_navigation
           - type: grid
             square: false
@@ -743,7 +747,7 @@ views:
                   style: |
                     ha-card { overflow: hidden; border-radius: 28px; }
             grid_options:
-              columns: 36
+              columns: 48
               rows: auto
 
   - title: Music
@@ -765,7 +769,8 @@ views:
         card_mod:
           style: |
             ha-card { background: transparent; padding: 8px 0 4px; }
-            h1 { font-size: 32px; letter-spacing: -1.2px; margin-bottom: 6px; }
+            h1 { font-size: 40px; letter-spacing: -1.4px; margin-bottom: 8px; }
+            p { color: var(--contrast11); font-size: 16px; line-height: 1.5; }
     badges:
       - type: entity
         entity: sensor.jellyfin_5876476948_vc8dc_active_clients
@@ -800,22 +805,28 @@ views:
             title: Music Assistant
             grid_options:
               columns: 36
-              rows: auto
+              rows: 9
       - type: grid
         cards:
           - type: heading
             heading: Players
             heading_style: title
             icon: mdi:speaker-multiple
-          - type: media-control
+          - type: custom:button-card
+            template: family_media
             entity: media_player.abhimanyu_s_echo_2
             name: Echo
-          - type: media-control
+            icon: mdi:speaker
+          - type: custom:button-card
+            template: family_media
             entity: media_player.abhimanyu_s_echo_dot_2
             name: Echo Dot
-          - type: media-control
+            icon: mdi:speaker
+          - type: custom:button-card
+            template: family_media
             entity: media_player.living_room_speaker
             name: Living room
+            icon: mdi:speaker-wireless
           - type: heading
             heading: Jellyfin
             icon: mdi:jellyfish
