@@ -87,7 +87,9 @@ The Atomberg fork publishes successful command state immediately, polls all fan
 states once per hour, and persists hard limits of 100 total cloud calls and 24
 poll calls per rolling 24 hours. Calls are spaced below five per second. Local
 UDP broadcasts remain the preferred zero-quota low-latency update path when
-they can reach Home Assistant.
+they can reach Home Assistant. Atomberg's HTTP 403 explicit-deny quota response
+opens a persisted 24-hour circuit breaker instead of triggering repeated
+authentication retries.
 
 ## Validation
 
