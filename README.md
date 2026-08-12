@@ -5,20 +5,21 @@ is intentionally separate from the Kubernetes deployment so the dashboards,
 themes, packages and guarded storage migrations can evolve without embedding
 application code in cluster manifests.
 
-The visual language is an original, deliberately smaller adaptation inspired by
-[jlnbln/My-HA-Dashboard](https://github.com/jlnbln/My-HA-Dashboard): dark contrast,
-soft rounded surfaces, compact status chips, room-first controls and useful
-information visible without drilling through menus.
+The desktop visual language closely follows the composition of
+[jlnbln/My-HA-Dashboard](https://github.com/jlnbln/My-HA-Dashboard): a fixed left
+navigation rail, narrative greeting, compact status strip, one dominant content
+zone, a narrow room matrix, soft rounded surfaces and useful information visible
+without drilling through menus. Mobile-specific design is intentionally deferred.
 
 ## Dashboards
 
-- **Home** is family-facing and tablet-friendly. Its four responsive views cover
-  the household overview, rooms and Atomberg fans, a three-camera UniFi Protect
-  wall, and Music Assistant/Jellyfin activity.
+- **Home** is family-facing and desktop-first. Its four views cover the household
+  overview, rooms and Atomberg fans, a three-camera UniFi Protect wall, and an
+  embedded Music Assistant experience with Jellyfin activity.
 - **Rack** is admin-only. It keeps Kubernetes, UniFi and rack temperatures away
   from the shared family experience.
-- `Family Dark` is a local theme with no runtime dependency. Bubble Card is the
-  only custom card used by the dashboards.
+- `Family Dark` is the local visual system. Bubble Card, Button Card, Navbar Card,
+  Card Mod and Kiosk Mode are commit/version-pinned, checksum-verified assets.
 
 The current dashboard only references entities verified in the live Home
 Assistant registry. Samsung TV, Fire TV, per-session Jellyfin playback and
@@ -33,7 +34,8 @@ will be added after their integrations expose stable entities.
 - `packages/`: future source-owned automations and helpers
 - `migrations/`: guarded, one-time area/device migration inputs
 - `bootstrap.py`: idempotent installer used by the Kubernetes init container
-- `bootstrap/manifest.json`: pinned and SHA-verified external assets
+- `bootstrap/manifest.json`: pinned and SHA-verified external assets and custom
+  integrations
 
 Automations, scripts and scenes remain mutable Home Assistant files. Bootstrap
 empties automations only once, preserving the old file under `/config/backups`,
@@ -49,10 +51,15 @@ python3 /source/bootstrap.py --source /source --config /config
 ```
 
 Bootstrap atomically installs source-owned files, installs HACS only when
-missing, verifies Bubble Card before replacement, applies the prepared area and
-Atomberg assignments once, and removes legacy storage-mode dashboards after
-backing them up. The built-in Home Assistant dashboards remain platform-owned;
-the two custom dashboards registered here are `Home` and `Rack`.
+missing, verifies every frontend asset before replacement, and installs the
+forked Atomberg integration from a commit-pinned archive. It also applies the
+prepared area and Atomberg assignments once and removes legacy storage-mode
+dashboards after backing them up. The built-in Home Assistant dashboards remain
+platform-owned; the two custom dashboards registered here are `Home` and `Rack`.
+
+The Atomberg fork preserves cloud-reported availability and polls device state
+every 30 seconds. Local UDP broadcasts remain an optional low-latency update
+path, so the fan entities stay usable when Home Assistant runs in Kubernetes.
 
 ## Validation
 

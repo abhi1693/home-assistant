@@ -4,12 +4,46 @@
     "url": "https://github.com/hacs/integration/releases/download/2.0.5/hacs.zip",
     "sha256": "97be6b824a4f38e683728cc6dd72367f6b8bad0a43428b1b3b987a3087adf413"
   },
+  "custom_integrations": [
+    {
+      "name": "Atomberg",
+      "version": "2.2.4",
+      "url": "https://codeload.github.com/abhi1693/ha-atomberg-integration/tar.gz/0d7821132035aca6e456008802cd8ee85b93da99",
+      "sha256": "3e00102a7481e1f6ae65bfc1852511fbda081e71aa2da548472660de36245157",
+      "source_subdirectory": "custom_components/atomberg",
+      "destination": "custom_components/atomberg"
+    }
+  ],
   "assets": [
     {
       "name": "Bubble Card",
       "url": "https://raw.githubusercontent.com/Clooos/Bubble-Card/v3.2.5/dist/bubble-card.js",
       "sha256": "72b4575f19c8af99922e2dc2dd74e2d7c6b84162c4d48244fd08539cf08532b0",
       "destination": "www/community/bubble-card/bubble-card.js"
+    },
+    {
+      "name": "Button Card 7.0.1",
+      "url": "https://github.com/custom-cards/button-card/releases/download/v7.0.1/button-card.js",
+      "sha256": "5d6e9c6afca01e8014653fa56bb5d6aa9248d832c34fb944a7f2c36329bc22d1",
+      "destination": "www/community/button-card/button-card.js"
+    },
+    {
+      "name": "Navbar Card 1.6.1",
+      "url": "https://github.com/joseluis9595/lovelace-navbar-card/releases/download/v1.6.1/navbar-card.js",
+      "sha256": "6709147e8a76e31630e818e92e5167a36b68af22a353547b5be46c6d9e7c356a",
+      "destination": "www/community/navbar-card/navbar-card.js"
+    },
+    {
+      "name": "Card Mod 4.2.1",
+      "url": "https://raw.githubusercontent.com/thomasloven/lovelace-card-mod/v4.2.1/card-mod.js",
+      "sha256": "5e7e71ad61796f59070f8c4621e69fa8e71a9864d0be0922bc4dbc72f990cd35",
+      "destination": "www/community/card-mod/card-mod.js"
+    },
+    {
+      "name": "Kiosk Mode 14.0.2",
+      "url": "https://github.com/NemesisRE/kiosk-mode/releases/download/v14.0.2/kiosk-mode.js",
+      "sha256": "9dc2b2b4fb8a7f2e8d84b17e950a979d5fea15f3a92b931e5b4777f330972e8b",
+      "destination": "www/community/kiosk-mode/kiosk-mode.js"
     }
   ]
 }

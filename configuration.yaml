@@ -12,6 +12,14 @@ lovelace:
   resources:
     - url: /local/community/bubble-card/bubble-card.js?v=3.2.5
       type: module
+    - url: /local/community/button-card/button-card.js?v=7.0.1
+      type: module
+    - url: /local/community/navbar-card/navbar-card.js?v=1.6.1
+      type: module
+    - url: /local/community/card-mod/card-mod.js?v=4.2.1
+      type: module
+    - url: /local/community/kiosk-mode/kiosk-mode.js?v=14.0.2
+      type: module
   dashboards: !include dashboards/lovelace-dashboards.yaml
 
 automation: !include automations.yaml

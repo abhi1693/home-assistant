@@ -9,13 +9,14 @@ import json
 import os
 import shutil
 import stat
+import tarfile
 import tempfile
 import urllib.request
 import zipfile
-from pathlib import Path
-
+from pathlib import Path, PurePosixPath
 
 MANAGED_STATE = ".home-assistant-source-files.json"
+CUSTOM_INTEGRATION_STATE = ".home-assistant-custom-integrations.json"
 
 
 def sha256(path: Path) -> str:
@@ -48,7 +49,9 @@ def atomic_json(destination: Path, document: dict, mode: int | None = None) -> N
     destination.parent.mkdir(parents=True, exist_ok=True)
     uid, gid = destination_identity(destination)
     if mode is None:
-        mode = stat.S_IMODE(destination.stat().st_mode) if destination.exists() else 0o600
+        mode = (
+            stat.S_IMODE(destination.stat().st_mode) if destination.exists() else 0o600
+        )
     with tempfile.NamedTemporaryFile(
         mode="w", encoding="utf-8", dir=destination.parent, delete=False
     ) as stream:
@@ -61,7 +64,9 @@ def atomic_json(destination: Path, document: dict, mode: int | None = None) -> N
 
 
 def sync_source_files(source: Path, config: Path) -> None:
-    managed: dict[str, str] = {"configuration.yaml": sha256(source / "configuration.yaml")}
+    managed: dict[str, str] = {
+        "configuration.yaml": sha256(source / "configuration.yaml")
+    }
     for directory in ("dashboards", "packages", "themes"):
         source_directory = source / directory
         if not source_directory.exists():
@@ -70,7 +75,9 @@ def sync_source_files(source: Path, config: Path) -> None:
             managed[str(path.relative_to(source))] = sha256(path)
 
     state_path = config / MANAGED_STATE
-    previous = json.loads(state_path.read_text()) if state_path.exists() else {"files": {}}
+    previous = (
+        json.loads(state_path.read_text()) if state_path.exists() else {"files": {}}
+    )
     for relative_path in set(previous.get("files", {})) - set(managed):
         stale = config / relative_path
         if stale.is_file():
@@ -151,6 +158,111 @@ def install_assets(manifest: dict, config: Path) -> None:
         print(f"Installed {asset['name']}")
 
 
+def extract_archive_subdirectory(
+    archive: Path, source_subdirectory: str, destination: Path
+) -> None:
+    """Extract one regular-file subtree from a GitHub source archive."""
+    source_parts = PurePosixPath(source_subdirectory).parts
+    matched = 0
+    with tarfile.open(archive, mode="r:gz") as bundle:
+        for member in bundle.getmembers():
+            member_path = PurePosixPath(member.name)
+            if member_path.is_absolute() or ".." in member_path.parts:
+                raise RuntimeError(f"Unsafe archive member: {member.name}")
+            parts = member_path.parts
+            if len(parts) <= len(source_parts) + 1:
+                continue
+            if tuple(parts[1 : len(source_parts) + 1]) != source_parts:
+                continue
+            relative = Path(*parts[len(source_parts) + 1 :])
+            if member.issym() or member.islnk():
+                raise RuntimeError(f"Archive subtree contains a link: {member.name}")
+            if not member.isfile():
+                continue
+            source_stream = bundle.extractfile(member)
+            if source_stream is None:
+                raise RuntimeError(f"Unable to read archive member: {member.name}")
+            target = destination / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with target.open("wb") as target_stream:
+                shutil.copyfileobj(source_stream, target_stream)
+            matched += 1
+    if matched == 0:
+        raise RuntimeError(
+            f"Archive does not contain source directory {source_subdirectory}"
+        )
+
+
+def install_custom_integrations(manifest: dict, config: Path) -> None:
+    """Install commit-pinned custom integrations from verified archives."""
+    state_path = config / CUSTOM_INTEGRATION_STATE
+    previous = json.loads(state_path.read_text()) if state_path.exists() else {}
+    current = {}
+    config_root = config.resolve()
+
+    for integration in manifest.get("custom_integrations", []):
+        name = integration["name"]
+        destination = (config / integration["destination"]).resolve()
+        if config_root not in destination.parents:
+            raise RuntimeError(
+                f"Custom integration destination escapes config: {destination}"
+            )
+
+        previous_entry = previous.get(name, {})
+        previous_files = previous_entry.get("files", {})
+        if (
+            previous_entry.get("sha256") == integration["sha256"]
+            and previous_files
+            and all(
+                (destination / relative).is_file()
+                and sha256(destination / relative) == expected_hash
+                for relative, expected_hash in previous_files.items()
+            )
+        ):
+            current[name] = previous_entry
+            print(f"{name} {integration['version']} is already current")
+            continue
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            archive = temporary_root / "source.tar.gz"
+            extracted = temporary_root / "source"
+            download_verified(integration["url"], integration["sha256"], archive)
+            extract_archive_subdirectory(
+                archive, integration["source_subdirectory"], extracted
+            )
+
+            files = {
+                str(path.relative_to(extracted)): sha256(path)
+                for path in sorted(extracted.rglob("*"))
+                if path.is_file()
+            }
+            if destination.exists():
+                for stale in destination.rglob("*"):
+                    relative = stale.relative_to(destination)
+                    if "__pycache__" in relative.parts:
+                        continue
+                    if (stale.is_file() or stale.is_symlink()) and str(
+                        relative
+                    ) not in files:
+                        stale.unlink()
+            for relative, expected_hash in files.items():
+                source_file = extracted / relative
+                target = destination / relative
+                if target.is_file() and sha256(target) == expected_hash:
+                    continue
+                atomic_copy(source_file, target)
+
+        current[name] = {
+            "version": integration["version"],
+            "sha256": integration["sha256"],
+            "files": files,
+        }
+        print(f"Installed {name} {integration['version']}")
+
+    atomic_json(state_path, current, mode=0o644)
+
+
 def migrate_areas(source: Path, config: Path) -> None:
     migration = json.loads((source / "migrations/2026-08-13-areas.json").read_text())
     marker = config / migration["marker"]
@@ -190,7 +302,9 @@ def migrate_areas(source: Path, config: Path) -> None:
                 device.get("model") != expected["model"],
             )
         ):
-            raise RuntimeError(f"Atomberg device {device_id} no longer matches migration data")
+            raise RuntimeError(
+                f"Atomberg device {device_id} no longer matches migration data"
+            )
         device["area_id"] = expected["area_id"]
 
     for registry, backup_name in (
@@ -230,7 +344,9 @@ def remove_storage_dashboards(config: Path) -> None:
         for item in items:
             dashboard = storage / f"lovelace.{item['id']}"
             if dashboard.exists():
-                dashboard_backup = config / f"backups/{dashboard.name}.pre-2026-08-13-cleanup"
+                dashboard_backup = (
+                    config / f"backups/{dashboard.name}.pre-2026-08-13-cleanup"
+                )
                 if not dashboard_backup.exists():
                     shutil.copy2(dashboard, dashboard_backup)
                 dashboard.unlink()
@@ -251,6 +367,7 @@ def main() -> None:
     initialize_mutable_yaml(source, config)
     install_hacs(manifest, config)
     install_assets(manifest, config)
+    install_custom_integrations(manifest, config)
     migrate_areas(source, config)
     remove_storage_dashboards(config)
 
