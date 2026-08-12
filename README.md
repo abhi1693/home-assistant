@@ -46,7 +46,8 @@ reach the Rack dashboard.
 
 Protect camera cards use snapshot-first rendering. Live RTSPS can be restored
 after the Protect console's port `7441` is reachable from Home Assistant; cards
-will automatically recover as cameras reconnect in Protect.
+will automatically recover as cameras reconnect in Protect. The connected
+camera is presented as `Master Bedroom`, matching its current Protect entity.
 
 ## Repository layout
 

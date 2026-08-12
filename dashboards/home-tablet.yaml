@@ -394,7 +394,7 @@ views:
             cards:
               - type: picture-entity
                 entity: camera.living_room_high_resolution_channel
-                name: Living room
+                name: Master Bedroom
                 camera_view: auto
                 fit_mode: cover
                 aspect_ratio: "16:9"
@@ -712,7 +712,7 @@ views:
             cards:
               - type: picture-entity
                 entity: camera.living_room_high_resolution_channel
-                name: Living room
+                name: Master Bedroom
                 camera_view: auto
                 fit_mode: cover
                 aspect_ratio: "16:9"

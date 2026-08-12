@@ -67,11 +67,11 @@ def sync_source_files(source: Path, config: Path) -> None:
     managed: dict[str, str] = {
         "configuration.yaml": sha256(source / "configuration.yaml")
     }
-    for directory in ("dashboards", "packages", "themes"):
+    for directory in ("dashboards", "packages", "themes", "www"):
         source_directory = source / directory
         if not source_directory.exists():
             continue
-        for path in sorted(source_directory.glob("*.yaml")):
+        for path in sorted(source_directory.rglob("*.yaml")):
             managed[str(path.relative_to(source))] = sha256(path)
 
     source_components = source / "custom_components"

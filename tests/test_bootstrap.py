@@ -28,6 +28,7 @@ class BootstrapTests(unittest.TestCase):
     def test_sync_replaces_owned_files_and_removes_only_stale_owned_files(self):
         self.write("configuration.yaml", "default_config:\n")
         self.write("dashboards/home.yaml", "views: []\n")
+        self.write("www/bubble/bubble-modules.yaml", "modules: {}\n")
         self.write(
             "custom_components/family_dashboard_guard/__init__.py",
             "VALUE = 1\n",
@@ -66,6 +67,10 @@ class BootstrapTests(unittest.TestCase):
             "VALUE = 1\n",
         )
         self.assertFalse((stale_component / "__init__.py").exists())
+        self.assertEqual(
+            (self.config / "www/bubble/bubble-modules.yaml").read_text(),
+            "modules: {}\n",
+        )
 
     def test_automation_reset_is_one_time_and_backed_up(self):
         self.write("automations.yaml", "[]\n")
