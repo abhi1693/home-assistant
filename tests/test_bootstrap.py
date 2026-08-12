@@ -28,11 +28,25 @@ class BootstrapTests(unittest.TestCase):
     def test_sync_replaces_owned_files_and_removes_only_stale_owned_files(self):
         self.write("configuration.yaml", "default_config:\n")
         self.write("dashboards/home.yaml", "views: []\n")
+        self.write(
+            "custom_components/family_dashboard_guard/__init__.py",
+            "VALUE = 1\n",
+        )
         (self.config / "dashboards").mkdir()
         (self.config / "dashboards/stale.yaml").write_text("stale\n")
         (self.config / "dashboards/user.yaml").write_text("keep\n")
+        stale_component = self.config / "custom_components/stale"
+        stale_component.mkdir(parents=True)
+        (stale_component / "__init__.py").write_text("stale\n")
         (self.config / bootstrap.MANAGED_STATE).write_text(
-            json.dumps({"files": {"dashboards/stale.yaml": "old"}})
+            json.dumps(
+                {
+                    "files": {
+                        "dashboards/stale.yaml": "old",
+                        "custom_components/stale/__init__.py": "old",
+                    }
+                }
+            )
         )
 
         bootstrap.sync_source_files(self.source, self.config)
@@ -45,6 +59,13 @@ class BootstrapTests(unittest.TestCase):
         )
         self.assertFalse((self.config / "dashboards/stale.yaml").exists())
         self.assertTrue((self.config / "dashboards/user.yaml").exists())
+        self.assertEqual(
+            (
+                self.config / "custom_components/family_dashboard_guard/__init__.py"
+            ).read_text(),
+            "VALUE = 1\n",
+        )
+        self.assertFalse((stale_component / "__init__.py").exists())
 
     def test_automation_reset_is_one_time_and_backed_up(self):
         self.write("automations.yaml", "[]\n")

@@ -40,6 +40,8 @@ will automatically recover as cameras reconnect in Protect.
 
 - `configuration.yaml`: authoritative top-level Home Assistant YAML
 - `dashboards/`: the family and admin Lovelace dashboards
+- `custom_components/family_dashboard_guard/`: removes the superseded built-in
+  Home panel after the frontend integration starts
 - `themes/`: source-owned themes
 - `packages/`: future source-owned automations and helpers
 - `migrations/`: guarded, one-time area/device migration inputs
@@ -64,8 +66,9 @@ Bootstrap atomically installs source-owned files, installs HACS only when
 missing, verifies every frontend asset before replacement, and installs the
 forked Atomberg integration from a commit-pinned archive. It also applies the
 prepared area and Atomberg assignments once and removes legacy storage-mode
-dashboards after backing them up. The built-in Home Assistant dashboards remain
-platform-owned; the two custom dashboards registered here are `Home` and `Rack`.
+dashboards after backing them up. A source-owned system integration unregisters
+the built-in `/home/overview` panel on every startup, leaving the custom `Home`
+and `Rack` dashboards as the intentional dashboard surfaces.
 
 The Atomberg fork preserves cloud-reported availability and polls device state
 every 30 seconds. Local UDP broadcasts remain an optional low-latency update

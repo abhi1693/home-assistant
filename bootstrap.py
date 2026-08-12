@@ -74,6 +74,16 @@ def sync_source_files(source: Path, config: Path) -> None:
         for path in sorted(source_directory.glob("*.yaml")):
             managed[str(path.relative_to(source))] = sha256(path)
 
+    source_components = source / "custom_components"
+    if source_components.exists():
+        for path in sorted(source_components.rglob("*")):
+            if (
+                path.is_file()
+                and "__pycache__" not in path.parts
+                and path.suffix != ".pyc"
+            ):
+                managed[str(path.relative_to(source))] = sha256(path)
+
     state_path = config / MANAGED_STATE
     previous = (
         json.loads(state_path.read_text()) if state_path.exists() else {"files": {}}
