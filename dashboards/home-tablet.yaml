@@ -270,12 +270,12 @@ views:
                     - --status-accent: var(--green)
               - type: custom:button-card
                 template: family_status
-                entity: fan.office_fan
-                name: Office fan
-                icon: mdi:fan
+                entity: sensor.moon_phase
+                name: Moon
+                icon: mdi:moon-waning-crescent
                 styles:
                   card:
-                    - --status-accent: var(--teal)
+                    - --status-accent: var(--purple)
             grid_options:
               columns: 12
               rows: 2
@@ -298,7 +298,7 @@ views:
               - type: picture-entity
                 entity: camera.living_room_high_resolution_channel
                 name: Living room
-                camera_view: live
+                camera_view: auto
                 fit_mode: cover
                 aspect_ratio: "16:7"
                 show_state: false
@@ -314,7 +314,7 @@ views:
                   - type: picture-entity
                     entity: camera.hallway_high_resolution_channel
                     name: Hallway
-                    camera_view: live
+                    camera_view: auto
                     fit_mode: cover
                     aspect_ratio: "16:8"
                     show_state: false
@@ -323,7 +323,7 @@ views:
                   - type: picture-entity
                     entity: camera.g5_turret_ultra_high_resolution_channel
                     name: Outside
-                    camera_view: live
+                    camera_view: auto
                     fit_mode: cover
                     aspect_ratio: "16:8"
                     show_state: false
@@ -348,6 +348,21 @@ views:
               - type: media-control
                 entity: media_player.living_room_speaker
                 name: Living room
+          - type: heading
+            heading: Family board
+            icon: mdi:calendar-heart
+          - type: grid
+            square: false
+            columns: 2
+            cards:
+              - type: todo-list
+                entity: todo.shopping_list
+                title: Shopping list
+              - type: calendar
+                title: Family calendar
+                initial_view: listWeek
+                entities:
+                  - calendar.family
       - type: grid
         cards:
           - type: heading
@@ -568,7 +583,7 @@ views:
           - type: picture-entity
             entity: camera.living_room_high_resolution_channel
             name: Living room
-            camera_view: live
+            camera_view: auto
             fit_mode: cover
             aspect_ratio: "16:7"
             show_state: false
@@ -584,7 +599,7 @@ views:
               - type: picture-entity
                 entity: camera.hallway_high_resolution_channel
                 name: Hallway
-                camera_view: live
+                camera_view: auto
                 fit_mode: cover
                 aspect_ratio: "16:8"
                 show_state: false
@@ -593,7 +608,7 @@ views:
               - type: picture-entity
                 entity: camera.g5_turret_ultra_high_resolution_channel
                 name: Outside
-                camera_view: live
+                camera_view: auto
                 fit_mode: cover
                 aspect_ratio: "16:8"
                 show_state: false

@@ -220,6 +220,14 @@ views:
                 styles:
                   card:
                     - --metric-accent: var(--pink)
+              - type: custom:button-card
+                template: rack_metric
+                entity: sensor.uptime
+                name: HA started
+                icon: mdi:home-assistant
+                styles:
+                  card:
+                    - --metric-accent: var(--green)
       - type: grid
         cards:
           - type: heading
@@ -229,7 +237,7 @@ views:
           - type: picture-entity
             entity: camera.g5_turret_ultra_high_resolution_channel
             name: Outside context
-            camera_view: live
+            camera_view: auto
             fit_mode: cover
             aspect_ratio: "4:3"
             show_state: false

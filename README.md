@@ -26,6 +26,16 @@ Assistant registry. Samsung TV, Fire TV, per-session Jellyfin playback and
 Jellyseerr request approval cards are extension points for later phases; they
 will be added after their integrations expose stable entities.
 
+The built-in Moon, Uptime, Shopping List and Local Calendar integrations are
+configured without external accounts. Moon joins the family status strip, the
+Home view includes a shared shopping list and `Family` calendar, and the Rack
+view shows the Home Assistant start time. These config entries are UI-owned on
+the persistent volume; the dashboard references remain Git-owned here.
+
+Protect camera cards use snapshot-first rendering. Live RTSPS can be restored
+after the Protect console's port `7441` is reachable from Home Assistant; cards
+will automatically recover as cameras reconnect in Protect.
+
 ## Repository layout
 
 - `configuration.yaml`: authoritative top-level Home Assistant YAML
