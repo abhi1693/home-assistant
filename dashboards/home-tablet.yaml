@@ -1,5 +1,6 @@
 kiosk_mode:
   hide_header: true
+  hide_sidebar: true
 
 button_card_templates:
   family_status:
@@ -60,6 +61,63 @@ button_card_templates:
         const precision = Math.abs(celsius - Math.round(celsius)) < 0.05 ? 0 : 1;
         return `${celsius.toFixed(precision)} °C`;
       ]]]
+
+  family_fans_status:
+    template: family_status
+    state_display: |
+      [[[
+        const ids = ['fan.master_bedroom_fan', 'fan.bedroom_fan',
+          'fan.guest_fan', 'fan.office_fan', 'fan.kitchen_fan',
+          'fan.dining_fan', 'fan.living_room_fan_1',
+          'fan.living_room_fan_2'];
+        const fans = ids.map((id) => states[id]).filter(Boolean);
+        const available = fans.filter((fan) => fan.state !== 'unavailable');
+        if (!available.length) return 'Unavailable';
+        const running = available.filter((fan) => fan.state === 'on').length;
+        return running ? `${running} running` : 'All off';
+      ]]]
+
+  family_media:
+    template: family_status
+    state_display: |
+      [[[
+        if (!entity || entity.state === 'unavailable') return 'Unavailable';
+        if (entity.state === 'playing') {
+          return entity.attributes.media_title || 'Playing now';
+        }
+        if (entity.state === 'paused') return 'Paused';
+        return 'Ready';
+      ]]]
+    styles:
+      card:
+        - height: 82px
+        - background: |
+            [[[
+              return entity && entity.state === 'playing'
+                ? 'var(--purple)'
+                : 'var(--contrast2)';
+            ]]]
+      icon:
+        - color: |
+            [[[
+              return entity && entity.state === 'playing'
+                ? 'var(--black)'
+                : 'var(--purple)';
+            ]]]
+      name:
+        - color: |
+            [[[
+              return entity && entity.state === 'playing'
+                ? 'rgba(0, 0, 0, 0.62)'
+                : 'var(--contrast10)';
+            ]]]
+      state:
+        - color: |
+            [[[
+              return entity && entity.state === 'playing'
+                ? 'var(--black)'
+                : 'var(--contrast20)';
+            ]]]
 
   family_room:
     show_icon: true
@@ -187,6 +245,9 @@ views:
         cards:
           - &family_navigation
             type: custom:navbar-card
+            grid_options:
+              columns: 1
+              rows: 1
             desktop:
               position: left
               min_width: 768
@@ -240,6 +301,8 @@ views:
                 --navbar-primary-color: var(--purple);
                 background: var(--contrast2);
                 border: 1px solid var(--contrast4);
+                border-radius: 30px;
+                box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
               }
           - type: grid
             square: false
@@ -270,13 +333,13 @@ views:
                   card:
                     - --status-accent: var(--blue)
               - type: custom:button-card
-                template: family_status
-                entity: sensor.jellyfin_5876476948_vc8dc_active_clients
-                name: Jellyfin
-                icon: mdi:jellyfish
+                template: family_fans_status
+                entity: fan.living_room_fan_1
+                name: Fans
+                icon: mdi:fan
                 styles:
                   card:
-                    - --status-accent: var(--purple)
+                    - --status-accent: var(--teal)
               - type: custom:button-card
                 template: family_status
                 entity: person.abhimanyu_saharan
@@ -287,19 +350,22 @@ views:
                     - --status-accent: var(--green)
               - type: custom:button-card
                 template: family_status
-                entity: sensor.moon_phase
-                name: Moon
-                icon: mdi:moon-waning-crescent
+                entity: todo.shopping_list
+                name: Shopping
+                icon: mdi:cart-outline
                 styles:
                   card:
-                    - --status-accent: var(--purple)
+                    - --status-accent: var(--pink)
             grid_options:
-              columns: 12
+              columns: 36
               rows: 2
           - type: heading
             heading: Camera wall
             heading_style: title
             icon: mdi:cctv
+            grid_options:
+              columns: 36
+              rows: 1
             badges:
               - type: entity
                 entity: camera.living_room_high_resolution_channel
@@ -310,64 +376,83 @@ views:
                 tap_action:
                   action: navigate
                   navigation_path: /home-tablet/cameras
-          - type: vertical-stack
+          - type: grid
+            square: false
+            columns: 3
             cards:
               - type: picture-entity
                 entity: camera.living_room_high_resolution_channel
                 name: Living room
                 camera_view: auto
                 fit_mode: cover
-                aspect_ratio: "16:7"
+                aspect_ratio: "16:9"
                 show_state: false
                 tap_action:
                   action: more-info
                 card_mod:
                   style: |
                     ha-card { overflow: hidden; border-radius: 28px; }
-              - type: grid
-                square: false
-                columns: 2
-                cards:
-                  - type: picture-entity
-                    entity: camera.hallway_high_resolution_channel
-                    name: Hallway
-                    camera_view: auto
-                    fit_mode: cover
-                    aspect_ratio: "16:8"
-                    show_state: false
-                    tap_action:
-                      action: more-info
-                  - type: picture-entity
-                    entity: camera.g5_turret_ultra_high_resolution_channel
-                    name: Outside
-                    camera_view: auto
-                    fit_mode: cover
-                    aspect_ratio: "16:8"
-                    show_state: false
-                    tap_action:
-                      action: more-info
+              - type: picture-entity
+                entity: camera.hallway_high_resolution_channel
+                name: Hallway
+                camera_view: auto
+                fit_mode: cover
+                aspect_ratio: "16:9"
+                show_state: false
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card { overflow: hidden; border-radius: 28px; }
+              - type: picture-entity
+                entity: camera.g5_turret_ultra_high_resolution_channel
+                name: Outside
+                camera_view: auto
+                fit_mode: cover
+                aspect_ratio: "16:9"
+                show_state: false
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card { overflow: hidden; border-radius: 28px; }
             grid_options:
-              columns: 12
+              columns: 36
               rows: auto
           - type: heading
             heading: Around the house
             icon: mdi:play-circle-outline
+            grid_options:
+              columns: 36
+              rows: 1
           - type: grid
             square: false
             columns: 3
             cards:
-              - type: media-control
+              - type: custom:button-card
+                template: family_media
                 entity: media_player.abhimanyu_s_echo_2
                 name: Echo
-              - type: media-control
+                icon: mdi:speaker
+              - type: custom:button-card
+                template: family_media
                 entity: media_player.abhimanyu_s_echo_dot_2
                 name: Echo Dot
-              - type: media-control
+                icon: mdi:speaker
+              - type: custom:button-card
+                template: family_media
                 entity: media_player.living_room_speaker
                 name: Living room
+                icon: mdi:speaker-wireless
+            grid_options:
+              columns: 36
+              rows: 2
           - type: heading
             heading: Family board
             icon: mdi:calendar-heart
+            grid_options:
+              columns: 36
+              rows: 1
           - type: grid
             square: false
             columns: 2
@@ -380,6 +465,9 @@ views:
                 initial_view: listWeek
                 entities:
                   - calendar.family
+            grid_options:
+              columns: 36
+              rows: auto
       - type: grid
         cards:
           - type: heading
@@ -504,6 +592,16 @@ views:
             name: Living Room Fan 1
             icon: mdi:fan
             show_state: true
+            styles: &family_fan_control_style |
+              .bubble-button-card-container {
+                height: 82px !important;
+                border-radius: 24px !important;
+              }
+              .bubble-name {
+                font-size: 15px !important;
+                font-weight: 650 !important;
+              }
+              .bubble-state { font-size: 12px !important; }
           - type: custom:bubble-card
             card_type: button
             button_type: slider
@@ -511,6 +609,7 @@ views:
             name: Living Room Fan 2
             icon: mdi:fan
             show_state: true
+            styles: *family_fan_control_style
       - type: grid
         cards:
           - type: heading
@@ -524,6 +623,7 @@ views:
             name: Master Bedroom
             icon: mdi:fan
             show_state: true
+            styles: *family_fan_control_style
           - type: custom:bubble-card
             card_type: button
             button_type: slider
@@ -531,6 +631,7 @@ views:
             name: Bedroom
             icon: mdi:fan
             show_state: true
+            styles: *family_fan_control_style
           - type: custom:bubble-card
             card_type: button
             button_type: slider
@@ -538,6 +639,7 @@ views:
             name: Guest Room
             icon: mdi:fan
             show_state: true
+            styles: *family_fan_control_style
       - type: grid
         cards:
           - type: heading
@@ -551,6 +653,7 @@ views:
             name: Kitchen
             icon: mdi:fan
             show_state: true
+            styles: *family_fan_control_style
           - type: custom:bubble-card
             card_type: button
             button_type: slider
@@ -558,6 +661,7 @@ views:
             name: Dining Room
             icon: mdi:fan
             show_state: true
+            styles: *family_fan_control_style
       - type: grid
         cards:
           - type: heading
@@ -571,6 +675,7 @@ views:
             name: Office Fan
             icon: mdi:fan
             show_state: true
+            styles: *family_fan_control_style
 
   - title: Cameras
     path: cameras
@@ -597,40 +702,49 @@ views:
         column_span: 3
         cards:
           - *family_navigation
-          - type: picture-entity
-            entity: camera.living_room_high_resolution_channel
-            name: Living room
-            camera_view: auto
-            fit_mode: cover
-            aspect_ratio: "16:7"
-            show_state: false
-            tap_action:
-              action: more-info
-            card_mod:
-              style: |
-                ha-card { overflow: hidden; border-radius: 28px; }
           - type: grid
             square: false
-            columns: 2
+            columns: 3
             cards:
+              - type: picture-entity
+                entity: camera.living_room_high_resolution_channel
+                name: Living room
+                camera_view: auto
+                fit_mode: cover
+                aspect_ratio: "16:9"
+                show_state: false
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card { overflow: hidden; border-radius: 28px; }
               - type: picture-entity
                 entity: camera.hallway_high_resolution_channel
                 name: Hallway
                 camera_view: auto
                 fit_mode: cover
-                aspect_ratio: "16:8"
+                aspect_ratio: "16:9"
                 show_state: false
                 tap_action:
                   action: more-info
+                card_mod:
+                  style: |
+                    ha-card { overflow: hidden; border-radius: 28px; }
               - type: picture-entity
                 entity: camera.g5_turret_ultra_high_resolution_channel
                 name: Outside
                 camera_view: auto
                 fit_mode: cover
-                aspect_ratio: "16:8"
+                aspect_ratio: "16:9"
                 show_state: false
                 tap_action:
                   action: more-info
+                card_mod:
+                  style: |
+                    ha-card { overflow: hidden; border-radius: 28px; }
+            grid_options:
+              columns: 36
+              rows: auto
 
   - title: Music
     path: music
@@ -668,6 +782,9 @@ views:
             heading: Music Assistant
             heading_style: title
             icon: mdi:music-circle
+            grid_options:
+              columns: 36
+              rows: 1
             badges:
               - type: entity
                 entity: media_player.living_room_speaker
@@ -682,7 +799,7 @@ views:
             aspect_ratio: 60%
             title: Music Assistant
             grid_options:
-              columns: 12
+              columns: 36
               rows: auto
       - type: grid
         cards:

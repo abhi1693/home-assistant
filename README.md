@@ -10,6 +10,8 @@ The desktop visual language closely follows the composition of
 navigation rail, narrative greeting, compact status strip, one dominant content
 zone, a narrow room matrix, soft rounded surfaces and useful information visible
 without drilling through menus. Mobile-specific design is intentionally deferred.
+The native Home Assistant sidebar is hidden on these kiosk views so it does not
+compete with the family navigation rail.
 
 ## Dashboards
 
@@ -25,6 +27,11 @@ The current dashboard only references entities verified in the live Home
 Assistant registry. Samsung TV, Fire TV, per-session Jellyfin playback and
 Jellyseerr request approval cards are extension points for later phases; they
 will be added after their integrations expose stable entities.
+
+The shared overview favors household decisions over system telemetry: weather,
+presence, fan availability, shopping, three equal camera glances, simple media
+destinations, the family calendar, and large room controls. Rack health remains
+confined to the admin-only dashboard.
 
 The built-in Moon, Uptime, Shopping List and Local Calendar integrations are
 configured without external accounts. Moon joins the family status strip, the
