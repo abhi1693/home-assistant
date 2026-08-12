@@ -83,9 +83,11 @@ dashboards after backing them up. A source-owned system integration unregisters
 the built-in `/home/overview` panel on every startup, leaving the custom `Home`
 and `Rack` dashboards as the intentional dashboard surfaces.
 
-The Atomberg fork preserves cloud-reported availability and polls device state
-every 30 seconds. Local UDP broadcasts remain an optional low-latency update
-path, so the fan entities stay usable when Home Assistant runs in Kubernetes.
+The Atomberg fork publishes successful command state immediately, polls all fan
+states once per hour, and persists hard limits of 100 total cloud calls and 24
+poll calls per rolling 24 hours. Calls are spaced below five per second. Local
+UDP broadcasts remain the preferred zero-quota low-latency update path when
+they can reach Home Assistant.
 
 ## Validation
 
