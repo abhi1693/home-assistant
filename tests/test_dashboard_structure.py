@@ -37,6 +37,18 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertEqual(navigation.count("return Boolean(user?.is_admin);"), 2)
         self.assertEqual(navigation.count("return !user?.is_admin;"), 2)
 
+    def test_washer_card_is_read_only_and_uses_verified_entities(self):
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+
+        self.assertIn("template: family_washer_status", home)
+        self.assertIn("entity: sensor.front_load_washer_current_status", home)
+        self.assertIn("sensor.front_load_washer_remaining_time", home)
+        self.assertIn("sensor.front_load_washer_total_time", home)
+        washer_template = home.split("  family_washer_status:", 1)[1].split(
+            "\nviews:", 1
+        )[0]
+        self.assertEqual(washer_template.count("action: none"), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

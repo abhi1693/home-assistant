@@ -91,6 +91,12 @@ Assistant start time. These config entries and shopping-list contents are
 UI-owned on the persistent volume; the dashboard presentation and access rules
 remain Git-owned here.
 
+Home also presents the LG ThinQ front-load washer as a compact read-only family
+status. It shows the current stage, remaining or total cycle time, and completion
+state. Because the cloud integration reports an electrically-off washer as
+unavailable, the card deliberately renders that normal condition as `Washer is
+off`; it exposes no power, operation, delayed-end, or remote-start controls.
+
 The source configuration fixes Home Assistant to the metric unit system. All
 temperature cards render an explicit `°C`, and package-owned template sensors
 convert the two UniFi readings that publish Fahrenheit into Celsius before they

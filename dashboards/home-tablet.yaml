@@ -761,6 +761,49 @@ button_card_templates:
       card:
         - height: 72px
 
+  family_washer_status:
+    template: family_board_item
+    entity: sensor.front_load_washer_current_status
+    name: Laundry
+    icon: mdi:washing-machine
+    show_state: true
+    state_display: |
+      [[[
+        if (!entity || entity.state === 'unavailable') return 'Washer is off';
+        if (entity.state === 'unknown') return 'Status unavailable';
+        const value = entity.state.toLowerCase().replaceAll('_', ' ');
+        if (['complete', 'completed', 'finished', 'end'].includes(value)) {
+          return 'Laundry is ready';
+        }
+        return value.replace(/\b\w/g, (letter) => letter.toUpperCase());
+      ]]]
+    tap_action:
+      action: none
+    hold_action:
+      action: none
+    double_tap_action:
+      action: none
+    styles:
+      card:
+        - --status-accent: |
+            [[[
+              if (!entity || entity.state === 'unavailable') return 'var(--contrast10)';
+              const value = entity.state.toLowerCase();
+              if (['complete', 'completed', 'finished', 'end'].includes(value)) {
+                return 'var(--green)';
+              }
+              return 'var(--blue)';
+            ]]]
+      state:
+        - color: |
+            [[[
+              if (!entity || entity.state === 'unavailable') return 'var(--contrast14)';
+              const value = entity.state.toLowerCase();
+              return ['complete', 'completed', 'finished', 'end'].includes(value)
+                ? 'var(--green)'
+                : 'var(--contrast20)';
+            ]]]
+
 views:
   - title: Home
     path: home
@@ -1156,6 +1199,41 @@ views:
                     styles:
                       card:
                         - --status-accent: var(--green)
+                  - type: custom:button-card
+                    template: family_washer_status
+                    label: |
+                      [[[
+                        if (!entity || entity.state === 'unavailable') {
+                          return 'Connects automatically when powered on';
+                        }
+                        const remaining = states['sensor.front_load_washer_remaining_time'];
+                        if (remaining && !['unknown', 'unavailable'].includes(remaining.state)) {
+                          const end = new Date(remaining.state);
+                          const minutes = Math.ceil((end.getTime() - Date.now()) / 60000);
+                          if (Number.isFinite(minutes) && minutes > 0) {
+                            if (minutes < 60) return `${minutes} min remaining`;
+                            const hours = Math.floor(minutes / 60);
+                            const rest = minutes % 60;
+                            return `${hours} hr${hours === 1 ? '' : 's'}${rest ? ` ${rest} min` : ''} remaining`;
+                          }
+                        }
+                        const total = states['sensor.front_load_washer_total_time'];
+                        const minutes = Number(total?.state);
+                        return Number.isFinite(minutes) && minutes > 0
+                          ? `${minutes} min cycle`
+                          : 'No active cycle';
+                      ]]]
+                    show_label: true
+                    styles:
+                      grid:
+                        - grid-template-areas: '"i n" "i s" "i l"'
+                        - grid-template-rows: min-content min-content min-content
+                      label:
+                        - justify-self: start
+                        - color: var(--contrast10)
+                        - font-size: 11px
+                        - font-weight: 500
+                        - line-height: 14px
             grid_options:
               columns: 36
               rows: auto
