@@ -121,33 +121,7 @@ views:
       - type: grid
         column_span: 4
         cards:
-          - type: custom:navbar-card
-            desktop:
-              position: left
-              min_width: 768
-              show_labels: true
-            routes:
-              - icon: mdi:home-outline
-                icon_selected: mdi:home-heart
-                url: /home-tablet/home
-                label: Home
-              - icon: mdi:server-network-outline
-                icon_selected: mdi:server-network
-                url: /rack-admin/overview
-                label: Rack
-              - icon: mdi:cctv
-                url: /home-tablet/cameras
-                label: Cameras
-              - icon: mdi:cog-outline
-                icon_selected: mdi:cog
-                url: /config/dashboard
-                label: Settings
-            styles: |
-              .navbar {
-                --navbar-primary-color: var(--blue);
-                background: var(--contrast2);
-                border: 1px solid var(--contrast4);
-              }
+          - !include includes/family-navigation.yaml
       - type: grid
         column_span: 2
         cards:

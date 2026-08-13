@@ -28,9 +28,9 @@ attention receive color.
   embedded Music Assistant experience with Jellyfin activity.
 - **Rack** is admin-only. It keeps Kubernetes, UniFi and rack temperatures away
   from the shared family experience.
-- Home's navbar adds a single admin-only menu for Rack, Settings, Devices,
-  Integrations, Automations and Developer Tools. Non-admin family accounts keep
-  the uncluttered Home, Rooms, Cameras and Music navigation.
+- Every dashboard view consumes the same source-owned navigation rail. Admins
+  see Home, Rack, Cameras and Settings consistently across Home and Rack;
+  non-admin family accounts see Home, Rooms, Cameras and Music.
 - `Family Dark` is the local visual system. Bubble Card, Button Card, Navbar Card,
   Card Mod, Todo Swipe Card and Kiosk Mode are commit/version-pinned,
   checksum-verified assets.
@@ -121,6 +121,7 @@ stream quality configuration reproducible without committing Protect secrets.
 - `location/`: canonical home address and integration location targets
 - `configuration.yaml`: authoritative top-level Home Assistant YAML
 - `dashboards/`: the family and admin Lovelace dashboards
+- `dashboards/includes/family-navigation.yaml`: the shared account-aware rail
 - `custom_components/family_dashboard_guard/`: removes the superseded built-in
   Home panel after the frontend integration starts
 - `custom_components/family_camera_streams/`: reconciles Git-owned Protect
