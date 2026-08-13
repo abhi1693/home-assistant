@@ -22,6 +22,8 @@ family_dashboard_guard:
 family_camera_streams:
 
 sensor:
+  - platform: family_announcements
+    access_file: /config/access/family-dashboard.json
   - platform: family_jellyfin_sessions
   - platform: family_music_assistant_sessions
 
@@ -40,7 +42,7 @@ lovelace:
       type: module
     - url: /local/community/auto-entities/auto-entities.js?v=1.16.1
       type: module
-    - url: /local/family-announcement-card.js?v=1.0.0
+    - url: /local/family-announcements-card.js?v=2.0.0
       type: module
     - url: /local/community/todo-swipe-card/todo-swipe-card.js?v=3.6.0
       type: module

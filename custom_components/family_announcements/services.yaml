@@ -1,0 +1,29 @@
+publish:
+  name: Publish announcement
+  description: Add a family banner and notify every mapped Companion App phone.
+  fields:
+    message:
+      name: Message
+      description: The short household update to share.
+      required: true
+      example: Dinner will be ready at 8.
+      selector:
+        text:
+          multiline: true
+          multiple: false
+    expires_at:
+      name: End time
+      description: Optional time when this announcement should disappear.
+      required: false
+      selector:
+        datetime:
+dismiss:
+  name: Dismiss announcement
+  description: Remove one active announcement from the family dashboard.
+  fields:
+    announcement_id:
+      name: Announcement ID
+      description: The persistent ID exposed by sensor.family_announcements.
+      required: true
+      selector:
+        text:

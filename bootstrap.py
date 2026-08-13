@@ -426,6 +426,7 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     users_by_camera = {key: [] for key in cameras}
     desired_people = {}
     desired_tracker_owners = {}
+    desired_notify_owners = {}
 
     for profile_key, profile in access.get("profiles", {}).items():
         user_id = profile["user_id"]
@@ -436,6 +437,29 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             raise RuntimeError(f"Family profile {profile_key} username changed")
         if bool(user.get("is_owner")) != bool(profile.get("is_owner", False)):
             raise RuntimeError(f"Family profile {profile_key} owner status changed")
+
+        notify_entity_id = profile.get("notify_entity_id")
+        if notify_entity_id:
+            notify_entity = entities.get(notify_entity_id)
+            if (
+                not isinstance(notify_entity_id, str)
+                or not notify_entity_id.startswith("notify.")
+                or notify_entity is None
+                or notify_entity.get("platform") != "mobile_app"
+                or notify_entity.get("disabled_by") is not None
+            ):
+                raise RuntimeError(
+                    f"Family profile {profile_key} has an unavailable Companion App "
+                    f"notification entity: {notify_entity_id}"
+                )
+            previous_owner = desired_notify_owners.setdefault(
+                notify_entity_id, user_id
+            )
+            if previous_owner != user_id:
+                raise RuntimeError(
+                    f"Notification entity {notify_entity_id} is assigned to multiple "
+                    "family accounts"
+                )
 
         person_entity_id = profile.get("person_entity_id")
         if person_entity_id:

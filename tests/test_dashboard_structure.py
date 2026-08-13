@@ -59,9 +59,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("sensor.home_apparent_temperature", header)
         self.assertIn("sensor.home_thunderstorm_probability", header)
         self.assertIn("todo.shopping_list", header)
-        self.assertIn("input_text.family_household_notice", header)
-        self.assertIn("input_boolean.family_household_notice_expires", header)
-        self.assertIn("notice_state in ['unknown', 'unavailable']", header)
+        self.assertNotIn("input_text.family_household_notice", header)
+        self.assertNotIn("input_boolean.family_household_notice_expires", header)
         self.assertIn("now().strftime('%-I:%M %p')", header)
         self.assertIn("event_days == 0", header)
         self.assertIn("event_days == 1", header)
@@ -82,8 +81,12 @@ class DashboardStructureTests(unittest.TestCase):
             home_view,
         )
         self.assertIn("heading: Today", home_view)
-        self.assertIn("type: custom:family-announcement-card", home_view)
-        self.assertIn("title: Announcements", home_view)
+        self.assertEqual(
+            home_view.count("type: custom:family-announcements-card"), 2
+        )
+        self.assertIn("entity: sensor.family_announcements", home_view)
+        self.assertIn("mode: banner", home_view)
+        self.assertIn("mode: composer", home_view)
         self.assertNotIn("name: Notice expiry", home_view)
         self.assertIn("template: family_media_launchers", home_view)
         self.assertIn("sensor.music_assistant_session_*", home_view)
@@ -121,18 +124,25 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("/home-tablet/music", navigation)
         self.assertNotIn("label: Music", navigation)
 
-    def test_family_announcement_helpers_and_composer_are_git_owned(self):
-        package = (ROOT / "packages/family_console.yaml").read_text()
-        composer = (ROOT / "www/family-announcement-card.js").read_text()
+    def test_family_announcements_are_persistent_attributed_and_git_owned(self):
+        configuration = (ROOT / "configuration.yaml").read_text()
+        access = (ROOT / "access/family-dashboard.json").read_text()
+        integration = (
+            ROOT / "custom_components/family_announcements/sensor.py"
+        ).read_text()
+        card = (ROOT / "www/family-announcements-card.js").read_text()
 
-        self.assertIn("family_household_notice:", package)
-        self.assertIn("family_household_notice_expires:", package)
-        self.assertIn("family_household_notice_until:", package)
-        self.assertIn("name: Announcements", package)
-        self.assertIn('customElements.define("family-announcement-card"', composer)
-        self.assertIn('callService("input_text", "set_value"', composer)
-        self.assertIn('callService("input_datetime", "set_datetime"', composer)
-        self.assertIn('callService("input_boolean", "turn_on"', composer)
+        self.assertIn("platform: family_announcements", configuration)
+        self.assertIn("notify.abhimanyu_pixel_8", access)
+        self.assertIn("notify.pixel_10_pro", access)
+        self.assertIn("notify.iphone", access)
+        self.assertIn("Store(", integration)
+        self.assertIn("call.context.user_id", integration)
+        self.assertIn('"notify",\n            "send_message"', integration)
+        self.assertIn('customElements.define("family-announcements-card"', card)
+        self.assertIn('callService("family_announcements", "publish"', card)
+        self.assertIn('callService("family_announcements", "dismiss"', card)
+        self.assertFalse((ROOT / "packages/family_console.yaml").exists())
 
     def test_camera_wall_applies_each_camera_user_gate(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()

@@ -1,0 +1,9 @@
+{
+  "domain": "family_announcements",
+  "name": "Family Announcements",
+  "codeowners": [],
+  "dependencies": ["notify"],
+  "documentation": "https://github.com/abhi1693/home-assistant",
+  "integration_type": "system",
+  "version": "2.0.0"
+}

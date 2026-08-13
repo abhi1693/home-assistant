@@ -30,7 +30,7 @@ class BootstrapTests(unittest.TestCase):
         self.write("dashboards/home.yaml", "views: []\n")
         self.write("location/home.json", '{"version": 1}\n')
         self.write("www/bubble/bubble-modules.yaml", "modules: {}\n")
-        self.write("www/family-announcement-card.js", "export default {};\n")
+        self.write("www/family-announcements-card.js", "export default {};\n")
         self.write(
             "custom_components/family_dashboard_guard/__init__.py",
             "VALUE = 1\n",
@@ -77,7 +77,7 @@ class BootstrapTests(unittest.TestCase):
             "modules: {}\n",
         )
         self.assertEqual(
-            (self.config / "www/family-announcement-card.js").read_text(),
+            (self.config / "www/family-announcements-card.js").read_text(),
             "export default {};\n",
         )
 
@@ -546,6 +546,14 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(
             profiles["manisha"]["device_trackers"], ["device_tracker.iphone"]
         )
+        self.assertEqual(
+            profiles["abhimanyu-saharan"]["notify_entity_id"],
+            "notify.abhimanyu_pixel_8",
+        )
+        self.assertEqual(
+            profiles["krishna"]["notify_entity_id"], "notify.pixel_10_pro"
+        )
+        self.assertEqual(profiles["manisha"]["notify_entity_id"], "notify.iphone")
         self.assertEqual(profiles["manisha"]["cameras"], ["hallway", "outside"])
         self.assertTrue(profiles["manisha"]["enforce_camera_policy"])
         self.assertEqual(

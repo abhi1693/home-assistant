@@ -61,9 +61,10 @@ household message: laundry completion, a current or next-day family event,
 significant heat or storms, shopping needs, or a time-appropriate all-clear.
 Its context line includes the weekday, day part and current time, and its weather
 advice changes between morning, afternoon, evening and night. A Git-owned
-Announcements composer lets family members publish or clear that override
-inline, keep it until cleared, or choose an end time without opening Home
-Assistant's raw entity dialog.
+Announcements composer lets family members add independent household updates,
+keep each until dismissed or give it an end time. Active messages appear as
+account-attributed banners below the briefing and are sent to every mapped
+family Companion App phone.
 Routine fan-off state is omitted; running fans are called out because they are
 useful household context. The compact Todo Swipe Shopping
 card supports adding, editing, completing and removing list items directly from
@@ -165,8 +166,11 @@ stream quality configuration reproducible without committing Protect secrets.
 - `custom_components/family_music_assistant_sessions/`: mirrors dynamic Music
   Assistant players that deliberately opt out of native Home Assistant entities,
   reusing the integration's existing event stream without polling
+- `custom_components/family_announcements/`: persists multiple account-attributed
+  family banners, expires them independently and sends each new message to the
+  Companion App phones declared in the access policy
 - `themes/`: source-owned themes
-- `packages/`: source-owned helpers, including the family announcement and expiry
+- `packages/`: source-owned helpers for normalized temperature presentation
 - `migrations/`: guarded, one-time area/device migration inputs
 - `bootstrap.py`: idempotent installer used by the Kubernetes init container
 - `bootstrap/manifest.json`: pinned and SHA-verified external assets and custom
