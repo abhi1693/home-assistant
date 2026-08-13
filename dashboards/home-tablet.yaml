@@ -475,6 +475,7 @@ button_card_templates:
     show_label: true
     name: |
       [[[
+        if (variables.traveler) return `${variables.traveler} → Home`;
         return variables.destination || 'Commute';
       ]]]
     icon: |
@@ -483,10 +484,16 @@ button_card_templates:
       ]]]
     label: |
       [[[
-        const person = states[variables.person_entity];
-        if (variables.zero_when_home && person?.state === 'home') return '0 min';
         const minutes = Number(entity?.state);
-        return Number.isFinite(minutes) ? `${Math.round(minutes)} min` : '—';
+        if (!Number.isFinite(minutes)) return '—';
+        const duration = `${Math.round(minutes)} min`;
+        if (!variables.arrival_eta) return duration;
+        const arrival = new Date(Date.now() + minutes * 60000);
+        const time = new Intl.DateTimeFormat(undefined, {
+          hour: 'numeric',
+          minute: '2-digit'
+        }).format(arrival);
+        return `${duration} · ${time}`;
       ]]]
     tap_action:
       action: more-info
@@ -1574,22 +1581,70 @@ views:
             visibility:
               - condition: user
                 users: !include ../access/generated/calendar-household-users.json
+          - type: heading
+            heading: Coming home
+            heading_style: subtitle
+            icon: mdi:home-import-outline
+            visibility:
+              - condition: user
+                users: !include ../access/generated/family-members-users.json
+              - condition: or
+                conditions:
+                  - condition: state
+                    entity: sensor.family_arrivals_abhimanyu_direction_of_travel
+                    state: towards
+                  - condition: state
+                    entity: sensor.family_arrivals_krishna_direction_of_travel
+                    state: towards
+                  - condition: state
+                    entity: sensor.family_arrivals_manisha_direction_of_travel
+                    state: towards
           - type: custom:button-card
             template: family_commute
             entity: sensor.abhimanyu_to_home
             variables:
-              destination: Home
-              icon: mdi:home-clock
-              person_entity: person.abhimanyu_saharan
-              zero_when_home: true
+              traveler: Abhimanyu
+              icon: mdi:car-clock
+              arrival_eta: true
+            visibility:
+              - condition: user
+                users: !include ../access/generated/family-members-users.json
+              - condition: state
+                entity: sensor.family_arrivals_abhimanyu_direction_of_travel
+                state: towards
+          - type: custom:button-card
+            template: family_commute
+            entity: sensor.krishna_to_home
+            variables:
+              traveler: Krishna
+              icon: mdi:car-clock
+              arrival_eta: true
+            visibility:
+              - condition: user
+                users: !include ../access/generated/family-members-users.json
+              - condition: state
+                entity: sensor.family_arrivals_krishna_direction_of_travel
+                state: towards
+          - type: custom:button-card
+            template: family_commute
+            entity: sensor.manisha_to_home
+            variables:
+              traveler: Manisha
+              icon: mdi:car-clock
+              arrival_eta: true
+            visibility:
+              - condition: user
+                users: !include ../access/generated/family-members-users.json
+              - condition: state
+                entity: sensor.family_arrivals_manisha_direction_of_travel
+                state: towards
           - type: custom:button-card
             template: family_commute
             entity: sensor.abhimanyu_home_to_work
             variables:
               destination: Work
               icon: mdi:briefcase-clock
-              person_entity: person.abhimanyu_saharan
-              zero_when_home: false
+              arrival_eta: false
             visibility:
               - condition: user
                 users: !include ../access/generated/profile-abhimanyu-saharan-users.json

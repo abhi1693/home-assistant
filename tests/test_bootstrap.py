@@ -4,12 +4,21 @@ import tarfile
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import bootstrap
 
 
 class BootstrapTests(unittest.TestCase):
     def setUp(self):
+        self.environment = patch.dict(
+            "os.environ",
+            {
+                "KRISHNA_WORK_COORDINATES": "28.57,77.06",
+                "MANISHA_WORK_COORDINATES": "28.46,77.04",
+            },
+        )
+        self.environment.start()
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
         self.source = self.root / "source"
@@ -19,11 +28,107 @@ class BootstrapTests(unittest.TestCase):
 
     def tearDown(self):
         self.temporary.cleanup()
+        self.environment.stop()
 
     def write(self, relative_path, content):
         path = self.source / relative_path
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content)
+
+    def commute_desired(self):
+        return {
+            "version": 1,
+            "config_entry_id": "travel-entry",
+            "tracker_entity_id": "device_tracker.owner_phone",
+            "to_work_entity_id": "sensor.owner_to_work",
+            "home_routes": [
+                {
+                    "profile_key": "owner",
+                    "person_entity_id": "person.owner",
+                    "tracker_entity_id": "device_tracker.owner_phone",
+                    "to_home_entity_id": "sensor.owner_to_home",
+                    "direction_entity_id": (
+                        "sensor.family_arrivals_owner_direction_of_travel"
+                    ),
+                },
+                {
+                    "profile_key": "krishna",
+                    "person_entity_id": "person.krishna",
+                    "tracker_entity_id": "device_tracker.krishna_phone",
+                    "to_home_entity_id": "sensor.krishna_to_home",
+                    "direction_entity_id": (
+                        "sensor.family_arrivals_krishna_direction_of_travel"
+                    ),
+                },
+                {
+                    "profile_key": "manisha",
+                    "person_entity_id": "person.manisha",
+                    "tracker_entity_id": "device_tracker.manisha_phone",
+                    "to_home_entity_id": "sensor.manisha_to_home",
+                    "direction_entity_id": (
+                        "sensor.family_arrivals_manisha_direction_of_travel"
+                    ),
+                },
+            ],
+            "proximity": {
+                "entry_id": "proximity-entry",
+                "title": "Family arrivals",
+                "zone_entity_id": "zone.home",
+                "tolerance": 100,
+            },
+            "work_zone": {
+                "id": "work",
+                "name": "Work",
+                "radius": 150,
+                "icon": "mdi:briefcase",
+            },
+            "private_work_zones": [
+                {
+                    "profile_key": "krishna",
+                    "name": "Krishna Work",
+                    "coordinates_env": "KRISHNA_WORK_COORDINATES",
+                    "radius": 150,
+                    "icon": "mdi:briefcase",
+                },
+                {
+                    "profile_key": "manisha",
+                    "name": "Manisha Work",
+                    "coordinates_env": "MANISHA_WORK_COORDINATES",
+                    "radius": 150,
+                    "icon": "mdi:briefcase",
+                },
+            ],
+        }
+
+    def commute_entities(self):
+        entities = [
+            {
+                "entity_id": "sensor.owner_to_work",
+                "platform": "google_travel_time",
+                "config_entry_id": "travel-entry",
+                "disabled_by": None,
+            }
+        ]
+        for person, tracker in (
+            ("owner", "owner_phone"),
+            ("krishna", "krishna_phone"),
+            ("manisha", "manisha_phone"),
+        ):
+            entities.extend(
+                [
+                    {
+                        "entity_id": f"person.{person}",
+                        "platform": "person",
+                        "disabled_by": None,
+                    },
+                    {
+                        "entity_id": f"device_tracker.{tracker}",
+                        "platform": "mobile_app",
+                        "disabled_by": None,
+                    },
+                ]
+            )
+        return entities
 
     def test_sync_replaces_owned_files_and_removes_only_stale_owned_files(self):
         self.write("configuration.yaml", "default_config:\n")
@@ -195,6 +300,7 @@ class BootstrapTests(unittest.TestCase):
                             "user_id": owner_id,
                             "username": "owner",
                             "person_entity_id": "person.owner",
+                            "is_family_member": True,
                             "is_owner": True,
                             "cameras": ["master-bedroom", "hallway"],
                         },
@@ -202,6 +308,7 @@ class BootstrapTests(unittest.TestCase):
                             "user_id": reviewer_id,
                             "username": "reviewer",
                             "person_entity_id": None,
+                            "is_family_member": False,
                             "is_owner": False,
                             "enforce_camera_policy": True,
                             "cameras": ["master-bedroom"],
@@ -389,6 +496,12 @@ class BootstrapTests(unittest.TestCase):
                 ).read_text()
             ),
             [reviewer_id],
+        )
+        self.assertEqual(
+            json.loads(
+                (self.config / "access/generated/family-members-users.json").read_text()
+            ),
+            [owner_id],
         )
         self.assertTrue(
             next((self.config / "backups").glob("auth.pre-family-access-*"))
@@ -980,21 +1093,7 @@ class BootstrapTests(unittest.TestCase):
     def test_commute_uses_mobile_gps_and_generates_private_work_zone(self):
         self.write(
             "location/commute.json",
-            json.dumps(
-                {
-                    "version": 1,
-                    "config_entry_id": "travel-entry",
-                    "tracker_entity_id": "device_tracker.owner_phone",
-                    "to_work_entity_id": "sensor.owner_to_work",
-                    "to_home_entity_id": "sensor.owner_to_home",
-                    "work_zone": {
-                        "id": "work",
-                        "name": "Work",
-                        "radius": 150,
-                        "icon": "mdi:briefcase",
-                    },
-                }
-            ),
+            json.dumps(self.commute_desired()),
         )
         storage = self.config / ".storage"
         storage.mkdir()
@@ -1017,25 +1116,7 @@ class BootstrapTests(unittest.TestCase):
         entries_path = storage / "core.config_entries"
         entries_path.write_text(json.dumps(entries))
         (storage / "core.entity_registry").write_text(
-            json.dumps(
-                {
-                    "data": {
-                        "entities": [
-                            {
-                                "entity_id": "device_tracker.owner_phone",
-                                "platform": "mobile_app",
-                                "disabled_by": None,
-                            },
-                            {
-                                "entity_id": "sensor.owner_to_work",
-                                "platform": "google_travel_time",
-                                "config_entry_id": "travel-entry",
-                                "disabled_by": None,
-                            },
-                        ]
-                    }
-                }
-            )
+            json.dumps({"data": {"entities": self.commute_entities()}})
         )
 
         bootstrap.reconcile_commute(self.source, self.config)
@@ -1046,6 +1127,22 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(entry["data"]["origin"], "device_tracker.owner_phone")
         self.assertEqual(entry["data"]["destination"], "28.4, 77.1")
         self.assertTrue(entry["pref_disable_polling"])
+        proximity_entry = reconciled["data"]["entries"][1]
+        self.assertEqual(proximity_entry["entry_id"], "proximity-entry")
+        self.assertEqual(proximity_entry["domain"], "proximity")
+        self.assertEqual(
+            proximity_entry["data"],
+            {
+                "zone": "zone.home",
+                "tracked_entities": [
+                    "person.owner",
+                    "person.krishna",
+                    "person.manisha",
+                ],
+                "ignored_zones": [],
+                "tolerance": 100,
+            },
+        )
         private_package = json.loads(
             (self.config / bootstrap.PRIVATE_COMMUTE_PACKAGE).read_text()
         )
@@ -1060,7 +1157,23 @@ class BootstrapTests(unittest.TestCase):
                         "radius": 150.0,
                         "passive": False,
                         "icon": "mdi:briefcase",
-                    }
+                    },
+                    {
+                        "name": "Krishna Work",
+                        "latitude": 28.57,
+                        "longitude": 77.06,
+                        "radius": 150.0,
+                        "passive": False,
+                        "icon": "mdi:briefcase",
+                    },
+                    {
+                        "name": "Manisha Work",
+                        "latitude": 28.46,
+                        "longitude": 77.04,
+                        "radius": 150.0,
+                        "passive": False,
+                        "icon": "mdi:briefcase",
+                    },
                 ]
             },
         )
@@ -1075,21 +1188,7 @@ class BootstrapTests(unittest.TestCase):
     def test_commute_rejects_an_entity_destination_for_private_zone(self):
         self.write(
             "location/commute.json",
-            json.dumps(
-                {
-                    "version": 1,
-                    "config_entry_id": "travel-entry",
-                    "tracker_entity_id": "device_tracker.owner_phone",
-                    "to_work_entity_id": "sensor.owner_to_work",
-                    "to_home_entity_id": "sensor.owner_to_home",
-                    "work_zone": {
-                        "id": "work",
-                        "name": "Work",
-                        "radius": 150,
-                        "icon": "mdi:briefcase",
-                    },
-                }
-            ),
+            json.dumps(self.commute_desired()),
         )
         storage = self.config / ".storage"
         storage.mkdir()
@@ -1113,7 +1212,7 @@ class BootstrapTests(unittest.TestCase):
             )
         )
         (storage / "core.entity_registry").write_text(
-            json.dumps({"data": {"entities": []}})
+            json.dumps({"data": {"entities": self.commute_entities()}})
         )
 
         with self.assertRaisesRegex(RuntimeError, "static coordinate pair"):

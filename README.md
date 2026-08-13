@@ -35,18 +35,26 @@ and red communicate full/charging, normal, low and critical levels. The Pixel 8,
 Pixel 10 Pro and iPhone level/state entity pairs are recorded in the Git-owned
 family access matrix.
 
-The sidebar includes `sensor.abhimanyu_to_home` for every family account, using
-Abhimanyu's Pixel 8 GPS position to show his current traffic-aware time home.
-Abhimanyu additionally sees `sensor.abhimanyu_home_to_work`; that Work card is
-hidden while his phone is inside the private Work zone. Both use compact
-green, amber or red commute cards. The Git-owned bootstrap converts the existing
-Google Travel Time origin to the Companion App GPS tracker, disables duplicate
-automatic polling, and derives a runtime-only Work zone from the integration's
-existing destination. The API key and Work coordinates remain in Home
-Assistant's private storage and are never copied into this public repository.
-The paired routes refresh every 20 minutes and on meaningful Home/Work
-transitions, keeping the two ETAs near Google Maps' documented free monthly
-request allowance.
+The sidebar has a shared **Coming home** surface for Abhimanyu, Krishna and
+Manisha. Home Assistant's native Proximity integration watches each person's
+GPS direction and only reveals an arrival card while that person is actually
+moving toward Home. Each card shows both remaining traffic-aware drive time and
+the calculated arrival clock; stationary, away-bound and already-home people
+do not produce misleading arrival claims. Abhimanyu additionally sees
+`sensor.abhimanyu_home_to_work`, hidden while his phone is inside the private
+Work zone. Krishna and Manisha also receive private named Work zones so their
+presence state is useful without exposing either workplace location in source.
+
+The Git-owned bootstrap converts the existing Google Travel Time origin to the
+Pixel 8 Companion App tracker, disables duplicate automatic polling, creates
+the family Proximity entry, and derives Abhimanyu's runtime-only Work zone from
+the integration's existing destination. Krishna and Manisha's coordinates are
+supplied to bootstrap by encrypted deployment secrets. The same private Google
+configuration is reused for all three home routes. Its API key and all Work
+coordinates remain in private storage and are never copied into this public
+repository. Home routes call Google only while Proximity reports `towards` and
+valid GPS coordinates are available; they refresh every 20 minutes during that
+journey and immediately when homeward travel is first detected.
 
 ## Dashboards
 

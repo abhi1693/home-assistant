@@ -3,11 +3,55 @@
   "config_entry_id": "01KZYG4SWHRFJBKQPFR4V2HDPV",
   "tracker_entity_id": "device_tracker.abhimanyu_pixel_8_2",
   "to_work_entity_id": "sensor.abhimanyu_home_to_work",
-  "to_home_entity_id": "sensor.abhimanyu_to_home",
+  "home_routes": [
+    {
+      "profile_key": "abhimanyu-saharan",
+      "person_entity_id": "person.abhimanyu_saharan",
+      "tracker_entity_id": "device_tracker.abhimanyu_pixel_8_2",
+      "to_home_entity_id": "sensor.abhimanyu_to_home",
+      "direction_entity_id": "sensor.family_arrivals_abhimanyu_direction_of_travel"
+    },
+    {
+      "profile_key": "krishna",
+      "person_entity_id": "person.krishna",
+      "tracker_entity_id": "device_tracker.pixel_10_pro_2",
+      "to_home_entity_id": "sensor.krishna_to_home",
+      "direction_entity_id": "sensor.family_arrivals_krishna_direction_of_travel"
+    },
+    {
+      "profile_key": "manisha",
+      "person_entity_id": "person.manisha",
+      "tracker_entity_id": "device_tracker.iphone",
+      "to_home_entity_id": "sensor.manisha_to_home",
+      "direction_entity_id": "sensor.family_arrivals_manisha_direction_of_travel"
+    }
+  ],
+  "proximity": {
+    "entry_id": "b4b67e9f65ca4d7ab09ff6d7d52e4091",
+    "title": "Family arrivals",
+    "zone_entity_id": "zone.home",
+    "tolerance": 100
+  },
   "work_zone": {
     "id": "work",
     "name": "Work",
     "radius": 150,
     "icon": "mdi:briefcase"
-  }
+  },
+  "private_work_zones": [
+    {
+      "profile_key": "krishna",
+      "name": "Krishna Work",
+      "coordinates_env": "KRISHNA_WORK_COORDINATES",
+      "radius": 150,
+      "icon": "mdi:briefcase"
+    },
+    {
+      "profile_key": "manisha",
+      "name": "Manisha Work",
+      "coordinates_env": "MANISHA_WORK_COORDINATES",
+      "radius": 150,
+      "icon": "mdi:briefcase"
+    }
+  ]
 }

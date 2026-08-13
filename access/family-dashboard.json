@@ -19,10 +19,24 @@
     ]
   },
   "commute": {
-    "traveler_person_entity_id": "person.abhimanyu_saharan",
-    "tracker_entity_id": "device_tracker.abhimanyu_pixel_8_2",
-    "shared_to_home_entity_id": "sensor.abhimanyu_to_home",
-    "owner_to_work_entity_id": "sensor.abhimanyu_home_to_work"
+    "owner_to_work_entity_id": "sensor.abhimanyu_home_to_work",
+    "home_arrivals": {
+      "abhimanyu-saharan": {
+        "person_entity_id": "person.abhimanyu_saharan",
+        "to_home_entity_id": "sensor.abhimanyu_to_home",
+        "direction_entity_id": "sensor.family_arrivals_abhimanyu_direction_of_travel"
+      },
+      "krishna": {
+        "person_entity_id": "person.krishna",
+        "to_home_entity_id": "sensor.krishna_to_home",
+        "direction_entity_id": "sensor.family_arrivals_krishna_direction_of_travel"
+      },
+      "manisha": {
+        "person_entity_id": "person.manisha",
+        "to_home_entity_id": "sensor.manisha_to_home",
+        "direction_entity_id": "sensor.family_arrivals_manisha_direction_of_travel"
+      }
+    }
   },
   "profiles": {
     "abhimanyu-saharan": {
@@ -39,6 +53,7 @@
         "device_tracker.abhimanyu_pixel_8",
         "device_tracker.abhimanyu_pixel_8_2"
       ],
+      "is_family_member": true,
       "is_owner": true,
       "default_dashboard": "home-tablet",
       "cameras": [
@@ -60,6 +75,7 @@
         "device_tracker.pixel_10_pro",
         "device_tracker.pixel_10_pro_2"
       ],
+      "is_family_member": true,
       "is_owner": false,
       "default_dashboard": "home-tablet",
       "enforce_camera_policy": true,
@@ -81,6 +97,7 @@
       "device_trackers": [
         "device_tracker.iphone"
       ],
+      "is_family_member": true,
       "is_owner": false,
       "default_dashboard": "home-tablet",
       "enforce_camera_policy": true,
@@ -94,6 +111,7 @@
       "user_id": "2d1be8070c364e6a9ba70103c007d4d0",
       "username": "codex-dashboard-review",
       "person_entity_id": null,
+      "is_family_member": false,
       "is_owner": false,
       "default_dashboard": "home-tablet",
       "enforce_camera_policy": true,

@@ -324,34 +324,57 @@ class DashboardStructureTests(unittest.TestCase):
             home_view.index("heading: Phones"), home_view.index("type: conditional")
         )
 
-    def test_commute_shows_home_to_family_and_work_only_to_owner(self):
+    def test_commute_shows_shared_homeward_arrivals_and_owner_work_route(self):
         access = (ROOT / "access/family-dashboard.json").read_text()
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
         home_view = home.split("  - title: Home", 1)[1].split(
             "  - title: Rooms", 1
         )[0]
-        commute_home = home_view.split("template: family_commute", 1)[1].split(
-            "          - type: custom:button-card", 1
-        )[0]
-        commute_work = home_view.split("template: family_commute", 2)[2].split(
+        commute_work = home_view.rsplit("template: family_commute", 1)[1].split(
             "          - type: heading", 1
         )[0]
 
         self.assertIn(
-            '"shared_to_home_entity_id": "sensor.abhimanyu_to_home"', access
-        )
-        self.assertIn(
             '"owner_to_work_entity_id": "sensor.abhimanyu_home_to_work"', access
         )
         self.assertIn("family_commute:", home)
-        self.assertIn("entity: sensor.abhimanyu_to_home", commute_home)
-        self.assertNotIn("condition: user", commute_home)
-        self.assertIn("destination: Home", commute_home)
+        self.assertIn("heading: Coming home", home_view)
+        self.assertIn("arrival_eta: true", home_view)
+        self.assertIn("Date.now() + minutes * 60000", home)
+        arrivals = {
+            "abhimanyu-saharan": (
+                "Abhimanyu",
+                "sensor.abhimanyu_to_home",
+                "sensor.family_arrivals_abhimanyu_direction_of_travel",
+            ),
+            "krishna": (
+                "Krishna",
+                "sensor.krishna_to_home",
+                "sensor.family_arrivals_krishna_direction_of_travel",
+            ),
+            "manisha": (
+                "Manisha",
+                "sensor.manisha_to_home",
+                "sensor.family_arrivals_manisha_direction_of_travel",
+            ),
+        }
+        for profile_key, (name, route_entity, direction_entity) in arrivals.items():
+            self.assertIn(f'"{profile_key}": {{', access)
+            self.assertIn(f'"to_home_entity_id": "{route_entity}"', access)
+            self.assertIn(f'"direction_entity_id": "{direction_entity}"', access)
+            route_card = home_view.split(f"entity: {route_entity}", 1)[1].split(
+                "          - type:", 1
+            )[0]
+            self.assertIn(f"traveler: {name}", route_card)
+            self.assertIn(f"entity: {direction_entity}", route_card)
+            self.assertIn("state: towards", route_card)
+            self.assertIn("condition: user", route_card)
+            self.assertIn("family-members-users.json", route_card)
+
         self.assertIn("entity: sensor.abhimanyu_home_to_work", commute_work)
         self.assertIn("profile-abhimanyu-saharan-users.json", commute_work)
         self.assertIn("state_not: Work", commute_work)
         self.assertIn("destination: Work", commute_work)
-        self.assertIn("mdi:home-clock", home)
         self.assertIn("mdi:briefcase-clock", home)
         self.assertNotIn("28.4114532", home)
 

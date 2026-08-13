@@ -16,6 +16,12 @@ template:
       - trigger: state
         entity_id: person.abhimanyu_saharan
         from: Work
+      - trigger: state
+        entity_id: sensor.family_arrivals_abhimanyu_direction_of_travel
+        to: towards
+      - trigger: state
+        entity_id: sensor.family_arrivals_abhimanyu_direction_of_travel
+        from: towards
     actions:
       - if:
           - condition: not
@@ -27,15 +33,48 @@ template:
           - action: homeassistant.update_entity
             target:
               entity_id: sensor.abhimanyu_home_to_work
-      - action: google_travel_time.get_travel_times
-        data:
-          config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
-          origin: device_tracker.abhimanyu_pixel_8_2
-          destination: zone.home
-          mode: driving
-          units: metric
-          traffic_model: best_guess
-        response_variable: travel_home
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: person.abhimanyu_saharan
+                state: home
+            sequence:
+              - variables:
+                  travel_home:
+                    routes:
+                      - duration: 0
+                        duration_text: 0 min
+                        static_duration_text: 0 min
+                        distance_meters: 0
+                        distance_text: 0 km
+          - conditions:
+              - condition: state
+                entity_id: sensor.family_arrivals_abhimanyu_direction_of_travel
+                state: towards
+              - condition: numeric_state
+                entity_id: device_tracker.abhimanyu_pixel_8_2
+                attribute: latitude
+                above: -91
+                below: 91
+              - condition: numeric_state
+                entity_id: device_tracker.abhimanyu_pixel_8_2
+                attribute: longitude
+                above: -181
+                below: 181
+            sequence:
+              - action: google_travel_time.get_travel_times
+                data:
+                  config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
+                  origin: device_tracker.abhimanyu_pixel_8_2
+                  destination: zone.home
+                  mode: driving
+                  units: metric
+                  traffic_model: best_guess
+                response_variable: travel_home
+        default:
+          - variables:
+              travel_home:
+                routes: []
     sensor:
       - name: Abhimanyu to Home
         unique_id: abhimanyu_to_home
@@ -46,15 +85,181 @@ template:
         availability: >-
           {{ travel_home is defined and travel_home.get('routes', []) | count > 0 }}
         state: >-
-          {% set routes = travel_home.get('routes', []) %}
-          {{ (routes[0].duration | float(0) / 60) | round(1) }}
+          {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+          {{ (routes[0].duration | float(0) / 60) | round(1) if routes else none }}
         attributes:
           distance: >-
-            {% set routes = travel_home.get('routes', []) %}
-            {{ routes[0].distance_text }}
+            {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+            {{ routes[0].distance_text if routes else none }}
           traffic_time: >-
-            {% set routes = travel_home.get('routes', []) %}
-            {{ routes[0].duration_text }}
+            {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+            {{ routes[0].duration_text if routes else none }}
           static_time: >-
-            {% set routes = travel_home.get('routes', []) %}
-            {{ routes[0].static_duration_text }}
+            {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+            {{ routes[0].static_duration_text if routes else none }}
+
+  - triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: time_pattern
+        minutes: "/20"
+      - trigger: state
+        entity_id: person.krishna
+        from: home
+      - trigger: state
+        entity_id: person.krishna
+        to: home
+      - trigger: state
+        entity_id: sensor.family_arrivals_krishna_direction_of_travel
+        to: towards
+      - trigger: state
+        entity_id: sensor.family_arrivals_krishna_direction_of_travel
+        from: towards
+    actions:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: person.krishna
+                state: home
+            sequence:
+              - variables:
+                  travel_home:
+                    routes:
+                      - duration: 0
+                        duration_text: 0 min
+                        static_duration_text: 0 min
+                        distance_meters: 0
+                        distance_text: 0 km
+          - conditions:
+              - condition: state
+                entity_id: sensor.family_arrivals_krishna_direction_of_travel
+                state: towards
+              - condition: numeric_state
+                entity_id: device_tracker.pixel_10_pro_2
+                attribute: latitude
+                above: -91
+                below: 91
+              - condition: numeric_state
+                entity_id: device_tracker.pixel_10_pro_2
+                attribute: longitude
+                above: -181
+                below: 181
+            sequence:
+              - action: google_travel_time.get_travel_times
+                data:
+                  config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
+                  origin: device_tracker.pixel_10_pro_2
+                  destination: zone.home
+                  mode: driving
+                  units: metric
+                  traffic_model: best_guess
+                response_variable: travel_home
+        default:
+          - variables:
+              travel_home:
+                routes: []
+    sensor:
+      - name: Krishna to Home
+        unique_id: krishna_to_home
+        default_entity_id: sensor.krishna_to_home
+        device_class: duration
+        state_class: measurement
+        unit_of_measurement: min
+        availability: >-
+          {{ travel_home is defined and travel_home.get('routes', []) | count > 0 }}
+        state: >-
+          {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+          {{ (routes[0].duration | float(0) / 60) | round(1) if routes else none }}
+        attributes:
+          distance: >-
+            {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+            {{ routes[0].distance_text if routes else none }}
+          traffic_time: >-
+            {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+            {{ routes[0].duration_text if routes else none }}
+          static_time: >-
+            {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+            {{ routes[0].static_duration_text if routes else none }}
+
+  - triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: time_pattern
+        minutes: "/20"
+      - trigger: state
+        entity_id: person.manisha
+        from: home
+      - trigger: state
+        entity_id: person.manisha
+        to: home
+      - trigger: state
+        entity_id: sensor.family_arrivals_manisha_direction_of_travel
+        to: towards
+      - trigger: state
+        entity_id: sensor.family_arrivals_manisha_direction_of_travel
+        from: towards
+    actions:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: person.manisha
+                state: home
+            sequence:
+              - variables:
+                  travel_home:
+                    routes:
+                      - duration: 0
+                        duration_text: 0 min
+                        static_duration_text: 0 min
+                        distance_meters: 0
+                        distance_text: 0 km
+          - conditions:
+              - condition: state
+                entity_id: sensor.family_arrivals_manisha_direction_of_travel
+                state: towards
+              - condition: numeric_state
+                entity_id: device_tracker.iphone
+                attribute: latitude
+                above: -91
+                below: 91
+              - condition: numeric_state
+                entity_id: device_tracker.iphone
+                attribute: longitude
+                above: -181
+                below: 181
+            sequence:
+              - action: google_travel_time.get_travel_times
+                data:
+                  config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
+                  origin: device_tracker.iphone
+                  destination: zone.home
+                  mode: driving
+                  units: metric
+                  traffic_model: best_guess
+                response_variable: travel_home
+        default:
+          - variables:
+              travel_home:
+                routes: []
+    sensor:
+      - name: Manisha to Home
+        unique_id: manisha_to_home
+        default_entity_id: sensor.manisha_to_home
+        device_class: duration
+        state_class: measurement
+        unit_of_measurement: min
+        availability: >-
+          {{ travel_home is defined and travel_home.get('routes', []) | count > 0 }}
+        state: >-
+          {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+          {{ (routes[0].duration | float(0) / 60) | round(1) if routes else none }}
+        attributes:
+          distance: >-
+            {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+            {{ routes[0].distance_text if routes else none }}
+          traffic_time: >-
+            {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+            {{ routes[0].duration_text if routes else none }}
+          static_time: >-
+            {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+            {{ routes[0].static_duration_text if routes else none }}
