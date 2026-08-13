@@ -222,7 +222,7 @@ button_card_templates:
 
   family_ribbon_today:
     template: family_ribbon
-    entity: calendar.birthdays
+    entity: sun.sun
     variables:
       context: |
         [[[
@@ -232,17 +232,6 @@ button_card_templates:
             return {
               name: 'Laundry', label: 'Ready to collect',
               icon: 'mdi:washing-machine-alert', color: 'var(--green)'
-            };
-          }
-          if (entity?.attributes.message) {
-            const start = entity.attributes.start_time;
-            const date = start ? new Date(start) : null;
-            return {
-              name: entity.state === 'on' ? 'Happening now' : 'Next event',
-              label: date && !Number.isNaN(date.getTime())
-                ? `${date.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})} · ${entity.attributes.message}`
-                : entity.attributes.message,
-              icon: 'mdi:calendar-heart', color: 'var(--green)'
             };
           }
           const shopping = states['todo.shopping_list'];
@@ -976,9 +965,6 @@ views:
                 h1 { font-size: 38px; letter-spacing: -1.3px; margin: 0 0 5px; }
                 p { color: var(--contrast11); font-size: 15px; line-height: 1.4; margin: 4px 0; }
             grid_options: { columns: 36, rows: auto }
-          - type: custom:family-announcements-card
-            entity: sensor.family_announcements
-            grid_options: { columns: 36, rows: auto }
           - type: custom:button-card
             show_icon: false
             show_name: false
@@ -1258,7 +1244,7 @@ views:
                 tap_action:
                   action: navigate
                   navigation_path: /calendar
-          - type: custom:atomic-calendar-revive
+          - type: custom:family-agenda-card
             entities:
               - entity: calendar.birthdays
                 name: Birthdays
@@ -1278,63 +1264,21 @@ views:
               - entity: calendar.holidays_in_india
                 name: Holidays
                 color: var(--orange)
-            maxDaysToShow: 14
-            maxEventCount: 4
-            compactMode: true
-            hideFinishedEvents: true
-            showCalendarName: true
-            showDescription: false
-            showLocation: false
-            showRelativeTime: true
-            showEventIcon: true
-            showProgressBar: false
-            showLoader: false
-            disableEventLink: true
-            firstDayOfWeek: 1
-            noEventsForNextDaysText: Nothing scheduled in the next 14 days
+            days: 14
+            max_events: 4
             visibility:
               - condition: user
                 users: !include ../access/generated/calendar-owner-users.json
-            card_mod:
-              style: |
-                ha-card {
-                  background: var(--contrast2);
-                  border: 1px solid rgba(var(--rgb-primary-text-color), 0.055);
-                  border-radius: 24px;
-                  box-shadow: none;
-                  overflow: hidden;
-                }
-          - type: custom:atomic-calendar-revive
+          - type: custom:family-agenda-card
             entities:
               - entity: calendar.birthdays
                 name: Birthdays
                 color: var(--pink)
-            maxDaysToShow: 14
-            maxEventCount: 4
-            compactMode: true
-            hideFinishedEvents: true
-            showCalendarName: false
-            showDescription: false
-            showLocation: false
-            showRelativeTime: true
-            showEventIcon: true
-            showProgressBar: false
-            showLoader: false
-            disableEventLink: true
-            firstDayOfWeek: 1
-            noEventsForNextDaysText: No birthdays in the next 14 days
+            days: 14
+            max_events: 4
             visibility:
               - condition: user
                 users: !include ../access/generated/calendar-household-users.json
-            card_mod:
-              style: |
-                ha-card {
-                  background: var(--contrast2);
-                  border: 1px solid rgba(var(--rgb-primary-text-color), 0.055);
-                  border-radius: 24px;
-                  box-shadow: none;
-                  overflow: hidden;
-                }
           - type: conditional
             conditions:
               - condition: state
@@ -1375,6 +1319,8 @@ views:
                   - justify-self: start
                   - color: var(--contrast10)
                   - font-size: 11px
+          - type: custom:family-announcements-card
+            entity: sensor.family_announcements
           - type: custom:todo-swipe-card
             entities:
               - entity: todo.shopping_list

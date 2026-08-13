@@ -56,12 +56,6 @@
       "url": "https://github.com/nutteloost/todo-swipe-card/releases/download/v3.6.0/todo-swipe-card.js",
       "sha256": "c8fbb3a0f6b8c83d0c94958c1cff4fd1da032732e5facabe45be5a9c0ce9b9fe",
       "destination": "www/community/todo-swipe-card/todo-swipe-card.js"
-    },
-    {
-      "name": "Atomic Calendar Revive 10.3.0",
-      "url": "https://github.com/totaldebug/atomic-calendar-revive/releases/download/v10.3.0/atomic-calendar-revive.js",
-      "sha256": "6c785cc3a31f1098b2269511545e41e40cbc6aa53e12e339bf29434cc9cd23af",
-      "destination": "www/community/atomic-calendar-revive/atomic-calendar-revive.js"
     }
   ]
 }

@@ -8,15 +8,15 @@ application code in cluster manifests.
 The desktop visual language closely follows the composition of
 [jlnbln/My-HA-Dashboard](https://github.com/jlnbln/My-HA-Dashboard): a fixed left
 navigation rail, narrative greeting, compact status strip, one dominant content
-zone, a narrow Today rail, soft rounded surfaces and useful information visible
-without drilling through menus. Mobile-specific design is intentionally deferred.
+zone, a narrow household rail, soft rounded surfaces and useful information
+visible without drilling through menus. Mobile-specific design is intentionally deferred.
 The native Home Assistant sidebar is hidden on these kiosk views so it does not
 compete with the family navigation rail.
 
 Home's five-item status strip is one quiet visual sentence rather than a row of
 competing cards. Weather and presence are stable anchors; the other positions
-adapt to the next family event, laundry, shopping, active playback or fans,
-humidity, sunset and genuine attention states. Internet appears only when
+adapt to laundry, shopping, sunrise or sunset, active playback or fans, humidity
+and genuine attention states. Internet appears only when
 degraded, the owner's phone only when below 25 percent, and routine fan-off
 states are omitted. Icon color is semantic: normal states stay muted, while
 activity and conditions needing attention receive color.
@@ -31,8 +31,8 @@ activity and conditions needing attention receive color.
 - Every dashboard view consumes the same source-owned navigation rail. Everyone
   sees Home, Rooms and Cameras; admins additionally see Rack and Settings.
 - `Family Dark` is the local visual system. Bubble Card, Button Card, Navbar Card,
-  Card Mod, Auto Entities, Atomic Calendar Revive, Todo Swipe Card and Kiosk
-  Mode are commit/version-pinned, checksum-verified assets.
+  Card Mod, Auto Entities, Todo Swipe Card and Kiosk Mode are
+  commit/version-pinned, checksum-verified assets.
 
 The current dashboard binds fixed controls only to entities verified in the
 live Home Assistant registry. Auto Entities discovers active Jellyfin and Music
@@ -61,8 +61,8 @@ household message: laundry completion, a current or next-day family event,
 significant heat or storms, shopping needs, or a time-appropriate all-clear.
 Its context line includes the weekday, day part and current time, and its weather
 advice changes between morning, afternoon, evening and night. A Git-owned family
-bulletin below the briefing groups independent, account-attributed household
-updates in one quiet surface. Its Add action opens a focused composer; each
+bulletin in the household rail groups independent, account-attributed household
+updates above Shopping. Its Add action opens a focused composer; each
 message remains until its sender or an administrator removes it, or disappears
 entirely at its optional end time. Publishing also sends the message to every
 mapped family Companion App phone.
@@ -79,9 +79,11 @@ profile combines Birthdays, the Google Family calendar, India holidays, the
 personal Google calendar and both Topmate calendars. Non-owner family and review
 profiles can read only Birthdays. This is enforced in Home Assistant's backend
 entity policy as well as by account-specific Lovelace rendering, so private
-calendar content is not merely hidden with frontend conditions. Atomic Calendar
-Revive supplies the compact agenda presentation. The washer is absent while it
-is off or unavailable and appears only when a useful cycle status exists.
+calendar content is not merely hidden with frontend conditions. A source-owned
+agenda card requests those authorized events through Home Assistant, groups shared
+dates, and gives every event a readable date block, title, time and calendar
+source. The washer is absent while it is off or unavailable and appears only
+when a useful cycle status exists.
 
 ## Family access
 

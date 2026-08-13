@@ -82,15 +82,23 @@ class DashboardStructureTests(unittest.TestCase):
             home_view,
         )
         self.assertIn("heading: Coming up", home_view)
-        self.assertIn("type: custom:atomic-calendar-revive", home_view)
-        self.assertIn("maxDaysToShow: 14", home_view)
-        self.assertIn("maxEventCount: 4", home_view)
+        self.assertIn("type: custom:family-agenda-card", home_view)
+        self.assertIn("days: 14", home_view)
+        self.assertIn("max_events: 4", home_view)
         self.assertIn("calendar-owner-users.json", home_view)
         self.assertIn("calendar-household-users.json", home_view)
         self.assertEqual(
             home_view.count("type: custom:family-announcements-card"), 1
         )
         self.assertIn("entity: sensor.family_announcements", home_view)
+        self.assertGreater(
+            home_view.index("type: custom:family-announcements-card"),
+            home_view.rindex("type: custom:family-agenda-card"),
+        )
+        self.assertLess(
+            home_view.index("type: custom:family-announcements-card"),
+            home_view.index("type: custom:todo-swipe-card"),
+        )
         self.assertNotIn("mode: banner", home_view)
         self.assertNotIn("mode: composer", home_view)
         self.assertNotIn("name: Notice expiry", home_view)
@@ -124,6 +132,14 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("state_not: unavailable", home_view)
         self.assertNotIn("name: Living Fan 1", home_view)
         self.assertNotIn("name: Living Fan 2", home_view)
+
+        ribbon = home.split("  family_ribbon_today:", 1)[1].split(
+            "\n  family_ribbon_activity:", 1
+        )[0]
+        self.assertIn("entity: sun.sun", ribbon)
+        self.assertIn("name: afterSunset ? 'Sunrise' : 'Sunset'", ribbon)
+        self.assertNotIn("Next event", ribbon)
+        self.assertNotIn("entity?.attributes.message", ribbon)
 
         navigation = (
             ROOT / "dashboards/includes/family-navigation.yaml"
@@ -160,6 +176,21 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('callService("family_announcements", "publish"', card)
         self.assertIn('callService("family_announcements", "dismiss"', card)
         self.assertFalse((ROOT / "packages/family_console.yaml").exists())
+
+    def test_family_agenda_uses_permission_aware_calendar_responses(self):
+        configuration = (ROOT / "configuration.yaml").read_text()
+        manifest = (ROOT / "bootstrap/manifest.json").read_text()
+        card = (ROOT / "www/family-agenda-card.js").read_text()
+
+        self.assertIn("/local/family-agenda-card.js?v=1.0.0", configuration)
+        self.assertNotIn("atomic-calendar-revive", configuration)
+        self.assertNotIn("Atomic Calendar Revive", manifest)
+        self.assertIn('service: "get_events"', card)
+        self.assertIn('return_response: true', card)
+        self.assertIn('start_date_time: start.toISOString()', card)
+        self.assertIn('end_date_time: end.toISOString()', card)
+        self.assertIn('customElements.define("family-agenda-card"', card)
+        self.assertIn('window.history.pushState(null, "", "/calendar")', card)
 
     def test_camera_wall_applies_each_camera_user_gate(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()

@@ -46,9 +46,9 @@ lovelace:
       type: module
     - url: /local/family-responsive-grid-card.js?v=1.0.0
       type: module
-    - url: /local/community/todo-swipe-card/todo-swipe-card.js?v=3.6.0
+    - url: /local/family-agenda-card.js?v=1.0.0
       type: module
-    - url: /local/community/atomic-calendar-revive/atomic-calendar-revive.js?v=10.3.0
+    - url: /local/community/todo-swipe-card/todo-swipe-card.js?v=3.6.0
       type: module
   dashboards: !include dashboards/lovelace-dashboards.yaml
 
