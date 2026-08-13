@@ -662,6 +662,12 @@ views:
           - type: grid
             square: false
             columns: 3
+            card_mod:
+              style: |
+                #root {
+                  grid-template-columns: repeat(auto-fit, minmax(420px, 640px)) !important;
+                  justify-content: start;
+                }
             visibility:
               - condition: user
                 users: !include ../access/generated/camera-any-users.json
@@ -1104,6 +1110,12 @@ views:
           - type: grid
             square: false
             columns: 3
+            card_mod:
+              style: |
+                #root {
+                  grid-template-columns: repeat(auto-fit, minmax(420px, 640px)) !important;
+                  justify-content: start;
+                }
             cards:
               - type: picture-entity
                 entity: camera.living_room_high_resolution_channel
