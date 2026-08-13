@@ -1176,56 +1176,162 @@ views:
           - type: custom:button-card
             template: family_media_launchers
             grid_options: { columns: 36, rows: auto }
-          - type: heading
-            heading: Favourite rooms
-            heading_style: title
-            icon: mdi:floor-plan
-            grid_options: { columns: 36, rows: 1 }
-            badges:
-              - type: entity
-                entity: fan.office_fan
-                name: All rooms
-                show_state: false
-                icon: mdi:arrow-right
-                tap_action:
-                  action: navigate
-                  navigation_path: /home-tablet/rooms
-          - type: grid
-            square: false
-            columns: 4
+          - type: vertical-stack
+            visibility:
+              - condition: user
+                users: !include ../access/generated/profile-abhimanyu-saharan-users.json
             cards:
-              - type: custom:button-card
-                template: family_area_summary
-                entity: fan.living_room_fan_1
-                name: Living Room
-                icon: mdi:sofa-outline
-                variables:
-                  accent: var(--yellow)
-                  entities: [fan.living_room_fan_1, fan.living_room_fan_2]
-              - type: custom:button-card
-                template: family_area_summary
-                entity: fan.kitchen_fan
-                name: Kitchen
-                icon: mdi:countertop-outline
-                variables:
-                  accent: var(--orange)
-                  entities: [fan.kitchen_fan]
-              - type: custom:button-card
-                template: family_area_summary
-                entity: fan.master_bedroom_fan
-                name: Master Bedroom
-                icon: mdi:bed-king-outline
-                variables:
-                  accent: var(--blue)
-                  entities: [fan.master_bedroom_fan]
-              - type: custom:button-card
-                template: family_area_summary
-                entity: fan.office_fan
-                name: Office
-                icon: mdi:desk
-                variables:
-                  accent: var(--teal)
-                  entities: [fan.office_fan]
+              - type: heading
+                heading: Favourite rooms
+                heading_style: title
+                icon: mdi:floor-plan
+                badges:
+                  - type: entity
+                    entity: fan.office_fan
+                    name: All rooms
+                    show_state: false
+                    icon: mdi:arrow-right
+                    tap_action:
+                      action: navigate
+                      navigation_path: /home-tablet/rooms
+              - type: grid
+                square: false
+                columns: 3
+                cards:
+                  - type: custom:button-card
+                    template: family_area_summary
+                    entity: fan.office_fan
+                    name: Office
+                    icon: mdi:desk
+                    variables:
+                      accent: var(--teal)
+                      entities: [fan.office_fan]
+                  - type: custom:button-card
+                    template: family_area_summary
+                    entity: fan.bedroom_fan
+                    name: Bedroom
+                    icon: mdi:bed-outline
+                    variables:
+                      accent: var(--purple)
+                      entities: [fan.bedroom_fan]
+                  - type: custom:button-card
+                    template: family_area_summary
+                    entity: fan.living_room_fan_1
+                    name: Living Room
+                    icon: mdi:sofa-outline
+                    variables:
+                      accent: var(--yellow)
+                      entities: [fan.living_room_fan_1, fan.living_room_fan_2]
+            grid_options: { columns: 36, rows: auto }
+          - type: vertical-stack
+            visibility:
+              - condition: user
+                users: !include ../access/generated/profile-krishna-users.json
+            cards:
+              - type: heading
+                heading: Favourite rooms
+                heading_style: title
+                icon: mdi:floor-plan
+                badges:
+                  - type: entity
+                    entity: fan.master_bedroom_fan
+                    name: All rooms
+                    show_state: false
+                    icon: mdi:arrow-right
+                    tap_action:
+                      action: navigate
+                      navigation_path: /home-tablet/rooms
+              - type: grid
+                square: false
+                columns: 4
+                cards:
+                  - type: custom:button-card
+                    template: family_area_summary
+                    entity: fan.master_bedroom_fan
+                    name: Master Bedroom
+                    icon: mdi:bed-king-outline
+                    variables:
+                      accent: var(--blue)
+                      entities: [fan.master_bedroom_fan]
+                  - type: custom:button-card
+                    template: family_area_summary
+                    entity: fan.kitchen_fan
+                    name: Kitchen
+                    icon: mdi:countertop-outline
+                    variables:
+                      accent: var(--orange)
+                      entities: [fan.kitchen_fan]
+                  - type: custom:button-card
+                    template: family_area_summary
+                    entity: fan.living_room_fan_1
+                    name: Living Room
+                    icon: mdi:sofa-outline
+                    variables:
+                      accent: var(--yellow)
+                      entities: [fan.living_room_fan_1, fan.living_room_fan_2]
+                  - type: custom:button-card
+                    template: family_area_summary
+                    entity: fan.dining_fan
+                    name: Dining Room
+                    icon: mdi:table-furniture
+                    variables:
+                      accent: var(--green)
+                      entities: [fan.dining_fan]
+            grid_options: { columns: 36, rows: auto }
+          - type: vertical-stack
+            visibility:
+              - condition: user
+                users: !include ../access/generated/profile-manisha-users.json
+            cards:
+              - type: heading
+                heading: Favourite rooms
+                heading_style: title
+                icon: mdi:floor-plan
+                badges:
+                  - type: entity
+                    entity: fan.bedroom_fan
+                    name: All rooms
+                    show_state: false
+                    icon: mdi:arrow-right
+                    tap_action:
+                      action: navigate
+                      navigation_path: /home-tablet/rooms
+              - type: grid
+                square: false
+                columns: 4
+                cards:
+                  - type: custom:button-card
+                    template: family_area_summary
+                    entity: fan.bedroom_fan
+                    name: Bedroom
+                    icon: mdi:bed-outline
+                    variables:
+                      accent: var(--purple)
+                      entities: [fan.bedroom_fan]
+                  - type: custom:button-card
+                    template: family_area_summary
+                    entity: fan.kitchen_fan
+                    name: Kitchen
+                    icon: mdi:countertop-outline
+                    variables:
+                      accent: var(--orange)
+                      entities: [fan.kitchen_fan]
+                  - type: custom:button-card
+                    template: family_area_summary
+                    entity: fan.living_room_fan_1
+                    name: Living Room
+                    icon: mdi:sofa-outline
+                    variables:
+                      accent: var(--yellow)
+                      entities: [fan.living_room_fan_1, fan.living_room_fan_2]
+                  - type: custom:button-card
+                    template: family_area_summary
+                    entity: fan.guest_fan
+                    name: Guest Room
+                    icon: mdi:bed-single-outline
+                    variables:
+                      accent: var(--pink)
+                      entities: [fan.guest_fan]
             grid_options: { columns: 36, rows: auto }
           - &family_navigation !include includes/family-navigation.yaml
       - type: grid

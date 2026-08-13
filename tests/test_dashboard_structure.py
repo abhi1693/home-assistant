@@ -1,5 +1,6 @@
-from pathlib import Path
+import re
 import unittest
+from pathlib import Path
 
 
 ROOT = Path(__file__).parents[1]
@@ -148,6 +149,53 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("path: music", home)
         self.assertNotIn("/home-tablet/music", navigation)
         self.assertNotIn("label: Music", navigation)
+
+    def test_favourite_rooms_are_personalized_by_account(self):
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        home_view = home.split("  - title: Home", 1)[1].split(
+            "  - title: Rooms", 1
+        )[0]
+        favourites = home_view.split(
+            "profile-abhimanyu-saharan-users.json", 1
+        )[1].split("&family_navigation", 1)[0]
+        profiles = [
+            (
+                "profile-abhimanyu-saharan-users.json",
+                3,
+                ["Office", "Bedroom", "Living Room"],
+            ),
+            (
+                "profile-krishna-users.json",
+                4,
+                ["Master Bedroom", "Kitchen", "Living Room", "Dining Room"],
+            ),
+            (
+                "profile-manisha-users.json",
+                4,
+                ["Bedroom", "Kitchen", "Living Room", "Guest Room"],
+            ),
+        ]
+
+        for index, (profile, columns, expected_rooms) in enumerate(profiles):
+            start = home_view.index(profile)
+            end = (
+                home_view.index(profiles[index + 1][0])
+                if index + 1 < len(profiles)
+                else home_view.index("&family_navigation")
+            )
+            block = home_view[start:end]
+            names = re.findall(r"^\s+name: (.+)$", block, re.MULTILINE)
+
+            self.assertIn(f"columns: {columns}", block)
+            self.assertEqual(
+                [name for name in names if name != "All rooms"],
+                expected_rooms,
+            )
+
+        self.assertEqual(favourites.count("heading: Favourite rooms"), 3)
+        self.assertNotIn(
+            "profile-codex-dashboard-reviewer-users.json", favourites
+        )
 
     def test_family_announcements_are_persistent_attributed_and_git_owned(self):
         configuration = (ROOT / "configuration.yaml").read_text()

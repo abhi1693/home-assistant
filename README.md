@@ -54,9 +54,13 @@ extension points for later phases.
 The shared overview favors household decisions over system telemetry. Its
 single-screen desktop composition has a personalized greeting, compact weather
 and household ribbon, account-filtered camera wall, adaptive Music
-Assistant/Jellyfin activity, a narrow Coming up rail, and four relevant area
-summaries. The Living Room summary combines both fans; the full Rooms view owns
-individual controls for every area. The greeting ends with one prioritized
+Assistant/Jellyfin activity, a narrow Coming up rail, and account-specific area
+summaries ordered for each person's routine. Abhimanyu sees Office, Bedroom and
+Living Room; Krishna sees Master
+Bedroom, Kitchen, Living Room and Dining Room; Manisha sees Bedroom, Kitchen,
+Living Room and Guest Room. The browser-review profile sees no favourites.
+The Living Room summary combines both fans; the full Rooms view owns individual
+controls for every area. The greeting ends with one prioritized
 household message: laundry completion, a current or next-day family event,
 significant heat or storms, shopping needs, or a time-appropriate all-clear.
 Its context line includes the weekday, day part and current time, and its weather
