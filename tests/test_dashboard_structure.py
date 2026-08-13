@@ -79,6 +79,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("heading: Today", home_view)
         self.assertIn("template: family_household_notice", home_view)
         self.assertIn("template: family_media_hub", home_view)
+        self.assertIn("sensor.music_assistant_session_*", home_view)
         self.assertIn("heading: Favourite rooms", home_view)
         self.assertIn(
             "entities: [fan.living_room_fan_1, fan.living_room_fan_2]",
@@ -92,6 +93,10 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("user?.id === '8117b77542614a06b4672a8ae1a979b5'", home)
         self.assertNotIn("name: Living Fan 1", home_view)
         self.assertNotIn("name: Living Fan 2", home_view)
+
+        music_view = home.split("  - title: Music", 1)[1]
+        self.assertIn("heading: Now playing", music_view)
+        self.assertIn("sensor.music_assistant_session_*", music_view)
 
     def test_family_notice_helpers_are_git_owned(self):
         package = (ROOT / "packages/family_console.yaml").read_text()

@@ -1,0 +1,9 @@
+{
+  "domain": "family_music_assistant_sessions",
+  "name": "Family Music Assistant Sessions",
+  "dependencies": ["music_assistant"],
+  "codeowners": [],
+  "documentation": "https://github.com/abhi1693/home-assistant",
+  "integration_type": "system",
+  "version": "1.0.0"
+}

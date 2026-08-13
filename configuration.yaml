@@ -23,6 +23,7 @@ family_camera_streams:
 
 sensor:
   - platform: family_jellyfin_sessions
+  - platform: family_music_assistant_sessions
 
 lovelace:
   resource_mode: yaml

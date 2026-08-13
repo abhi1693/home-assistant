@@ -153,6 +153,9 @@ stream quality configuration reproducible without committing Protect secrets.
   stream tiers and their native Home Assistant entities
 - `custom_components/family_jellyfin_sessions/`: exposes viewer-aware Jellyfin
   sessions for concurrent playback cards without another API poll
+- `custom_components/family_music_assistant_sessions/`: mirrors dynamic Music
+  Assistant players that deliberately opt out of native Home Assistant entities,
+  reusing the integration's existing event stream without polling
 - `themes/`: source-owned themes
 - `packages/`: source-owned helpers, including the household notice and expiry
 - `migrations/`: guarded, one-time area/device migration inputs
