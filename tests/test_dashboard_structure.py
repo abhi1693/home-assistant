@@ -87,8 +87,10 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("name: Notice expiry", home_view)
         self.assertIn("template: family_media_launchers", home_view)
         self.assertIn("sensor.music_assistant_session_*", home_view)
-        self.assertIn("Music Assistant · ${player}", home)
+        self.assertIn("return 'Music Assistant';", home)
+        self.assertIn("`${status} on ${player}", home)
         self.assertIn("Jellyfin · ${viewer}", home)
+        self.assertIn("` on ${player}`", home)
         self.assertIn("name: Open Music Assistant", home)
         self.assertIn("name: Open Jellyfin", home)
         self.assertLess(

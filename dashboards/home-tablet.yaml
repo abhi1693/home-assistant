@@ -635,10 +635,7 @@ button_card_templates:
     show_label: true
     name: |
       [[[
-        const player = entity?.attributes.player_name
-          || entity?.attributes.friendly_name
-          || 'Player';
-        return `Music Assistant · ${player}`;
+        return 'Music Assistant';
       ]]]
     state_display: |
       [[[
@@ -650,10 +647,13 @@ button_card_templates:
       [[[
         if (!entity) return '';
         const status = entity.state === 'paused' ? 'Paused' : 'Playing';
+        const player = entity.attributes.player_name
+          || entity.attributes.friendly_name
+          || 'player';
         const artist = entity.attributes.media_artist;
         const album = entity.attributes.media_album_name;
         const context = [artist, album && album !== artist ? album : null].filter(Boolean);
-        return context.length ? `${status} · ${context.join(' · ')}` : status;
+        return `${status} on ${player}${context.length ? ` · ${context.join(' · ')}` : ''}`;
       ]]]
     tap_action:
       action: more-info
@@ -736,8 +736,10 @@ button_card_templates:
         const status = entity.state === 'paused' ? 'Paused' : 'Watching now';
         const device = entity.attributes.device_name;
         const client = entity.attributes.client_name;
-        const player = device || client;
-        return `${number}${status}${player ? ` · ${player}` : ''}`;
+        const player = device && client && device.toLowerCase() !== client.toLowerCase()
+          ? `${device} via ${client}`
+          : device || client;
+        return `${number}${status}${player ? ` on ${player}` : ''}`;
       ]]]
     tap_action:
       action: more-info

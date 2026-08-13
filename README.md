@@ -41,8 +41,11 @@ integration is playing or paused. A source-owned read-only Jellyfin session
 bridge reuses the built-in integration's ten-second coordinator data to expose
 the actual Jellyfin account, device/client, title, episode and artwork without
 making additional server requests. Every concurrent viewer gets a separate card
-in the responsive media grid. Every active card identifies its source and player
-or viewer, so concurrent sessions cannot be mistaken for launcher columns.
+in the responsive media grid. Every active card identifies its source and
+playback destination, so concurrent sessions cannot be mistaken for launcher
+columns. Jellyfin cards also identify the signed-in viewer and client. Music
+Assistant does not expose the person who initiated playback, so those cards
+truthfully identify the player/device rather than inferring a family member.
 Music Assistant and Jellyfin launchers share a compact action bar beneath active
 sessions, so playback never removes navigation. Samsung TV, Fire TV and
 Jellyseerr request approval cards remain
