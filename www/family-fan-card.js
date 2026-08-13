@@ -1,10 +1,10 @@
 const FAMILY_FAN_SPEEDS = [
-  { speed: 1, percentage: 16 },
-  { speed: 2, percentage: 33 },
-  { speed: 3, percentage: 50 },
-  { speed: 4, percentage: 66 },
-  { speed: 5, percentage: 83 },
-  { speed: 6, percentage: 100 },
+  { speed: 1, percentage: 16, label: "1" },
+  { speed: 2, percentage: 33, label: "2" },
+  { speed: 3, percentage: 50, label: "3" },
+  { speed: 4, percentage: 66, label: "4" },
+  { speed: 5, percentage: 83, label: "5" },
+  { speed: 6, percentage: 100, label: "Boost" },
 ];
 
 const FAMILY_FAN_TIMER_MINUTES = {
@@ -51,7 +51,7 @@ class FamilyFanCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 4;
+    return 6;
   }
 
   _state(entityId) {
@@ -91,17 +91,21 @@ class FamilyFanCard extends HTMLElement {
 
   _speed(state) {
     const percentage = Number(state?.attributes?.percentage);
-    if (!Number.isFinite(percentage)) return null;
+    if (!Number.isFinite(percentage)) return 1;
     return Math.max(1, Math.min(6, Math.round(percentage / (100 / 6))));
   }
 
+  _fanName(unit, index) {
+    if (unit.name) return unit.name;
+    if (this._config.fans.length > 1) return `Fan ${index + 1}`;
+    return `${this._config.name} Fan`;
+  }
+
   _status(unit) {
-    const state = this._state(unit.fan);
-    if (!state || ["unknown", "unavailable"].includes(state.state)) return "Unavailable";
-    if (state.state !== "on") return "Off";
-    const speed = this._speed(state);
-    if (speed === 6) return "Running · Boost";
-    return speed ? `Running · Speed ${speed}` : "Running";
+    if (!this._available(unit)) return "Unavailable";
+    const speed = this._speed(this._state(unit.fan));
+    if (!this._running(unit)) return speed === 6 ? "Off · Last speed Boost" : `Off · Last speed ${speed}`;
+    return speed === 6 ? "Running · Boost" : `Running · Speed ${speed}`;
   }
 
   _timerTarget(unit) {
@@ -124,20 +128,15 @@ class FamilyFanCard extends HTMLElement {
       const duration = hours && minutes ? `${hours}h ${minutes}m` : hours ? `${hours}h` : `${minutes}m`;
       return `${target} in ${duration}`;
     }
-    const duration = timer.state.replace(" hours", "h").replace(" hour", "h");
-    return `${target} in ${duration}`;
+    return `${target} in ${timer.state.replace(" hours", "h").replace(" hour", "h")}`;
   }
 
   _roomSummary() {
     const available = this._config.fans.filter((unit) => this._available(unit));
     const running = available.filter((unit) => this._running(unit));
-    if (!available.length) return this._config.fans.length === 1 ? "Fan unavailable" : "Fans unavailable";
-    if (!running.length) return this._config.fans.length === 1 ? "Fan is off" : "Both fans are off";
-    if (running.length === 1) {
-      return this._config.fans.length === 1
-        ? this._status(running[0])
-        : `${running[0].name || "One fan"} is running`;
-    }
+    if (!available.length) return "Fans unavailable";
+    if (!running.length) return available.length === this._config.fans.length ? "Both fans are off" : `${available.length} fan ready`;
+    if (running.length === 1) return `${running[0].name || "One fan"} is running`;
     return "Both fans are running";
   }
 
@@ -154,55 +153,61 @@ class FamilyFanCard extends HTMLElement {
     return disabled ? " disabled" : "";
   }
 
+  _unavailableUnit(unit, index) {
+    const fanName = this._fanName(unit, index);
+    return `
+      <section class="fan-tile unavailable" aria-disabled="true">
+        <div class="tile-heading">
+          <span class="tile-icon"><ha-icon icon="mdi:fan-off"></ha-icon></span>
+          <span class="tile-copy"><strong>${this._escape(fanName)}</strong><small>Unavailable</small></span>
+        </div>
+        <div class="unavailable-body" role="status">
+          <span class="unavailable-icon"><ha-icon icon="mdi:light-switch-off"></ha-icon></span>
+          <strong>Turn on the wall switch</strong>
+          <small>Controls will appear automatically.</small>
+        </div>
+      </section>`;
+  }
+
+  _speedRing(unit, index, speed, running, busy, fanName) {
+    return FAMILY_FAN_SPEEDS.map((item) => {
+      const selected = speed === item.speed;
+      const active = running && selected;
+      const stateClass = active ? " active" : selected ? " remembered" : "";
+      const label = item.speed === 6 ? "Boost" : `speed ${item.speed}`;
+      return `<button class="speed speed-${item.speed}${stateClass}" data-action="speed" data-index="${index}" data-percentage="${item.percentage}"${this._disabled(busy)} aria-label="Set ${this._escape(fanName)} to ${label}${running ? "" : " and turn it on"}" aria-pressed="${active ? "true" : "false"}"><span>${item.label}</span></button>`;
+    }).join("");
+  }
+
   _unit(unit, index) {
+    if (!this._available(unit)) return this._unavailableUnit(unit, index);
+
     const fan = this._state(unit.fan);
-    const available = this._available(unit);
     const running = this._running(unit);
-    const speed = this._speed(fan) || 1;
+    const speed = this._speed(fan);
     const busy = this._busy.has(index);
-    const fanName = unit.name || (this._config.fans.length > 1 ? `Fan ${index + 1}` : "Fan");
-    const spin = Math.max(0.55, 2.2 - speed * 0.25);
-
-    if (!available) {
-      return `
-        <section class="fan-unit unavailable">
-          <div class="fan-heading">
-            <button class="fan-identity" data-action="more-info" data-index="${index}" aria-label="Open ${this._escape(fanName)} details">
-              <span class="fan-icon"><ha-icon icon="mdi:fan-off"></ha-icon></span>
-              <span class="fan-copy"><span class="fan-name">${this._escape(fanName)}</span><span class="fan-status">Unavailable</span></span>
-            </button>
-          </div>
-          <div class="unavailable-message" role="status">
-            <ha-icon icon="mdi:power-plug-off-outline"></ha-icon>
-            <span><strong>Fan unavailable</strong><small>Check the wall switch or Wi-Fi.</small></span>
-          </div>
-        </section>`;
-    }
-
+    const fanName = this._fanName(unit, index);
     const ledOn = this._state(unit.led)?.state === "on";
     const sleepOn = this._state(unit.sleep)?.state === "on";
     const timerOn = this._timerActive(unit);
     const timerAction = running ? "Turn off later" : "Turn on later";
+    const spin = Math.max(0.55, 2.2 - speed * 0.25);
     const featureDisabled = busy || !running;
-    const decreaseDisabled = busy || speed <= 1;
-    const increaseDisabled = busy || speed >= 6;
 
     return `
-      <section class="fan-unit${running ? " running" : ""}${busy ? " busy" : ""}" style="--fan-spin:${spin}s">
-        <div class="fan-heading">
-          <button class="fan-identity" data-action="more-info" data-index="${index}" aria-label="Open ${this._escape(fanName)} details">
-            <span class="fan-icon"><ha-icon icon="mdi:fan"></ha-icon></span>
-            <span class="fan-copy"><span class="fan-name">${this._escape(fanName)}</span><span class="fan-status">${this._escape(busy ? "Please wait…" : this._status(unit))}</span></span>
-          </button>
-          ${this._powerButton(index, fanName, running, busy)}
+      <section class="fan-tile${running ? " running" : ""}${busy ? " busy" : ""}" style="--fan-spin:${spin}s">
+        <div class="tile-heading">
+          <span class="tile-icon"><ha-icon icon="mdi:fan"></ha-icon></span>
+          <span class="tile-copy"><strong>${this._escape(fanName)}</strong><small>${this._escape(busy ? "Please wait…" : this._status(unit))}</small></span>
         </div>
-        <div class="speed-block">
-          <span class="control-label">Speed</span>
-          <div class="speed-stepper" aria-label="${this._escape(fanName)} speed">
-            <button class="step" data-action="speed-down" data-index="${index}"${this._disabled(decreaseDisabled)} aria-label="Decrease ${this._escape(fanName)} speed"><ha-icon icon="mdi:minus"></ha-icon></button>
-            <span class="speed-value" aria-live="polite"><strong>${speed === 6 ? "Boost" : speed}</strong><small>${running ? "Current speed" : "Starts at this speed"}</small></span>
-            <button class="step" data-action="speed-up" data-index="${index}"${this._disabled(increaseDisabled)} aria-label="Increase ${this._escape(fanName)} speed"><ha-icon icon="mdi:plus"></ha-icon></button>
-          </div>
+        <div class="dial" role="group" aria-label="${this._escape(fanName)} power and speed">
+          <div class="dial-ring" aria-hidden="true"></div>
+          ${this._speedRing(unit, index, speed, running, busy, fanName)}
+          <button class="power-core" data-action="power" data-index="${index}"${this._disabled(busy)} aria-label="${running ? "Turn off" : "Turn on"} ${this._escape(fanName)} at ${speed === 6 ? "Boost" : `speed ${speed}`}" aria-pressed="${running ? "true" : "false"}">
+            <span class="core-fan"><ha-icon icon="${busy ? "mdi:loading" : "mdi:fan"}"></ha-icon></span>
+            <strong>${busy ? "Working…" : running ? (speed === 6 ? "Boost" : `Speed ${speed}`) : "Off"}</strong>
+            <small>${busy ? "Please wait" : running ? "Tap to turn off" : `Tap to start at ${speed === 6 ? "Boost" : `speed ${speed}`}`}</small>
+          </button>
         </div>
         <div class="feature-row">
           <button class="feature${running && ledOn ? " active led" : ""}" data-action="led" data-index="${index}"${this._disabled(featureDisabled)} aria-label="${running ? `Turn ${this._escape(fanName)} light ${ledOn ? "off" : "on"}` : `${this._escape(fanName)} light. Turn fan on first`}" aria-pressed="${running && ledOn ? "true" : "false"}">
@@ -215,18 +220,11 @@ class FamilyFanCard extends HTMLElement {
           </button>
           <button class="feature timer${timerOn ? " active" : ""}" data-action="timer" data-index="${index}"${this._disabled(busy)} aria-label="${this._escape(timerAction)} for ${this._escape(fanName)}">
             <span class="feature-icon"><ha-icon icon="mdi:timer-outline"></ha-icon></span>
-            <span class="feature-copy"><strong>${timerAction}</strong><small>${this._escape(this._timerLabel(unit))}</small></span>
+            <span class="feature-copy"><strong>Timer</strong><small>${this._escape(timerOn ? this._timerLabel(unit) : timerAction)}</small></span>
             <ha-icon class="chevron" icon="mdi:chevron-right"></ha-icon>
           </button>
         </div>
       </section>`;
-  }
-
-  _powerButton(index, fanName, running, busy) {
-    const label = busy ? "Working…" : running ? "Turn off" : "Turn on";
-    return `<button class="power${running ? " active" : ""}" data-action="power" data-index="${index}"${this._disabled(busy)} aria-label="${this._escape(label)} ${this._escape(fanName)}" aria-pressed="${running ? "true" : "false"}">
-      <ha-icon icon="${busy ? "mdi:loading" : "mdi:power"}"></ha-icon><span>${this._escape(label)}</span>
-    </button>`;
   }
 
   _timerDialog() {
@@ -235,7 +233,7 @@ class FamilyFanCard extends HTMLElement {
     const unit = this._config.fans[index];
     if (!unit || !this._available(unit)) return "";
     const running = this._running(unit);
-    const fanName = unit.name || (this._config.fans.length > 1 ? `Fan ${index + 1}` : `${this._config.name} fan`);
+    const fanName = this._fanName(unit, index);
     const current = this._state(unit.timer)?.state;
     const active = this._timerActive(unit);
     const options = this._state(unit.timer)?.attributes?.options || ["Off", "1 hour", "2 hours", "3 hours", "6 hours"];
@@ -257,106 +255,103 @@ class FamilyFanCard extends HTMLElement {
 
   _render() {
     if (!this._config) return;
-    const anyRunning = this._config.fans.some((unit) => this._running(unit));
     const multiple = this._config.fans.length > 1;
-    const canAllOff = this._config.fans.some((unit, index) => this._running(unit) && !this._busy.has(index));
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display:block; color:var(--primary-text-color); font-family:var(--secondary-font-family, Inter, system-ui, sans-serif); }
+        :host { display:block; color:var(--primary-text-color); font-family:var(--secondary-font-family); }
         * { box-sizing:border-box; }
         button { font:inherit; -webkit-tap-highlight-color:transparent; }
         button:focus-visible { outline:3px solid var(--fan-accent, var(--pink)); outline-offset:3px; }
-        ha-card { overflow:hidden; border:1px solid ${anyRunning ? "color-mix(in srgb, var(--fan-accent, var(--pink)) 30%, transparent)" : "rgba(var(--rgb-primary-text-color), .055)"}; border-radius:26px; padding:20px; background:${anyRunning ? "color-mix(in srgb, var(--fan-accent, var(--pink)) 7%, var(--contrast2))" : "var(--contrast2, var(--ha-card-background))"}; box-shadow:none; transition:background 180ms ease,border-color 180ms ease; }
-        .room-heading { display:flex; min-height:52px; align-items:center; gap:12px; margin-bottom:16px; }
-        .room-icon { display:grid; width:44px; height:44px; flex:0 0 44px; place-items:center; border-radius:15px; background:color-mix(in srgb, var(--fan-accent, var(--pink)) 13%, var(--contrast3)); color:var(--fan-accent, var(--pink)); }
-        .room-icon ha-icon { width:23px; }
-        .room-copy { display:grid; min-width:0; flex:1; gap:4px; }
-        .room-name { color:var(--contrast20); font-family:var(--primary-font-family, Inter, system-ui, sans-serif); font-size:20px; font-weight:720; letter-spacing:-.025em; }
-        .room-status { color:var(--contrast10); font-size:12px; font-weight:560; line-height:1.3; }
-        .all-off { display:inline-flex; min-height:56px; align-items:center; gap:8px; border:0; border-radius:17px; padding:0 18px; background:var(--contrast4); color:var(--contrast15); font-size:13px; font-weight:700; cursor:pointer; }
-        .all-off:hover:not(:disabled) { background:var(--contrast5); color:var(--contrast20); }
-        .all-off ha-icon { width:19px; }
-        .fan-list { display:grid; grid-template-columns:1fr; gap:14px; }
-        .fan-unit { min-width:0; border:1px solid var(--contrast4); border-radius:21px; padding:16px; background:color-mix(in srgb, var(--contrast1) 55%, transparent); }
-        .fan-unit.running { border-color:color-mix(in srgb, var(--fan-accent, var(--pink)) 25%, var(--contrast4)); }
-        .fan-heading { display:flex; min-height:56px; align-items:center; gap:12px; }
-        .fan-identity { display:flex; min-width:0; min-height:56px; flex:1; align-items:center; gap:12px; border:0; padding:0; background:transparent; color:inherit; text-align:left; cursor:pointer; }
-        .fan-icon { display:grid; width:46px; height:46px; flex:0 0 46px; place-items:center; border-radius:16px; background:var(--contrast4); color:var(--contrast12); }
-        .fan-icon ha-icon { width:25px; height:25px; }
-        .running .fan-icon { background:color-mix(in srgb, var(--fan-accent, var(--pink)) 17%, var(--contrast3)); color:var(--fan-accent, var(--pink)); }
-        .running .fan-icon ha-icon { animation:fan-spin var(--fan-spin) linear infinite; }
-        .fan-copy { display:grid; min-width:0; gap:4px; }
-        .fan-name { overflow:hidden; color:var(--contrast20); font-size:16px; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
-        .fan-status { overflow:hidden; color:var(--contrast10); font-size:12px; font-weight:560; text-overflow:ellipsis; white-space:nowrap; }
-        .power { display:flex; min-width:116px; min-height:56px; flex:0 0 auto; align-items:center; justify-content:center; gap:8px; border:0; border-radius:17px; padding:0 16px; background:var(--contrast4); color:var(--contrast15); font-size:13px; font-weight:720; cursor:pointer; transition:transform 120ms ease,background 140ms ease,color 140ms ease; }
-        .power.active { background:var(--fan-accent, var(--pink)); color:var(--black, #08090b); }
-        .power ha-icon { width:21px; height:21px; }
-        .busy .power ha-icon { animation:busy-spin .8s linear infinite; }
-        .speed-block { margin-top:14px; }
-        .control-label { display:block; margin:0 2px 8px; color:var(--contrast14); font-size:12px; font-weight:680; }
-        .speed-stepper { display:grid; grid-template-columns:72px minmax(130px, 1fr) 72px; min-height:68px; overflow:hidden; border:1px solid var(--contrast5); border-radius:18px; background:var(--contrast3); }
-        .step { display:grid; min-width:72px; min-height:68px; place-items:center; border:0; background:transparent; color:var(--contrast17); cursor:pointer; }
-        .step:first-child { border-right:1px solid var(--contrast5); }
-        .step:last-child { border-left:1px solid var(--contrast5); }
-        .step:hover:not(:disabled) { background:var(--contrast5); color:var(--fan-accent, var(--pink)); }
-        .step ha-icon { width:27px; height:27px; }
-        .speed-value { display:grid; place-content:center; gap:2px; text-align:center; }
-        .speed-value strong { color:var(--contrast20); font-size:22px; font-weight:760; line-height:1; }
-        .speed-value small { color:var(--contrast9); font-size:10px; font-weight:560; }
-        .feature-row { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; margin-top:12px; }
-        .feature { position:relative; display:flex; min-width:0; min-height:64px; align-items:center; gap:10px; border:1px solid transparent; border-radius:17px; padding:8px 12px; background:var(--contrast3); color:var(--contrast12); text-align:left; cursor:pointer; transition:transform 120ms ease,background 140ms ease,color 140ms ease; }
+        ha-card { overflow:hidden; border:1px solid rgba(var(--rgb-primary-text-color),.06); border-radius:28px; padding:${multiple ? "20px" : "0"}; background:${multiple ? "var(--contrast2, var(--ha-card-background))" : "transparent"}; box-shadow:none; }
+        .room-heading { display:flex; min-height:48px; align-items:center; gap:12px; margin-bottom:16px; }
+        .room-icon { display:grid; width:42px; height:42px; place-items:center; border-radius:15px; background:color-mix(in srgb,var(--fan-accent,var(--pink)) 14%,var(--contrast3)); color:var(--fan-accent,var(--pink)); }
+        .room-icon ha-icon { width:22px; }
+        .room-copy { display:grid; gap:3px; }
+        .room-copy strong { color:var(--contrast20); font-family:var(--primary-font-family); font-size:20px; font-weight:730; }
+        .room-copy small { color:var(--contrast10); font-size:12px; font-weight:560; }
+        .fan-list { display:grid; grid-template-columns:${multiple ? "repeat(2,minmax(0,1fr))" : "1fr"}; gap:14px; }
+        .fan-tile { min-width:0; overflow:hidden; border:1px solid var(--contrast4); border-radius:24px; padding:18px; background:color-mix(in srgb,var(--contrast1) 52%,transparent); transition:border-color 180ms ease,background 180ms ease; }
+        .fan-tile.running { border-color:color-mix(in srgb,var(--fan-accent,var(--pink)) 32%,var(--contrast4)); background:color-mix(in srgb,var(--fan-accent,var(--pink)) 5%,var(--contrast1)); }
+        .tile-heading { display:flex; min-height:48px; align-items:center; gap:11px; }
+        .tile-icon { display:grid; width:42px; height:42px; flex:0 0 42px; place-items:center; border-radius:15px; background:var(--contrast4); color:var(--contrast11); }
+        .tile-icon ha-icon { width:22px; }
+        .running .tile-icon { background:color-mix(in srgb,var(--fan-accent,var(--pink)) 16%,var(--contrast3)); color:var(--fan-accent,var(--pink)); }
+        .tile-copy { display:grid; min-width:0; gap:3px; }
+        .tile-copy strong { color:var(--contrast20); font-family:var(--primary-font-family); font-size:17px; font-weight:720; }
+        .tile-copy small { color:var(--contrast10); font-size:11px; font-weight:560; }
+        .dial { position:relative; width:min(340px,100%); height:350px; margin:8px auto 4px; }
+        .dial-ring { position:absolute; width:246px; height:246px; left:50%; top:50%; border:1px solid var(--contrast5); border-radius:50%; transform:translate(-50%,-48%); }
+        .dial-ring::before { position:absolute; inset:9px; border:1px solid color-mix(in srgb,var(--fan-accent,var(--pink)) 12%,transparent); border-radius:50%; content:""; }
+        .power-core { position:absolute; z-index:2; display:grid; width:166px; height:166px; left:50%; top:50%; place-content:center; justify-items:center; gap:6px; border:1px solid var(--contrast5); border-radius:50%; background:var(--contrast2); color:var(--contrast18); cursor:pointer; transform:translate(-50%,-48%); transition:transform 140ms ease,background 180ms ease,border-color 180ms ease; }
+        .power-core:hover:not(:disabled) { border-color:color-mix(in srgb,var(--fan-accent,var(--pink)) 45%,var(--contrast5)); background:var(--contrast3); }
+        .power-core:active:not(:disabled) { transform:translate(-50%,-48%) scale(.97); }
+        .running .power-core { border-color:color-mix(in srgb,var(--fan-accent,var(--pink)) 48%,var(--contrast5)); background:color-mix(in srgb,var(--fan-accent,var(--pink)) 12%,var(--contrast2)); }
+        .core-fan { display:grid; width:54px; height:54px; place-items:center; color:var(--contrast11); }
+        .core-fan ha-icon { width:46px; height:46px; }
+        .running .core-fan { color:var(--fan-accent,var(--pink)); }
+        .running .core-fan ha-icon { animation:fan-spin var(--fan-spin) linear infinite; }
+        .busy .core-fan ha-icon { animation:busy-spin .8s linear infinite; }
+        .power-core strong { color:var(--contrast20); font-size:17px; font-weight:760; }
+        .power-core small { max-width:122px; color:var(--contrast9); font-size:10px; font-weight:570; line-height:1.25; text-align:center; }
+        .speed { position:absolute; z-index:3; display:grid; width:56px; height:56px; place-items:center; border:1px solid transparent; border-radius:50%; background:var(--contrast3); color:var(--contrast12); font-size:14px; font-weight:750; cursor:pointer; transition:transform 120ms ease,background 160ms ease,color 160ms ease,border-color 160ms ease; }
+        .speed:hover:not(:disabled) { background:var(--contrast5); color:var(--contrast20); }
+        .speed:active:not(:disabled) { transform:scale(.94); }
+        .speed.remembered { border-color:var(--contrast7); color:var(--contrast17); }
+        .speed.active { border-color:var(--fan-accent,var(--pink)); background:var(--fan-accent,var(--pink)); color:var(--black,#08090b); box-shadow:0 0 0 5px color-mix(in srgb,var(--fan-accent,var(--pink)) 12%,transparent); }
+        .speed-1 { left:0; top:176px; }
+        .speed-2 { left:32px; top:55px; }
+        .speed-3 { left:calc(50% - 28px); top:0; }
+        .speed-4 { right:32px; top:55px; }
+        .speed-5 { right:0; top:176px; }
+        .speed-6 { width:74px; left:calc(50% - 37px); bottom:0; border-radius:20px; font-size:10px; }
+        .feature-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:8px; }
+        .feature { display:flex; min-width:0; min-height:64px; align-items:center; gap:10px; border:1px solid transparent; border-radius:17px; padding:8px 12px; background:var(--contrast3); color:var(--contrast12); text-align:left; cursor:pointer; transition:transform 120ms ease,background 140ms ease,color 140ms ease; }
         .feature:hover:not(:disabled) { background:var(--contrast5); color:var(--contrast19); }
-        .feature.active { border-color:color-mix(in srgb, var(--fan-accent, var(--pink)) 30%, transparent); background:color-mix(in srgb, var(--fan-accent, var(--pink)) 15%, var(--contrast3)); color:var(--fan-accent, var(--pink)); }
-        .feature.led.active { color:var(--yellow, #ffd76a); border-color:color-mix(in srgb, var(--yellow, #ffd76a) 30%, transparent); background:color-mix(in srgb, var(--yellow, #ffd76a) 12%, var(--contrast3)); }
-        .feature.sleep.active { color:var(--purple, #c8a7ff); border-color:color-mix(in srgb, var(--purple, #c8a7ff) 30%, transparent); background:color-mix(in srgb, var(--purple, #c8a7ff) 12%, var(--contrast3)); }
-        .feature-icon { display:grid; width:28px; height:28px; flex:0 0 28px; place-items:center; }
-        .feature-icon ha-icon { width:23px; height:23px; }
+        .feature:active:not(:disabled) { transform:scale(.97); }
+        .feature.active { border-color:color-mix(in srgb,var(--fan-accent,var(--pink)) 30%,transparent); background:color-mix(in srgb,var(--fan-accent,var(--pink)) 14%,var(--contrast3)); color:var(--fan-accent,var(--pink)); }
+        .feature.led.active { color:var(--yellow,#ffd76a); border-color:color-mix(in srgb,var(--yellow,#ffd76a) 30%,transparent); background:color-mix(in srgb,var(--yellow,#ffd76a) 12%,var(--contrast3)); }
+        .feature-icon { display:grid; width:27px; height:27px; flex:0 0 27px; place-items:center; }
+        .feature-icon ha-icon { width:22px; height:22px; }
         .feature-copy { display:grid; min-width:0; gap:3px; line-height:1.15; }
         .feature-copy strong { overflow:hidden; color:var(--contrast18); font-size:12px; font-weight:720; text-overflow:ellipsis; white-space:nowrap; }
-        .feature-copy small { overflow:hidden; color:var(--contrast9); font-size:10px; font-weight:560; text-overflow:ellipsis; white-space:nowrap; }
-        .feature.active .feature-copy strong, .feature.active .feature-copy small { color:currentColor; }
-        .feature .chevron { width:17px; height:17px; flex:0 0 17px; margin-left:auto; }
-        button:disabled { cursor:not-allowed; opacity:.42; }
-        .feature:disabled { opacity:.52; }
-        .feature:disabled .feature-copy small { color:var(--contrast8); }
-        .unavailable { padding:16px; background:color-mix(in srgb, var(--contrast1) 28%, transparent); }
-        .unavailable .fan-icon { color:var(--contrast8); }
-        .unavailable-message { display:flex; min-height:74px; align-items:center; gap:12px; margin-top:10px; border-radius:17px; padding:13px 15px; background:var(--contrast3); color:var(--contrast10); }
-        .unavailable-message ha-icon { width:25px; height:25px; flex:0 0 25px; }
-        .unavailable-message span { display:grid; gap:3px; }
-        .unavailable-message strong { color:var(--contrast16); font-size:13px; }
-        .unavailable-message small { font-size:11px; }
-        .error { margin:12px 2px -2px; color:var(--red, var(--error-color)); font-size:12px; font-weight:600; }
-        .timer-dialog { width:min(460px, calc(100vw - 40px)); border:1px solid var(--contrast5); border-radius:26px; padding:20px; background:var(--contrast2); color:var(--contrast20); box-shadow:0 24px 80px rgba(0,0,0,.55); }
+        .feature-copy small { overflow:hidden; color:var(--contrast9); font-size:9px; font-weight:560; text-overflow:ellipsis; white-space:nowrap; }
+        .feature.active .feature-copy strong,.feature.active .feature-copy small { color:currentColor; }
+        .chevron { width:16px; height:16px; margin-left:auto; }
+        button:disabled { cursor:not-allowed; opacity:.44; }
+        .feature:disabled { opacity:.5; }
+        .unavailable { min-height:300px; background:color-mix(in srgb,var(--contrast1) 28%,transparent); }
+        .unavailable .tile-icon { color:var(--contrast8); }
+        .unavailable-body { display:grid; min-height:216px; place-content:center; justify-items:center; gap:7px; padding:20px; text-align:center; }
+        .unavailable-icon { display:grid; width:64px; height:64px; place-items:center; border-radius:22px; background:var(--contrast3); color:var(--contrast8); }
+        .unavailable-icon ha-icon { width:30px; height:30px; }
+        .unavailable-body strong { margin-top:5px; color:var(--contrast15); font-size:14px; }
+        .unavailable-body small { max-width:240px; color:var(--contrast9); font-size:11px; line-height:1.4; }
+        .error { margin:12px 2px -2px; color:var(--red,var(--error-color)); font-size:12px; font-weight:600; }
+        .timer-dialog { width:min(460px,calc(100vw - 40px)); border:1px solid var(--contrast5); border-radius:26px; padding:20px; background:var(--contrast2); color:var(--contrast20); box-shadow:0 24px 80px rgba(0,0,0,.55); }
         .timer-dialog::backdrop { background:rgba(0,0,0,.68); backdrop-filter:blur(3px); }
         .dialog-heading { display:flex; align-items:center; gap:12px; }
-        .dialog-heading > span:nth-child(2) { display:grid; min-width:0; flex:1; gap:3px; }
+        .dialog-heading>span:nth-child(2) { display:grid; min-width:0; flex:1; gap:3px; }
         .dialog-heading strong { font-size:18px; font-weight:740; }
         .dialog-heading small { color:var(--contrast10); font-size:12px; }
-        .dialog-icon { display:grid; width:44px; height:44px; place-items:center; border-radius:15px; background:color-mix(in srgb, var(--fan-accent, var(--pink)) 15%, var(--contrast3)); color:var(--fan-accent, var(--pink)); }
+        .dialog-icon { display:grid; width:44px; height:44px; place-items:center; border-radius:15px; background:color-mix(in srgb,var(--fan-accent,var(--pink)) 15%,var(--contrast3)); color:var(--fan-accent,var(--pink)); }
         .dialog-close { display:grid; width:48px; height:48px; place-items:center; border:0; border-radius:15px; background:var(--contrast3); color:var(--contrast14); cursor:pointer; }
-        .timer-choices { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-top:20px; }
+        .timer-choices { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:20px; }
         .timer-choice { display:grid; min-height:78px; place-content:center; gap:3px; border:1px solid var(--contrast5); border-radius:18px; background:var(--contrast3); color:var(--contrast18); text-align:center; cursor:pointer; }
-        .timer-choice:hover { border-color:color-mix(in srgb, var(--fan-accent, var(--pink)) 38%, var(--contrast5)); background:var(--contrast4); }
+        .timer-choice:hover { border-color:color-mix(in srgb,var(--fan-accent,var(--pink)) 38%,var(--contrast5)); background:var(--contrast4); }
         .timer-choice strong { font-size:20px; font-weight:760; }
         .timer-choice small { color:var(--contrast10); font-size:11px; }
-        .timer-choice.selected { border-color:var(--fan-accent, var(--pink)); color:var(--fan-accent, var(--pink)); }
-        .cancel-timer { display:flex; grid-column:1 / -1; min-height:68px; align-items:center; justify-content:flex-start; gap:12px; padding:0 18px; color:var(--red, #ff768a); text-align:left; }
+        .timer-choice.selected { border-color:var(--fan-accent,var(--pink)); color:var(--fan-accent,var(--pink)); }
+        .cancel-timer { display:flex; grid-column:1/-1; min-height:68px; align-items:center; justify-content:flex-start; gap:12px; padding:0 18px; color:var(--red,#ff768a); text-align:left; }
         .cancel-timer ha-icon { width:25px; height:25px; }
         .cancel-timer span { display:grid; gap:3px; }
         .cancel-timer strong { font-size:14px; }
         .dialog-cancel { width:100%; min-height:56px; margin-top:12px; border:0; border-radius:17px; background:var(--contrast4); color:var(--contrast16); font-size:13px; font-weight:700; cursor:pointer; }
-        .power:active:not(:disabled), .step:active:not(:disabled), .feature:active:not(:disabled), .timer-choice:active, .dialog-cancel:active { transform:scale(.97); }
         @keyframes fan-spin { to { transform:rotate(360deg); } }
         @keyframes busy-spin { to { transform:rotate(360deg); } }
-        @media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
+        @media (prefers-reduced-motion:reduce) { * { animation:none!important; transition:none!important; } }
       </style>
       <ha-card style="--fan-accent:${this._escape(this._config.accent || "var(--pink)")}">
-        <header class="room-heading">
-          <span class="room-icon"><ha-icon icon="${this._escape(this._config.icon || "mdi:fan")}"></ha-icon></span>
-          <span class="room-copy"><span class="room-name">${this._escape(this._config.name)}</span><span class="room-status">${this._escape(this._roomSummary())}</span></span>
-          ${multiple ? `<button class="all-off" data-action="all-off"${this._disabled(!canAllOff)}><ha-icon icon="mdi:fan-off"></ha-icon>All off</button>` : ""}
-        </header>
+        ${multiple ? `<header class="room-heading"><span class="room-icon"><ha-icon icon="${this._escape(this._config.icon || "mdi:fan")}"></ha-icon></span><span class="room-copy"><strong>${this._escape(this._config.name)}</strong><small>${this._escape(this._roomSummary())}</small></span></header>` : ""}
         <div class="fan-list">${this._config.fans.map((unit, index) => this._unit(unit, index)).join("")}</div>
         ${this._error ? `<div class="error" role="alert">${this._escape(this._error)}</div>` : ""}
       </ha-card>
@@ -388,23 +383,13 @@ class FamilyFanCard extends HTMLElement {
     if (action === "timer-choice") {
       const option = button.dataset.option;
       this._timerDialogIndex = null;
-      await this._runUnit(index, async () => {
-        await this._callService("select", "select_option", { option }, unit.timer);
-      });
-      return;
-    }
-    if (action === "more-info") {
-      this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId: unit.fan } }));
+      await this._runUnit(index, () => this._callService("select", "select_option", { option }, unit.timer));
       return;
     }
     if (action === "timer") {
       if (!this._available(unit) || this._busy.has(index)) return;
       this._timerDialogIndex = index;
       this._render();
-      return;
-    }
-    if (action === "all-off") {
-      await this._allOff();
       return;
     }
     if (!this._available(unit) || this._busy.has(index)) return;
@@ -418,11 +403,8 @@ class FamilyFanCard extends HTMLElement {
           () => this._callService("fan", running ? "turn_off" : "turn_on", {}, unit.fan),
         );
       });
-    } else if (action === "speed-up" || action === "speed-down") {
-      const current = this._speed(this._state(unit.fan)) || 1;
-      const next = Math.max(1, Math.min(6, current + (action === "speed-up" ? 1 : -1)));
-      if (next === current) return;
-      const percentage = FAMILY_FAN_SPEEDS[next - 1].percentage;
+    } else if (action === "speed") {
+      const percentage = Number(button.dataset.percentage);
       const running = this._running(unit);
       await this._runUnit(index, async () => {
         const setSpeed = () => this._callService("fan", running ? "set_percentage" : "turn_on", { percentage }, unit.fan);
@@ -431,7 +413,7 @@ class FamilyFanCard extends HTMLElement {
         } else {
           await this._afterTimerCancellation(
             unit,
-            "The timer was cancelled, but the fan did not accept the new speed.",
+            "The timer was cancelled, but the fan did not accept the selected speed.",
             setSpeed,
           );
         }
@@ -470,19 +452,6 @@ class FamilyFanCard extends HTMLElement {
     }
   }
 
-  async _allOff() {
-    const actions = this._config.fans
-      .map((unit, index) => ({ unit, index }))
-      .filter(({ unit, index }) => this._running(unit) && !this._busy.has(index));
-    await Promise.all(actions.map(({ unit, index }) => this._runUnit(index, async () => {
-      await this._afterTimerCancellation(
-        unit,
-        "The timer was cancelled, but the fan did not turn off.",
-        () => this._callService("fan", "turn_off", {}, unit.fan),
-      );
-    })));
-  }
-
   async _runUnit(index, task) {
     if (!this._hass || this._busy.has(index)) return;
     this._busy.add(index);
@@ -510,5 +479,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "family-fan-card",
   name: "Family Fan Card",
-  description: "Simple, quota-conscious Atomberg room controls",
+  description: "Atomberg-style circular fan controls",
 });

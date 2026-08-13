@@ -59,17 +59,18 @@ Living Room; Krishna sees Master
 Bedroom, Kitchen, Living Room and Dining Room; Manisha sees Bedroom, Kitchen,
 Living Room and Guest Room. The browser-review profile sees no favourites.
 The Living Room summary combines both fans. The full Rooms view uses a
-source-owned, quota-conscious component with a prominent labelled Power action,
-a large minus/current/plus speed control including Boost, clearly identified
-Light and Sleep actions, and a 1/2/3/6-hour timer whose label changes between
-Turn on later and Turn off later. Light and Sleep stay visible but require the
-fan to be running. The fan icon rotates only while running, unavailable fans
-collapse to one useful explanation, and one per-fan command lock prevents
-conflicting taps. Living Room keeps both fans as separate full-width rows in one
-double-width card with an All off action; the other rooms form a consistent
-two-column desktop grid. Changing speed while a fan is off turns it on at the
-new speed with one combined Atomberg command. An immediate action first cancels
-an active conflicting timer so it cannot unexpectedly reverse the fan later.
+source-owned, quota-conscious circular control inspired by Atomberg's appliance
+interface. Tapping the large centre starts at the retained speed or turns the
+fan off; six direct speed targets, including Boost, sit around it. Light, Sleep
+and the 1/2/3/6-hour timer remain subordinate below the dial. Light and Sleep
+stay visible but require the fan to be running, while the timer changes between
+Turn on later and Turn off later. The centre fan icon rotates only while running,
+unavailable fans collapse to a disabled wall-switch message, and one per-fan
+command lock prevents conflicting taps. Living Room presents both fans as equal
+tiles in one double-width card; the other rooms form a two-column desktop grid.
+Selecting a speed while off turns the fan on at that speed with one combined
+Atomberg command. An immediate action first cancels an active conflicting timer
+so it cannot unexpectedly reverse the fan later.
 The greeting ends with one prioritized
 household message: laundry completion, a current or next-day family event,
 significant heat or storms, shopping needs, or a time-appropriate all-clear.

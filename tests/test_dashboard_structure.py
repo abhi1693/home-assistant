@@ -302,7 +302,7 @@ class DashboardStructureTests(unittest.TestCase):
         )[0]
         card = (ROOT / "www/family-fan-card.js").read_text()
 
-        self.assertIn("/local/family-fan-card.js?v=2.0.1", configuration)
+        self.assertIn("/local/family-fan-card.js?v=3.0.0", configuration)
         self.assertEqual(rooms.count("type: custom:family-fan-card"), 7)
         self.assertNotIn("type: custom:family-fan-summary-card", rooms)
         self.assertIn("max_columns: 3", rooms)
@@ -321,15 +321,22 @@ class DashboardStructureTests(unittest.TestCase):
 
         self.assertIn('customElements.define("family-fan-card"', card)
         self.assertNotIn('customElements.define("family-fan-summary-card"', card)
-        self.assertIn("{ speed: 6, percentage: 100 }", card)
-        self.assertIn('data-action="speed-down"', card)
-        self.assertIn('data-action="speed-up"', card)
-        self.assertIn("Starts at this speed", card)
+        self.assertIn('{ speed: 6, percentage: 100, label: "Boost" }', card)
+        self.assertIn('class="power-core"', card)
+        self.assertIn('data-action="speed"', card)
+        self.assertIn('class="speed speed-${item.speed}', card)
+        self.assertIn("Tap to start at", card)
+        self.assertIn("Last speed", card)
+        self.assertNotIn('data-action="speed-down"', card)
+        self.assertNotIn('data-action="speed-up"', card)
+        self.assertNotIn('data-action="all-off"', card)
+        self.assertNotIn('data-action="more-info"', card)
         self.assertIn('this._callService("light", service', card)
         self.assertIn('this._callService("switch", service', card)
         self.assertIn('this._callService("select", "select_option"', card)
         self.assertIn('running ? "set_percentage" : "turn_on"', card)
-        self.assertIn("Check the wall switch or Wi-Fi.", card)
+        self.assertIn("Turn on the wall switch", card)
+        self.assertIn("Controls will appear automatically.", card)
         self.assertIn("Turn fan on first", card)
         self.assertIn('running ? "Turn off later" : "Turn on later"', card)
         self.assertIn('dialog class="timer-dialog"', card)
@@ -340,9 +347,15 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("The timer was cancelled, but the fan did not accept", card)
         self.assertIn("this._busy.has(index)", card)
         self.assertIn("fingerprint !== this._lastFingerprint", card)
-        self.assertIn("min-height:56px", card)
+        self.assertIn("width:166px", card)
+        self.assertIn("width:56px", card)
+        self.assertIn("min-height:64px", card)
         self.assertIn("prefers-reduced-motion:reduce", card)
-        self.assertIn(".running .fan-icon ha-icon", card)
+        self.assertIn(".running .core-fan ha-icon", card)
+        self.assertIn(
+            'grid-template-columns:${multiple ? "repeat(2,minmax(0,1fr))"',
+            card,
+        )
 
 
 if __name__ == "__main__":
