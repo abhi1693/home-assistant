@@ -823,16 +823,50 @@ views:
                   - type: heading
                     heading: Family board
                     icon: mdi:calendar-heart
-                  - type: todo-list
-                    entity: todo.shopping_list
-                    title: Shopping
-                    hide_completed: false
-                    hide_create: false
-                    hide_section_headers: false
-                    display_order: none
-                    item_tap_action: edit
+                  - type: custom:todo-swipe-card
+                    entities:
+                      - entity: todo.shopping_list
+                        show_title: true
+                        title: Shopping
+                        display_order: none
+                        icon: mdi:cart-outline
+                    show_pagination: false
+                    show_icons: true
+                    show_addbutton: true
+                    show_create: true
+                    show_completed: true
+                    show_completed_menu: true
+                    enable_search: false
+                    delete_confirmation: true
+                    card_spacing: 0
+                    font_size: 15
+                    title_font_size: 18
                     card_mod:
                       style: |
+                        :host {
+                          --todo-swipe-card-background: var(--contrast2);
+                          --todo-swipe-card-text-color: var(--primary-text-color);
+                          --todo-swipe-card-font-size: 15px;
+                          --todo-swipe-card-item-font-weight: 500;
+                          --todo-swipe-card-item-height: 40px;
+                          --todo-swipe-card-item-spacing: 2px;
+                          --todo-swipe-card-checkbox-size: 22px;
+                          --todo-swipe-card-checkbox-color: rgba(var(--rgb-primary-text-color), 0.28);
+                          --todo-swipe-card-checkbox-checked-color: var(--pink);
+                          --todo-swipe-card-checkbox-checkmark-color: var(--black);
+                          --todo-swipe-card-title-height: 52px;
+                          --todo-swipe-card-title-background: transparent;
+                          --todo-swipe-card-title-color: var(--primary-text-color);
+                          --todo-swipe-card-title-font-size: 18px;
+                          --todo-swipe-card-title-font-weight: 650;
+                          --todo-swipe-card-title-align: flex-start;
+                          --todo-swipe-card-title-border-width: 0;
+                          --todo-swipe-card-placeholder-color: var(--secondary-text-color);
+                          --todo-swipe-card-placeholder-opacity: 0.72;
+                          --todo-swipe-card-input-font-weight: 500;
+                          --todo-swipe-card-add-button-color: var(--pink);
+                          --todo-swipe-card-delete-button-color: var(--red);
+                        }
                         ha-card {
                           background: var(--contrast2);
                           border: 1px solid rgba(var(--rgb-primary-text-color), 0.06);

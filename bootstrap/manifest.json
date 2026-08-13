@@ -50,6 +50,12 @@
       "url": "https://raw.githubusercontent.com/thomasloven/lovelace-auto-entities/v1.16.1/auto-entities.js",
       "sha256": "b7327b2fcd39f1fb859b60b53c869760d1d762ab4d4e4617b748971f528bd407",
       "destination": "www/community/auto-entities/auto-entities.js"
+    },
+    {
+      "name": "Todo Swipe Card 3.6.0",
+      "url": "https://github.com/nutteloost/todo-swipe-card/releases/download/v3.6.0/todo-swipe-card.js",
+      "sha256": "c8fbb3a0f6b8c83d0c94958c1cff4fd1da032732e5facabe45be5a9c0ce9b9fe",
+      "destination": "www/community/todo-swipe-card/todo-swipe-card.js"
     }
   ]
 }

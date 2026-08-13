@@ -21,7 +21,8 @@ compete with the family navigation rail.
 - **Rack** is admin-only. It keeps Kubernetes, UniFi and rack temperatures away
   from the shared family experience.
 - `Family Dark` is the local visual system. Bubble Card, Button Card, Navbar Card,
-  Card Mod and Kiosk Mode are commit/version-pinned, checksum-verified assets.
+  Card Mod, Todo Swipe Card and Kiosk Mode are commit/version-pinned,
+  checksum-verified assets.
 
 The current dashboard binds fixed controls only to entities verified in the
 live Home Assistant registry. Auto Entities discovers active Jellyfin and Music
@@ -33,10 +34,11 @@ The shared overview favors household decisions over system telemetry. Its
 single-screen desktop composition has a personalized greeting, compact weather
 and household ribbon, account-filtered camera wall, adaptive Music
 Assistant/Jellyfin activity, an interactive family board, and a persistent
-room/fan matrix. The Shopping card supports adding, editing, completing and
-removing list items directly from Home; list contents remain normal mutable
-Home Assistant data while the card and its access policy stay Git-owned. Rack
-health remains confined to the admin-only dashboard.
+room/fan matrix. The compact Todo Swipe Shopping card supports adding, editing,
+completing and removing list items directly from Home without the native card's
+large empty state; list contents remain normal mutable Home Assistant data while
+the card and its access policy stay Git-owned. Rack health remains confined to
+the admin-only dashboard.
 
 ## Family access
 
