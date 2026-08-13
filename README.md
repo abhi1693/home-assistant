@@ -50,8 +50,11 @@ temporary dashboard-testing grant until the mother's account is added. Because
 Abhimanyu is the Home Assistant owner, hiding a camera from that profile can
 only be a presentation rule: owners always retain administrative entity access.
 Non-owner family profiles receive both Lovelace filtering and backend camera
-permissions. Restricted camera cards are omitted and the remaining cards reflow.
-Unknown users receive no cameras by default.
+permissions. Their generated policy explicitly allows every registered
+non-camera domain and only the camera entities granted in the access matrix;
+this avoids Home Assistant's unconditional `all` permission fallback.
+Restricted camera cards are omitted and the remaining cards reflow. Unknown
+users receive no cameras by default.
 
 Family credentials are never Git-owned. Create each account privately in Home
 Assistant, then add its immutable user ID, expected name, person entity and

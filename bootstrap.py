@@ -336,13 +336,14 @@ def migrate_areas(source: Path, config: Path) -> None:
     print("Renamed areas and assigned all Atomberg fans")
 
 
-def _family_camera_policy(allowed_cameras: list[str]) -> dict:
-    """Build an allow-all-except-camera policy with explicit camera grants."""
+def _family_camera_policy(
+    allowed_cameras: list[str], non_camera_domains: set[str]
+) -> dict:
+    """Allow registered non-camera domains and explicitly granted cameras."""
     return {
         "entities": {
             "entity_ids": {entity_id: True for entity_id in allowed_cameras},
-            "domains": {"camera": {}},
-            "all": True,
+            "domains": {domain: True for domain in sorted(non_camera_domains)},
         }
     }
 
@@ -367,6 +368,11 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     people = {item["id"]: item for item in person["data"]["items"]}
     entities = {
         item["entity_id"]: item for item in entity_registry["data"]["entities"]
+    }
+    non_camera_domains = {
+        entity_id.partition(".")[0]
+        for entity_id in entities
+        if entity_id.partition(".")[0] != "camera"
     }
 
     cameras = access.get("cameras", {})
@@ -435,7 +441,9 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             desired_groups[group_id] = {
                 "id": group_id,
                 "name": f"Family access: {profile['user_name']}",
-                "policy": _family_camera_policy(allowed_entities),
+                "policy": _family_camera_policy(
+                    allowed_entities, non_camera_domains
+                ),
             }
             user["group_ids"] = [group_id]
 

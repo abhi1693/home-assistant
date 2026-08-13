@@ -240,6 +240,16 @@ class BootstrapTests(unittest.TestCase):
                         "platform": "unifiprotect",
                         "disabled_by": None,
                     },
+                    {
+                        "entity_id": "fan.office",
+                        "platform": "atomberg",
+                        "disabled_by": None,
+                    },
+                    {
+                        "entity_id": "sensor.office_temperature",
+                        "platform": "example",
+                        "disabled_by": None,
+                    },
                 ]
             },
         }
@@ -263,8 +273,11 @@ class BootstrapTests(unittest.TestCase):
             group["policy"]["entities"]["entity_ids"],
             {"camera.master_bedroom": True},
         )
-        self.assertEqual(group["policy"]["entities"]["domains"], {"camera": {}})
-        self.assertEqual(group["policy"]["entities"]["all"], True)
+        self.assertEqual(
+            group["policy"]["entities"]["domains"],
+            {"fan": True, "sensor": True},
+        )
+        self.assertNotIn("all", group["policy"]["entities"])
         self.assertEqual(
             json.loads(
                 (self.config / "access/generated/camera-hallway-users.json").read_text()
