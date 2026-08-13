@@ -62,6 +62,13 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("input_text.family_household_notice", header)
         self.assertIn("input_boolean.family_household_notice_expires", header)
         self.assertIn("notice_state in ['unknown', 'unavailable']", header)
+        self.assertIn("now().strftime('%-I:%M %p')", header)
+        self.assertIn("event_days == 0", header)
+        self.assertIn("event_days == 1", header)
+        self.assertIn("Home is empty", header)
+        self.assertIn("Nothing at home needs attention this evening", header)
+        self.assertNotIn("Nobody home", header)
+        self.assertNotIn("avoid the afternoon heat", header)
         self.assertNotIn("All available fans are off", header)
 
     def test_home_is_composed_as_a_family_console(self):

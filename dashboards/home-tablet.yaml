@@ -920,21 +920,30 @@ views:
             text_only: true
             content: |-
               # {{ 'Good morning' if now().hour < 12 else 'Good afternoon' if now().hour < 17 else 'Good evening' }}, {{ user }}
+              {% set hour = now().hour %}
+              {% set daypart = 'early morning' if hour < 5 else 'morning' if hour < 12 else 'afternoon' if hour < 17 else 'evening' if hour < 22 else 'night' %}
               {% set condition = state_translated('weather.home') | replace('Partlycloudy', 'Partly cloudy') | replace('partlycloudy', 'partly cloudy') %}
               {% set temperature = states('sensor.home_temperature') %}
-              {% set apparent = states('sensor.home_apparent_temperature') | float(0) %}
+              {% set temperature_known = temperature not in ['unknown', 'unavailable', 'none', ''] %}
+              {% set apparent_state = states('sensor.home_apparent_temperature') %}
+              {% set apparent = apparent_state | float(0) %}
               {% set storm = states('sensor.home_thunderstorm_probability') | int(0) %}
               {% set home = states.person | selectattr('state', 'eq', 'home') | map(attribute='name') | list %}
+              {% set known_people = states.person | rejectattr('state', 'eq', 'unknown') | rejectattr('state', 'eq', 'unavailable') | list %}
               {% set washer = states('sensor.front_load_washer_current_status') | lower %}
               {% set event = state_attr('calendar.family', 'message') %}
+              {% set event_start_raw = state_attr('calendar.family', 'start_time') %}
+              {% set event_start = as_local(as_datetime(event_start_raw)) if event_start_raw else none %}
+              {% set event_days = (event_start.date() - now().date()).days if event_start else none %}
+              {% set event_all_day = state_attr('calendar.family', 'all_day') %}
               {% set shopping = states('todo.shopping_list') | int(0) %}
               {% set notice_state = states('input_text.family_household_notice') %}
               {% set notice = '' if notice_state in ['unknown', 'unavailable'] else notice_state | trim %}
               {% set notice_expires = is_state('input_boolean.family_household_notice_expires', 'on') %}
               {% set notice_until = as_timestamp(states('input_datetime.family_household_notice_until'), 0) %}
-              **{{ now().strftime('%A') }}** · {{ condition }} at **{{ temperature }} °C** · {% if home | count == 0 %}Nobody home{% elif home | count == 1 %}{{ home[0] }} is home{% else %}{{ home | count }} people home{% endif %}
+              **{{ now().strftime('%A') }} {{ daypart }} · {{ now().strftime('%-I:%M %p') }}**{% if condition not in ['unknown', 'unavailable'] %} · {{ condition }}{% endif %}{% if temperature_known %} · **{{ temperature }} °C** outside{% endif %}{% if home | count == 0 and known_people | count > 0 %} · Home is empty{% elif home | count == 1 %} · {{ home[0] }} is home{% elif home | count == 2 %} · {{ home[0] }} and {{ home[1] }} are home{% elif home | count > 2 %} · {{ home | count }} people are home{% endif %}
 
-              {% if notice and (not notice_expires or notice_until == 0 or notice_until > as_timestamp(now())) %}{{ notice }}{% elif washer in ['complete', 'completed', 'finished', 'end'] %}The laundry is ready to be collected.{% elif is_state('calendar.family', 'on') and event %}**{{ event }}** is happening now.{% elif apparent >= 38 and storm >= 30 %}It feels like **{{ apparent | round(0) | int }} °C** outside and storms are possible—please stay hydrated and take an umbrella.{% elif apparent >= 38 %}It feels like **{{ apparent | round(0) | int }} °C** outside—please stay hydrated and avoid the afternoon heat.{% elif storm >= 30 %}There is a **{{ storm }}%** chance of storms today—keep an umbrella handy.{% elif shopping > 0 %}There {% if shopping == 1 %}is **1 item**{% else %}are **{{ shopping }} items**{% endif %} on the shopping list.{% else %}Everything at home looks settled.{% endif %}
+              {% if notice and (not notice_expires or notice_until == 0 or notice_until > as_timestamp(now())) %}{{ notice }}{% elif washer in ['complete', 'completed', 'finished', 'end'] %}The laundry is ready to be collected.{% elif is_state('calendar.family', 'on') and event %}**{{ event }}** is happening now.{% elif event and event_days == 0 %}{% if event_all_day %}**{{ event }}** is scheduled for today.{% else %}Next: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif event and event_days == 1 %}{% if event_all_day %}Tomorrow: **{{ event }}**.{% else %}Tomorrow: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif apparent >= 38 and storm >= 30 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside, and storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—take water and an umbrella if you are heading out.{% elif apparent >= 38 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside—{% if hour < 12 %}take water if you are heading out later{% elif hour < 17 %}keep outdoor plans short and stay hydrated{% elif hour < 22 %}take water if you are heading out{% else %}keep the house cool overnight{% endif %}.{% elif storm >= 30 %}Storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—keep an umbrella handy.{% elif shopping > 0 %}There {% if shopping == 1 %}is **1 item**{% else %}are **{{ shopping }} items**{% endif %} on the shopping list.{% elif hour < 5 %}Everything at home is settled for the night.{% elif hour < 12 %}Nothing at home needs attention this morning.{% elif hour < 17 %}Nothing at home needs attention right now.{% elif hour < 22 %}Nothing at home needs attention this evening.{% else %}Everything at home is settled for the night.{% endif %}
             card_mod:
               style: |
                 ha-card { background: transparent; padding: 2px 0 0; }

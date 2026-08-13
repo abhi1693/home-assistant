@@ -52,11 +52,13 @@ and household ribbon, account-filtered camera wall, adaptive Music
 Assistant/Jellyfin activity, a narrow Today rail, and four relevant area
 summaries. The Living Room summary combines both fans; the full Rooms view owns
 individual controls for every area. The greeting ends with one prioritized
-household message: laundry completion, a current family event, significant heat
-or storms, shopping needs, or a quiet all-clear. A Git-owned Announcements
-composer lets family members publish or clear that override inline, keep it
-until cleared, or choose an end time without opening Home Assistant's raw entity
-dialog.
+household message: laundry completion, a current or next-day family event,
+significant heat or storms, shopping needs, or a time-appropriate all-clear.
+Its context line includes the weekday, day part and current time, and its weather
+advice changes between morning, afternoon, evening and night. A Git-owned
+Announcements composer lets family members publish or clear that override
+inline, keep it until cleared, or choose an end time without opening Home
+Assistant's raw entity dialog.
 Routine fan-off state is omitted; running fans are called out because they are
 useful household context. The compact Todo Swipe Shopping
 card supports adding, editing, completing and removing list items directly from
