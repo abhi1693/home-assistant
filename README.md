@@ -35,6 +35,13 @@ and red communicate full/charging, normal, low and critical levels. The Pixel 8,
 Pixel 10 Pro and iPhone level/state entity pairs are recorded in the Git-owned
 family access matrix.
 
+Abhimanyu's sidebar also includes the enabled Google Travel Time
+`sensor.abhimanyu_home_to_work` as a private `Home → Work` card. It shows the
+current traffic-aware minutes with a green, amber or red car-clock icon and is
+rendered only for the Git-mapped `asaharan` account. Work coordinates remain in
+the integration's UI-owned configuration and are not copied into this public
+repository.
+
 ## Dashboards
 
 - **Home** is family-facing and desktop-first. Its three views cover the household

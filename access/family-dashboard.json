@@ -28,6 +28,7 @@
       "next_alarm_entity_id": "sensor.pixel_8_next_alarm",
       "battery_level_entity_id": "sensor.pixel_8_battery_level",
       "battery_state_entity_id": "sensor.pixel_8_battery_state",
+      "commute_entity_id": "sensor.abhimanyu_home_to_work",
       "device_trackers": [
         "device_tracker.abhi_pc",
         "device_tracker.abhimanyu_pixel_8",

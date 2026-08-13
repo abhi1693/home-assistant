@@ -324,6 +324,26 @@ class DashboardStructureTests(unittest.TestCase):
             home_view.index("heading: Phones"), home_view.index("type: conditional")
         )
 
+    def test_home_to_work_commute_is_owner_only(self):
+        access = (ROOT / "access/family-dashboard.json").read_text()
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        home_view = home.split("  - title: Home", 1)[1].split(
+            "  - title: Rooms", 1
+        )[0]
+        commute = home_view.split("template: family_commute", 1)[1].split(
+            "          - type: heading", 1
+        )[0]
+
+        self.assertIn(
+            '"commute_entity_id": "sensor.abhimanyu_home_to_work"', access
+        )
+        self.assertIn("family_commute:", home)
+        self.assertIn("entity: sensor.abhimanyu_home_to_work", commute)
+        self.assertIn("profile-abhimanyu-saharan-users.json", commute)
+        self.assertIn("name: Home → Work", home)
+        self.assertIn("mdi:car-clock", home)
+        self.assertNotIn("28.4114532", home)
+
     def test_camera_wall_applies_each_camera_user_gate(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
         camera_view = home.split("  - title: Cameras", 1)[1]
