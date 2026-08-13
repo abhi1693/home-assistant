@@ -1,0 +1,18 @@
+---
+input_text:
+  family_household_notice:
+    name: Household notice
+    icon: mdi:message-text-outline
+    max: 180
+
+input_boolean:
+  family_household_notice_expires:
+    name: Household notice expires
+    icon: mdi:timer-outline
+
+input_datetime:
+  family_household_notice_until:
+    name: Household notice until
+    icon: mdi:calendar-clock
+    has_date: true
+    has_time: true

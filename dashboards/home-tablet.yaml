@@ -220,57 +220,125 @@ button_card_templates:
               return home ? 'var(--green)' : 'var(--contrast10)';
             ]]]
 
-  family_ribbon_context:
+  family_ribbon_today:
     template: family_ribbon
-    entity: sensor.home_state
+    entity: calendar.family
     variables:
       context: |
         [[[
-          const jellyfin = states['sensor.jellyfin_5876476948_vc8dc_active_clients'];
-          const watching = Number(jellyfin?.state || 0);
-          if (watching > 0) {
+          const washer = states['sensor.front_load_washer_current_status'];
+          const washerState = washer?.state?.toLowerCase();
+          if (['complete', 'completed', 'finished', 'end'].includes(washerState)) {
             return {
-              name: 'Jellyfin',
-              label: watching === 1 ? '1 watching' : `${watching} watching`,
-              icon: 'mdi:jellyfish',
-              color: 'var(--purple)'
+              name: 'Laundry', label: 'Ready to collect',
+              icon: 'mdi:washing-machine-alert', color: 'var(--green)'
             };
           }
-          const playing = Object.values(states).find((item) =>
-            item.entity_id.startsWith('media_player.') && item.state === 'playing');
-          if (playing) {
+          if (entity?.attributes.message) {
+            const start = entity.attributes.start_time;
+            const date = start ? new Date(start) : null;
             return {
-              name: 'Now playing',
-              label: playing.attributes.media_title || playing.attributes.friendly_name,
-              icon: 'mdi:music-note',
-              color: 'var(--purple)'
+              name: entity.state === 'on' ? 'Happening now' : 'Next event',
+              label: date && !Number.isNaN(date.getTime())
+                ? `${date.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})} · ${entity.attributes.message}`
+                : entity.attributes.message,
+              icon: 'mdi:calendar-heart', color: 'var(--green)'
             };
           }
           const shopping = states['todo.shopping_list'];
           const items = Number(shopping?.state || 0);
           if (items > 0) {
             return {
-              name: 'Shopping',
-              label: items === 1 ? '1 item' : `${items} items`,
-              icon: 'mdi:cart-outline',
-              color: 'var(--pink)'
+              name: 'Shopping', label: items === 1 ? '1 item' : `${items} items`,
+              icon: 'mdi:cart-outline', color: 'var(--pink)'
             };
           }
-          const calendar = states['calendar.family'];
-          if (calendar?.state === 'on' && calendar.attributes.message) {
-            return {
-              name: 'Family now',
-              label: calendar.attributes.message,
-              icon: 'mdi:calendar-heart',
-              color: 'var(--blue)'
-            };
-          }
-          const online = entity?.state === 'connected';
+          const sunset = states['sensor.sun_next_setting'];
+          const setting = sunset ? new Date(sunset.state) : null;
           return {
-            name: 'Internet',
-            label: online ? 'Online' : 'Needs attention',
-            icon: online ? 'mdi:wifi' : 'mdi:wifi-alert',
-            color: online ? 'var(--green)' : 'var(--red)'
+            name: 'Sunset',
+            label: setting && !Number.isNaN(setting.getTime())
+              ? setting.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})
+              : 'Later today',
+            icon: 'mdi:weather-sunset-down', color: 'var(--yellow)'
+          };
+        ]]]
+    name: '[[[ return variables.context.name; ]]]'
+    label: '[[[ return variables.context.label; ]]]'
+    icon: '[[[ return variables.context.icon; ]]]'
+    styles:
+      icon:
+        - color: '[[[ return variables.context.color; ]]]'
+
+  family_ribbon_activity:
+    template: family_ribbon
+    entity: sensor.jellyfin_5876476948_vc8dc_active_clients
+    variables:
+      context: |
+        [[[
+          const watching = Number(entity?.state || 0);
+          if (watching > 0) return {
+            name: 'Jellyfin', label: watching === 1 ? '1 person watching' : `${watching} people watching`,
+            icon: 'mdi:jellyfish', color: 'var(--purple)'
+          };
+          const playing = Object.values(states).find((item) =>
+            item.entity_id.startsWith('media_player.') && item.state === 'playing');
+          if (playing) return {
+            name: 'Playing',
+            label: playing.attributes.media_title || playing.attributes.friendly_name,
+            icon: 'mdi:music-note', color: 'var(--purple)'
+          };
+          const fanIds = ['fan.master_bedroom_fan', 'fan.bedroom_fan', 'fan.guest_fan',
+            'fan.office_fan', 'fan.kitchen_fan', 'fan.dining_fan',
+            'fan.living_room_fan_1', 'fan.living_room_fan_2'];
+          const running = fanIds.filter((id) => states[id]?.state === 'on').length;
+          if (running > 0) return {
+            name: 'Fans', label: running === 1 ? '1 room cooling' : `${running} fans running`,
+            icon: 'mdi:fan', color: 'var(--blue)'
+          };
+          const humidity = states['sensor.home_humidity'];
+          const value = Number(humidity?.state);
+          return {
+            name: 'Humidity', label: Number.isFinite(value) ? `${Math.round(value)}%` : 'Unavailable',
+            icon: 'mdi:water-percent', color: 'var(--blue)'
+          };
+        ]]]
+    name: '[[[ return variables.context.name; ]]]'
+    label: '[[[ return variables.context.label; ]]]'
+    icon: '[[[ return variables.context.icon; ]]]'
+    styles:
+      icon:
+        - color: '[[[ return variables.context.color; ]]]'
+
+  family_ribbon_attention:
+    template: family_ribbon
+    entity: sensor.home_state
+    variables:
+      context: |
+        [[[
+          if (entity && entity.state !== 'connected') return {
+            name: 'Internet', label: 'Needs attention',
+            icon: 'mdi:wifi-alert', color: 'var(--red)'
+          };
+          const storm = Number(states['sensor.home_thunderstorm_probability']?.state);
+          if (Number.isFinite(storm) && storm >= 30) return {
+            name: 'Storm chance', label: `${Math.round(storm)}%`,
+            icon: 'mdi:weather-lightning-rainy', color: storm >= 60 ? 'var(--red)' : 'var(--yellow)'
+          };
+          const battery = Number(states['sensor.pixel_8_battery_level']?.state);
+          if (Number.isFinite(battery) && battery < 25) return {
+            name: 'Phone battery', label: `${Math.round(battery)}%`,
+            icon: 'mdi:battery-alert-variant-outline', color: 'var(--red)'
+          };
+          const apparent = Number(states['sensor.home_apparent_temperature']?.state);
+          if (Number.isFinite(apparent) && apparent >= 38) return {
+            name: 'Feels like', label: `${Math.round(apparent)}°C`,
+            icon: 'mdi:sun-thermometer-outline', color: 'var(--orange)'
+          };
+          return {
+            name: 'Today',
+            label: new Date().toLocaleDateString([], {weekday: 'short', day: 'numeric', month: 'short'}),
+            icon: 'mdi:calendar-today-outline', color: 'var(--contrast10)'
           };
         ]]]
     name: '[[[ return variables.context.name; ]]]'
@@ -413,30 +481,38 @@ button_card_templates:
         - font-weight: 500
         - padding-top: 4px
 
-  family_home_room:
+  family_area_summary:
     show_icon: true
     show_state: false
     show_label: true
     label: |
       [[[
-        if (!entity || entity.state === 'unavailable') return 'Fan offline';
-        if (entity.state !== 'on') return 'Off';
-        const speed = entity.attributes.percentage;
-        return speed == null ? 'Running' : `Running · ${speed}%`;
+        const devices = (variables.entities || []).map((id) => states[id]).filter(Boolean);
+        const available = devices.filter((item) => !['unknown', 'unavailable'].includes(item.state));
+        const running = available.filter((item) => item.state === 'on');
+        if (running.length === 1) {
+          const speed = running[0].attributes.percentage;
+          return speed == null ? 'Cooling now' : `Cooling now · ${speed}%`;
+        }
+        if (running.length > 1) return `${running.length} fans cooling`;
+        if (!available.length) return devices.length > 1 ? 'Fan power is off' : 'Device power is off';
+        return 'Quiet and ready';
       ]]]
     tap_action:
-      action: more-info
+      action: navigate
+      navigation_path: /home-tablet/rooms
     hold_action:
       action: none
     styles:
       grid:
-        - grid-template-areas: '"i power" "n power" "l power"'
-        - grid-template-columns: 1fr 44px
+        - grid-template-areas: '"i" "n" "l"'
+        - grid-template-columns: 1fr
         - grid-template-rows: 1fr min-content min-content
       card:
         - background: |
             [[[
-              return entity && entity.state === 'on'
+              const running = (variables.entities || []).some((id) => states[id]?.state === 'on');
+              return running
                 ? variables.accent
                 : 'var(--contrast2)';
             ]]]
@@ -452,7 +528,8 @@ button_card_templates:
         - border-radius: 12px
         - background: |
             [[[
-              return entity && entity.state === 'on'
+              const running = (variables.entities || []).some((id) => states[id]?.state === 'on');
+              return running
                 ? 'rgba(0, 0, 0, 0.13)'
                 : 'var(--contrast4)';
             ]]]
@@ -460,8 +537,9 @@ button_card_templates:
         - width: 19px
         - color: |
             [[[
-              if (entity && entity.state === 'on') return 'var(--black)';
-              if (entity && entity.state === 'unavailable') return 'var(--red)';
+              const devices = (variables.entities || []).map((id) => states[id]).filter(Boolean);
+              if (devices.some((item) => item.state === 'on')) return 'var(--black)';
+              if (devices.length && devices.every((item) => item.state === 'unavailable')) return 'var(--contrast9)';
               return 'var(--contrast16)';
             ]]]
       name:
@@ -469,7 +547,7 @@ button_card_templates:
         - justify-self: start
         - color: |
             [[[
-              return entity && entity.state === 'on'
+              return (variables.entities || []).some((id) => states[id]?.state === 'on')
                 ? 'var(--black)'
                 : 'var(--contrast20)';
             ]]]
@@ -480,86 +558,44 @@ button_card_templates:
         - justify-self: start
         - color: |
             [[[
-              return entity && entity.state === 'on'
+              return (variables.entities || []).some((id) => states[id]?.state === 'on')
                 ? 'rgba(0, 0, 0, 0.62)'
                 : 'var(--contrast10)';
             ]]]
         - font-size: 11px
         - font-weight: 500
         - padding-top: 3px
-      custom_fields:
-        power:
-          - align-self: center
-          - justify-self: end
-    custom_fields:
-      power:
-        card:
-          type: custom:button-card
-          entity: '[[[ return variables.power_entity; ]]]'
-          show_name: false
-          show_state: false
-          icon: |
-            [[[
-              return entity && entity.state === 'on'
-                ? 'mdi:power'
-                : 'mdi:power-standby';
-            ]]]
-          tap_action:
-            action: toggle
-          hold_action:
-            action: none
-          styles:
-            card:
-              - width: 40px
-              - height: 40px
-              - border-radius: 50%
-              - box-shadow: none
-              - background: |
-                  [[[
-                    if (!entity || entity.state === 'unavailable') {
-                      return 'var(--contrast3)';
-                    }
-                    return entity.state === 'on'
-                      ? 'rgba(0, 0, 0, 0.16)'
-                      : 'var(--contrast4)';
-                  ]]]
-              - pointer-events: |
-                  [[[
-                    return !entity || entity.state === 'unavailable'
-                      ? 'none'
-                      : 'auto';
-                  ]]]
-              - opacity: |
-                  [[[
-                    return !entity || entity.state === 'unavailable' ? '0.42' : '1';
-                  ]]]
-            icon:
-              - width: 19px
-              - color: |
-                  [[[
-                    return entity && entity.state === 'on'
-                      ? 'var(--black)'
-                      : 'var(--contrast16)';
-                  ]]]
 
   family_camera_offline:
     show_icon: true
     show_name: true
     show_state: false
+    show_label: true
     icon: mdi:video-off-outline
+    label: |
+      [[[
+        if (!entity?.last_updated) return 'Connection unavailable · Open camera wall';
+        const changed = new Date(entity.last_updated);
+        const minutes = Math.max(1, Math.round((Date.now() - changed.getTime()) / 60000));
+        const since = minutes < 60 ? `${minutes} min ago`
+          : minutes < 1440 ? `${Math.round(minutes / 60)} hr ago`
+          : `${Math.round(minutes / 1440)} d ago`;
+        return `Last checked ${since} · Open camera wall`;
+      ]]]
     tap_action:
-      action: none
+      action: navigate
+      navigation_path: /home-tablet/cameras
     styles:
       card:
         - height: auto
         - aspect-ratio: 16 / 9
         - min-height: 174px
         - border-radius: 28px
-        - background: var(--contrast2)
+        - background: radial-gradient(circle at 50% 35%, var(--contrast4), var(--contrast2) 52%)
         - box-shadow: none
       grid:
-        - grid-template-areas: '"i" "n"'
-        - grid-template-rows: 1fr min-content
+        - grid-template-areas: '"i" "n" "l"'
+        - grid-template-rows: 1fr min-content min-content
       img_cell:
         - align-self: center
         - width: 52px
@@ -571,10 +607,16 @@ button_card_templates:
         - color: var(--contrast9)
       name:
         - justify-self: start
-        - padding: 0 18px 16px
+        - padding: 0 18px 3px
         - color: var(--contrast12)
         - font-size: 14px
         - font-weight: 600
+      label:
+        - justify-self: start
+        - padding: 0 18px 16px
+        - color: var(--contrast9)
+        - font-size: 11px
+        - font-weight: 500
 
   family_now_playing:
     show_icon: true
@@ -755,6 +797,139 @@ button_card_templates:
         - font-size: 14px
         - font-weight: 650
 
+  family_media_hub:
+    show_icon: false
+    show_name: false
+    show_state: false
+    styles:
+      grid:
+        - grid-template-areas: '"music jellyfin"'
+        - grid-template-columns: 1fr 1fr
+        - column-gap: 8px
+      card:
+        - height: 68px
+        - padding: 5px
+        - border-radius: 24px
+        - background: var(--contrast2)
+        - box-shadow: none
+      custom_fields:
+        music:
+          - width: 100%
+        jellyfin:
+          - width: 100%
+    custom_fields:
+      music:
+        card:
+          type: custom:button-card
+          template: family_launcher
+          name: Music
+          icon: mdi:music-circle
+          tap_action:
+            action: url
+            url_path: https://music.media.home
+          styles:
+            card:
+              - height: 58px
+              - background: transparent
+              - --launcher-accent: var(--purple)
+      jellyfin:
+        card:
+          type: custom:button-card
+          template: family_launcher
+          name: Jellyfin
+          icon: mdi:jellyfish
+          tap_action:
+            action: url
+            url_path: http://watch.media.home
+          styles:
+            card:
+              - height: 58px
+              - background: transparent
+              - --launcher-accent: var(--blue)
+
+  family_household_notice:
+    entity: input_text.family_household_notice
+    show_icon: true
+    show_name: true
+    show_state: true
+    show_label: true
+    icon: mdi:message-text-outline
+    name: |
+      [[[
+        const message = entity?.state?.trim();
+        return message ? 'For everyone' : 'Leave a note';
+      ]]]
+    state_display: |
+      [[[
+        const message = entity?.state?.trim();
+        const expires = states['input_boolean.family_household_notice_expires']?.state === 'on';
+        const until = states['input_datetime.family_household_notice_until'];
+        const deadline = until && !['unknown', 'unavailable'].includes(until.state)
+          ? new Date(until.state.replace(' ', 'T')) : null;
+        if (message && (!expires || !deadline || deadline.getTime() > Date.now())) return message;
+        if (message && expires && deadline && deadline.getTime() <= Date.now()) {
+          return 'This note has expired — tap to replace it';
+        }
+        return 'Tap to write something the family should see';
+      ]]]
+    label: |
+      [[[
+        const expires = states['input_boolean.family_household_notice_expires']?.state === 'on';
+        const until = states['input_datetime.family_household_notice_until'];
+        if (!expires) return 'No expiry';
+        if (!until || ['unknown', 'unavailable'].includes(until.state)) return 'Set an expiry';
+        const deadline = new Date(until.state.replace(' ', 'T'));
+        if (Number.isNaN(deadline.getTime())) return 'Set an expiry';
+        return deadline.getTime() <= Date.now()
+          ? 'Expired'
+          : `Until ${deadline.toLocaleString([], {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'})}`;
+      ]]]
+    tap_action:
+      action: more-info
+    hold_action:
+      action: more-info
+      entity: input_datetime.family_household_notice_until
+    styles:
+      grid:
+        - grid-template-areas: '"i n" "i s" "i l"'
+        - grid-template-columns: 40px 1fr
+        - grid-template-rows: min-content min-content min-content
+        - column-gap: 11px
+      card:
+        - min-height: 112px
+        - padding: 16px
+        - border-radius: 24px
+        - background: var(--contrast2)
+        - box-shadow: none
+      img_cell:
+        - align-self: start
+        - width: 38px
+        - height: 38px
+        - border-radius: 14px
+        - background: var(--contrast4)
+      icon:
+        - width: 20px
+        - color: var(--pink)
+      name:
+        - justify-self: start
+        - color: var(--contrast11)
+        - font-size: 11px
+        - font-weight: 600
+      state:
+        - justify-self: start
+        - color: var(--contrast20)
+        - font-size: 14px
+        - font-weight: 620
+        - white-space: normal
+        - text-align: left
+        - line-height: 19px
+      label:
+        - justify-self: start
+        - color: var(--contrast9)
+        - font-size: 11px
+        - font-weight: 500
+        - padding-top: 5px
+
   family_board_item:
     template: family_status
     styles:
@@ -825,18 +1000,20 @@ views:
           {% set apparent = states('sensor.home_apparent_temperature') | float(0) %}
           {% set storm = states('sensor.home_thunderstorm_probability') | int(0) %}
           {% set home = states.person | selectattr('state', 'eq', 'home') | map(attribute='name') | list %}
-          {% set active_fans = states.fan | selectattr('state', 'eq', 'on') | map(attribute='name') | list %}
           {% set washer = states('sensor.front_load_washer_current_status') | lower %}
           {% set event = state_attr('calendar.family', 'message') %}
           {% set shopping = states('todo.shopping_list') | int(0) %}
-          It is **{{ now().strftime('%A') }}**. The weather is **{{ condition }} at {{ temperature }} °C**. {% if home | count == 0 %}**Nobody is home.**{% elif home | count == 1 %}**{{ home[0] }} is home.**{% else %}**{{ home | count }} people are home.**{% endif %}{% if active_fans | count == 1 %} **{{ active_fans[0] }} is running.**{% elif active_fans | count > 1 %} **{{ active_fans | count }} fans are running.**{% endif %}
+          {% set notice = states('input_text.family_household_notice') | trim %}
+          {% set notice_expires = is_state('input_boolean.family_household_notice_expires', 'on') %}
+          {% set notice_until = as_timestamp(states('input_datetime.family_household_notice_until'), 0) %}
+          **{{ now().strftime('%A') }}** · {{ condition }} at **{{ temperature }} °C** · {% if home | count == 0 %}Nobody home{% elif home | count == 1 %}{{ home[0] }} is home{% else %}{{ home | count }} people home{% endif %}
 
-          {% if washer in ['complete', 'completed', 'finished', 'end'] %}The laundry is ready to be collected.{% elif is_state('calendar.family', 'on') and event %}**{{ event }}** is happening now.{% elif apparent >= 38 and storm >= 30 %}It feels like **{{ apparent | round(0) | int }} °C** outside and storms are possible—please stay hydrated and take an umbrella.{% elif apparent >= 38 %}It feels like **{{ apparent | round(0) | int }} °C** outside—please stay hydrated and avoid the afternoon heat.{% elif storm >= 30 %}There is a **{{ storm }}%** chance of storms today—keep an umbrella handy.{% elif shopping > 0 %}There {% if shopping == 1 %}is **1 item**{% else %}are **{{ shopping }} items**{% endif %} on the shopping list.{% else %}Everything at home looks settled.{% endif %}
+          {% if notice and (not notice_expires or notice_until == 0 or notice_until > as_timestamp(now())) %}{{ notice }}{% elif washer in ['complete', 'completed', 'finished', 'end'] %}The laundry is ready to be collected.{% elif is_state('calendar.family', 'on') and event %}**{{ event }}** is happening now.{% elif apparent >= 38 and storm >= 30 %}It feels like **{{ apparent | round(0) | int }} °C** outside and storms are possible—please stay hydrated and take an umbrella.{% elif apparent >= 38 %}It feels like **{{ apparent | round(0) | int }} °C** outside—please stay hydrated and avoid the afternoon heat.{% elif storm >= 30 %}There is a **{{ storm }}%** chance of storms today—keep an umbrella handy.{% elif shopping > 0 %}There {% if shopping == 1 %}is **1 item**{% else %}are **{{ shopping }} items**{% endif %} on the shopping list.{% else %}Everything at home looks settled.{% endif %}
         card_mod:
           style: |
-            ha-card { background: transparent; padding: 8px 0 4px; }
-            h1 { font-size: 38px; letter-spacing: -1.3px; margin-bottom: 7px; }
-            p { color: var(--contrast11); font-size: 15px; line-height: 1.45; }
+            ha-card { background: transparent; padding: 4px 0 2px; }
+            h1 { font-size: 38px; letter-spacing: -1.3px; margin-bottom: 5px; }
+            p { color: var(--contrast11); font-size: 15px; line-height: 1.4; margin: 4px 0; }
     badges:
       - type: entity
         entity: person.abhimanyu_saharan
@@ -849,13 +1026,16 @@ views:
             users: !include ../access/generated/profile-abhimanyu-saharan-users.json
       - type: entity
         entity: sensor.pixel_8_battery_level
-        name: Phone
+        name: Phone low
         show_name: true
         show_state: true
-        color: green
+        color: red
         visibility:
           - condition: user
             users: !include ../access/generated/profile-abhimanyu-saharan-users.json
+          - condition: numeric_state
+            entity: sensor.pixel_8_battery_level
+            below: 25
     sections:
       - type: grid
         column_span: 3
@@ -867,94 +1047,43 @@ views:
             show_state: false
             styles:
               grid:
-                - grid-template-areas: '"weather comfort storm presence sunset context"'
-                - grid-template-columns: repeat(6, minmax(0, 1fr))
+                - grid-template-areas: '"weather presence today activity attention"'
+                - grid-template-columns: repeat(5, minmax(0, 1fr))
               card:
                 - width: 100%
-                - max-width: 1120px
-                - margin: 0 auto
-                - padding: 4px 8px
+                - padding: 3px 4px
                 - background: none
                 - border: none
                 - border-radius: 0
                 - box-shadow: none
               custom_fields:
-                weather:
-                  - width: 100%
-                comfort:
-                  - width: 100%
-                storm:
-                  - width: 100%
-                presence:
-                  - width: 100%
-                sunset:
-                  - width: 100%
-                context:
-                  - width: 100%
+                weather: [{ width: 100% }]
+                presence: [{ width: 100% }]
+                today: [{ width: 100% }]
+                activity: [{ width: 100% }]
+                attention: [{ width: 100% }]
             custom_fields:
               weather:
                 card:
                   type: custom:button-card
                   template: family_ribbon_weather
                   entity: weather.home
-                  styles:
-                    icon:
-                      - color: |
-                          [[[
-                            if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
-                              return 'var(--red)';
-                            }
-                            if (entity.state === 'sunny') return 'var(--yellow)';
-                            if (entity.state === 'partlycloudy') return 'var(--contrast14)';
-                            return 'var(--blue)';
-                          ]]]
-              comfort:
-                card:
-                  type: custom:button-card
-                  template: family_ribbon_temperature
-                  entity: sensor.home_apparent_temperature
-                  name: Feels like
-                  icon: mdi:sun-thermometer-outline
-                  styles:
-                    icon:
-                      - color: |
-                          [[[
-                            const value = Number(entity?.state);
-                            if (!Number.isFinite(value)) return 'var(--red)';
-                            if (value >= 40) return 'var(--red)';
-                            if (value >= 35) return 'var(--orange)';
-                            if (value <= 10) return 'var(--blue)';
-                            return 'var(--contrast10)';
-                          ]]]
-              storm:
-                card:
-                  type: custom:button-card
-                  template: family_ribbon
-                  entity: sensor.home_thunderstorm_probability
-                  name: Storm chance
-                  icon: mdi:weather-lightning-rainy
-                  styles:
-                    icon:
-                      - color: |
-                          [[[
-                            const value = Number(entity?.state);
-                            if (!Number.isFinite(value)) return 'var(--red)';
-                            if (value >= 60) return 'var(--red)';
-                            if (value >= 30) return 'var(--yellow)';
-                            return 'var(--contrast10)';
-                          ]]]
               presence:
                 card:
                   type: custom:button-card
                   template: family_ribbon_presence
-              sunset:
+              today:
                 card:
                   type: custom:button-card
-                  template: family_ribbon_sunset
-              context:
+                  template: family_ribbon_today
+              activity:
                 card:
                   type: custom:button-card
-                  template: family_ribbon_context
+                  template: family_ribbon_activity
+              attention:
+                card:
+                  type: custom:button-card
+                  template: family_ribbon_attention
             grid_options:
               columns: 36
               rows: auto
@@ -962,12 +1091,10 @@ views:
             heading: Cameras
             heading_style: title
             icon: mdi:cctv
-            grid_options:
-              columns: 36
-              rows: 1
+            grid_options: { columns: 36, rows: 1 }
             badges:
               - type: entity
-                entity: camera.living_room_high_resolution_channel
+                entity: camera.g5_turret_ultra_high_resolution_channel
                 name: Open camera wall
                 show_state: false
                 icon: mdi:video-outline
@@ -982,60 +1109,10 @@ views:
             card:
               type: grid
               square: false
-              columns: 3
-              card_mod:
-                style: |
-                  #root {
-                    grid-template-columns: repeat(auto-fit, minmax(420px, 600px)) !important;
-                    justify-content: start;
-                  }
+              columns: 4
             card_param: cards
             filter:
               include:
-                - entity_id: camera.living_room_medium_resolution_channel
-                  state: idle
-                  options:
-                    type: picture-entity
-                    entity: camera.living_room_high_resolution_channel
-                    camera_image: camera.living_room_medium_resolution_channel
-                    name: Master Bedroom
-                    camera_view: live
-                    fit_mode: cover
-                    aspect_ratio: "16:9"
-                    show_state: false
-                    tap_action:
-                      action: more-info
-                    card_mod:
-                      style: |
-                        ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.living_room_high_resolution_channel
-                  state: unavailable
-                  options:
-                    type: custom:button-card
-                    template: family_camera_offline
-                    name: Master Bedroom · Offline
-                - entity_id: camera.hallway_medium_resolution_channel
-                  state: idle
-                  options:
-                    type: picture-entity
-                    entity: camera.hallway_high_resolution_channel
-                    camera_image: camera.hallway_medium_resolution_channel
-                    name: Hallway
-                    camera_view: live
-                    fit_mode: cover
-                    aspect_ratio: "16:9"
-                    show_state: false
-                    tap_action:
-                      action: more-info
-                    card_mod:
-                      style: |
-                        ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.hallway_high_resolution_channel
-                  state: unavailable
-                  options:
-                    type: custom:button-card
-                    template: family_camera_offline
-                    name: Hallway · Offline
                 - entity_id: camera.g5_turret_ultra_medium_resolution_channel
                   state: idle
                   options:
@@ -1047,285 +1124,267 @@ views:
                     fit_mode: cover
                     aspect_ratio: "16:9"
                     show_state: false
-                    tap_action:
-                      action: more-info
+                    tap_action: { action: more-info }
                     card_mod:
                       style: |
+                        :host { grid-column: span 2; }
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.g5_turret_ultra_high_resolution_channel
+                - entity_id: camera.g5_turret_ultra_medium_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
                     template: family_camera_offline
-                    name: Outside · Offline
+                    name: Outside
+                    card_mod:
+                      style: |
+                        :host { grid-column: span 2; }
+                - entity_id: camera.living_room_medium_resolution_channel
+                  state: idle
+                  options:
+                    type: picture-entity
+                    entity: camera.living_room_high_resolution_channel
+                    camera_image: camera.living_room_medium_resolution_channel
+                    name: Master Bedroom
+                    camera_view: live
+                    fit_mode: cover
+                    aspect_ratio: "16:9"
+                    show_state: false
+                    tap_action: { action: more-info }
+                    card_mod:
+                      style: |
+                        ha-card { overflow: hidden; border-radius: 28px; }
+                - entity_id: camera.living_room_medium_resolution_channel
+                  state: unavailable
+                  options:
+                    type: custom:button-card
+                    template: family_camera_offline
+                    name: Master Bedroom
+                - entity_id: camera.hallway_medium_resolution_channel
+                  state: idle
+                  options:
+                    type: picture-entity
+                    entity: camera.hallway_high_resolution_channel
+                    camera_image: camera.hallway_medium_resolution_channel
+                    name: Hallway
+                    camera_view: live
+                    fit_mode: cover
+                    aspect_ratio: "16:9"
+                    show_state: false
+                    tap_action: { action: more-info }
+                    card_mod:
+                      style: |
+                        ha-card { overflow: hidden; border-radius: 28px; }
+                - entity_id: camera.hallway_medium_resolution_channel
+                  state: unavailable
+                  options:
+                    type: custom:button-card
+                    template: family_camera_offline
+                    name: Hallway
             show_empty: false
             visibility:
               - condition: user
                 users: !include ../access/generated/camera-any-users.json
-            grid_options:
-              columns: 36
-              rows: auto
-          - type: grid
-            square: false
-            columns: 2
-            cards:
-              - type: vertical-stack
-                cards:
-                  - type: heading
-                    heading: Media
-                    icon: mdi:play-circle-outline
-                  - type: grid
-                    columns: 2
-                    square: false
-                    cards:
-                      - type: custom:button-card
-                        template: family_launcher
-                        name: Music
-                        icon: mdi:music-circle
-                        tap_action:
-                          action: url
-                          url_path: https://music.media.home
-                        styles:
-                          card:
-                            - --launcher-accent: var(--purple)
-                      - type: custom:button-card
-                        template: family_launcher
-                        name: Jellyfin
-                        icon: mdi:jellyfish
-                        tap_action:
-                          action: url
-                          url_path: http://watch.media.home
-                        styles:
-                          card:
-                            - --launcher-accent: var(--blue)
-                  - type: custom:auto-entities
-                    card:
-                      type: grid
-                      columns: 2
-                      square: false
-                      card_mod:
-                        style: |
-                          #root {
-                            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
-                          }
-                    card_param: cards
-                    filter:
-                      include:
-                        - integration: music_assistant
-                          domain: media_player
-                          state: playing
-                          options:
-                            type: custom:button-card
-                            template: family_now_playing
-                        - integration: music_assistant
-                          domain: media_player
-                          state: paused
-                          options:
-                            type: custom:button-card
-                            template: family_now_playing
-                        - entity_id: sensor.jellyfin_session_*
-                          state: playing
-                          options:
-                            type: custom:button-card
-                            template: family_jellyfin_viewing
-                        - entity_id: sensor.jellyfin_session_*
-                          state: paused
-                          options:
-                            type: custom:button-card
-                            template: family_jellyfin_viewing
-                    sort:
-                      method: last_updated
-                      reverse: true
-                    show_empty: false
-              - type: vertical-stack
-                cards:
-                  - type: heading
-                    heading: Family board
-                    icon: mdi:calendar-heart
-                  - type: custom:todo-swipe-card
-                    entities:
-                      - entity: todo.shopping_list
-                        show_title: true
-                        title: Shopping
-                        display_order: none
-                        icon: mdi:cart-outline
-                    show_pagination: false
-                    show_icons: false
-                    show_addbutton: true
-                    show_create: true
-                    show_completed: true
-                    show_completed_menu: false
-                    enable_search: false
-                    delete_confirmation: true
-                    card_spacing: 0
-                    font_size: 15
-                    title_font_size: 18
-                    card_mod:
-                      style: |
-                        :host {
-                          --todo-swipe-card-background: var(--contrast2);
-                          --todo-swipe-card-text-color: var(--primary-text-color);
-                          --todo-swipe-card-font-size: 15px;
-                          --todo-swipe-card-item-font-weight: 500;
-                          --todo-swipe-card-item-height: 40px;
-                          --todo-swipe-card-item-spacing: 2px;
-                          --todo-swipe-card-checkbox-size: 22px;
-                          --todo-swipe-card-checkbox-color: rgba(var(--rgb-primary-text-color), 0.28);
-                          --todo-swipe-card-checkbox-checked-color: var(--pink);
-                          --todo-swipe-card-checkbox-checkmark-color: var(--black);
-                          --todo-swipe-card-title-height: 52px;
-                          --todo-swipe-card-title-background: transparent;
-                          --todo-swipe-card-title-color: var(--primary-text-color);
-                          --todo-swipe-card-title-font-size: 18px;
-                          --todo-swipe-card-title-font-weight: 650;
-                          --todo-swipe-card-title-align: flex-start;
-                          --todo-swipe-card-title-border-width: 0;
-                          --todo-swipe-card-placeholder-color: var(--secondary-text-color);
-                          --todo-swipe-card-placeholder-opacity: 0.72;
-                          --todo-swipe-card-input-font-weight: 500;
-                          --todo-swipe-card-add-button-color: var(--pink);
-                          --todo-swipe-card-delete-button-color: var(--red);
-                        }
-                        ha-card {
-                          background: var(--contrast2);
-                          border: 1px solid rgba(var(--rgb-primary-text-color), 0.06);
-                          border-radius: 24px;
-                          box-shadow: none;
-                          overflow: hidden;
-                        }
-                  - type: custom:button-card
-                    template: family_board_item
-                    entity: calendar.family
-                    name: Next event
-                    icon: mdi:calendar-clock
-                    state_display: |
-                      [[[
-                        if (!entity || entity.state === 'unavailable') {
-                          return 'Unavailable';
-                        }
-                        const message = entity.attributes.message;
-                        if (!message) return 'No upcoming events';
-                        return message;
-                      ]]]
-                    styles:
-                      card:
-                        - --status-accent: var(--green)
-                  - type: custom:button-card
-                    template: family_washer_status
-                    label: |
-                      [[[
-                        if (!entity || entity.state === 'unavailable') {
-                          return 'Connects automatically when powered on';
-                        }
-                        const remaining = states['sensor.front_load_washer_remaining_time'];
-                        if (remaining && !['unknown', 'unavailable'].includes(remaining.state)) {
-                          const end = new Date(remaining.state);
-                          const minutes = Math.ceil((end.getTime() - Date.now()) / 60000);
-                          if (Number.isFinite(minutes) && minutes > 0) {
-                            if (minutes < 60) return `${minutes} min remaining`;
-                            const hours = Math.floor(minutes / 60);
-                            const rest = minutes % 60;
-                            return `${hours} hr${hours === 1 ? '' : 's'}${rest ? ` ${rest} min` : ''} remaining`;
-                          }
-                        }
-                        const total = states['sensor.front_load_washer_total_time'];
-                        const minutes = Number(total?.state);
-                        return Number.isFinite(minutes) && minutes > 0
-                          ? `${minutes} min cycle`
-                          : 'No active cycle';
-                      ]]]
-                    show_label: true
-                    styles:
-                      grid:
-                        - grid-template-areas: '"i n" "i s" "i l"'
-                        - grid-template-rows: min-content min-content min-content
-                      label:
-                        - justify-self: start
-                        - color: var(--contrast10)
-                        - font-size: 11px
-                        - font-weight: 500
-                        - line-height: 14px
-            grid_options:
-              columns: 36
-              rows: auto
-      - type: grid
-        cards:
+            grid_options: { columns: 36, rows: auto }
           - type: heading
-            heading: Rooms
+            heading: Media
+            heading_style: title
+            icon: mdi:play-circle-outline
+            grid_options: { columns: 36, rows: 1 }
+          - type: custom:button-card
+            template: family_media_hub
+            grid_options: { columns: 36, rows: auto }
+          - type: custom:auto-entities
+            card:
+              type: grid
+              columns: 2
+              square: false
+              card_mod:
+                style: |
+                  #root { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important; }
+            card_param: cards
+            filter:
+              include:
+                - integration: music_assistant
+                  domain: media_player
+                  state: playing
+                  options: { type: custom:button-card, template: family_now_playing }
+                - integration: music_assistant
+                  domain: media_player
+                  state: paused
+                  options: { type: custom:button-card, template: family_now_playing }
+                - entity_id: sensor.jellyfin_session_*
+                  state: playing
+                  options: { type: custom:button-card, template: family_jellyfin_viewing }
+                - entity_id: sensor.jellyfin_session_*
+                  state: paused
+                  options: { type: custom:button-card, template: family_jellyfin_viewing }
+            sort: { method: last_updated, reverse: true }
+            show_empty: false
+            grid_options: { columns: 36, rows: auto }
+          - type: heading
+            heading: Favourite rooms
             heading_style: title
             icon: mdi:floor-plan
-          - type: grid
-            square: false
-            columns: 2
-            cards:
-              - type: custom:button-card
-                template: family_home_room
-                entity: fan.living_room_fan_1
-                name: Living Fan 1
-                icon: mdi:sofa-outline
-                variables:
-                  accent: var(--yellow)
-                  power_entity: fan.living_room_fan_1
-              - type: custom:button-card
-                template: family_home_room
-                entity: fan.living_room_fan_2
-                name: Living Fan 2
-                icon: mdi:sofa-outline
-                variables:
-                  accent: var(--yellow)
-                  power_entity: fan.living_room_fan_2
-          - type: grid
-            square: false
-            columns: 2
-            cards:
-              - type: custom:button-card
-                template: family_home_room
-                entity: fan.master_bedroom_fan
-                name: Master Bedroom
-                icon: mdi:bed-king-outline
-                variables:
-                  accent: var(--blue)
-                  power_entity: fan.master_bedroom_fan
-              - type: custom:button-card
-                template: family_home_room
-                entity: fan.bedroom_fan
-                name: Bedroom
-                icon: mdi:bed-outline
-                variables:
-                  accent: var(--purple)
-                  power_entity: fan.bedroom_fan
-              - type: custom:button-card
-                template: family_home_room
-                entity: fan.guest_fan
-                name: Guest Room
-                icon: mdi:account-box-outline
-                variables:
-                  accent: var(--pink)
-                  power_entity: fan.guest_fan
-              - type: custom:button-card
-                template: family_home_room
+            grid_options: { columns: 36, rows: 1 }
+            badges:
+              - type: entity
                 entity: fan.office_fan
-                name: Office
-                icon: mdi:desk
-                variables:
-                  accent: var(--teal)
-                  power_entity: fan.office_fan
+                name: All rooms
+                show_state: false
+                icon: mdi:arrow-right
+                tap_action:
+                  action: navigate
+                  navigation_path: /home-tablet/rooms
+          - type: grid
+            square: false
+            columns: 4
+            cards:
               - type: custom:button-card
-                template: family_home_room
+                template: family_area_summary
+                entity: fan.living_room_fan_1
+                name: Living Room
+                icon: mdi:sofa-outline
+                variables:
+                  accent: var(--yellow)
+                  entities: [fan.living_room_fan_1, fan.living_room_fan_2]
+              - type: custom:button-card
+                template: family_area_summary
                 entity: fan.kitchen_fan
                 name: Kitchen
                 icon: mdi:countertop-outline
                 variables:
                   accent: var(--orange)
-                  power_entity: fan.kitchen_fan
+                  entities: [fan.kitchen_fan]
               - type: custom:button-card
-                template: family_home_room
-                entity: fan.dining_fan
-                name: Dining Room
-                icon: mdi:table-chair
+                template: family_area_summary
+                entity: fan.master_bedroom_fan
+                name: Master Bedroom
+                icon: mdi:bed-king-outline
                 variables:
-                  accent: var(--green)
-                  power_entity: fan.dining_fan
+                  accent: var(--blue)
+                  entities: [fan.master_bedroom_fan]
+              - type: custom:button-card
+                template: family_area_summary
+                entity: fan.office_fan
+                name: Office
+                icon: mdi:desk
+                variables:
+                  accent: var(--teal)
+                  entities: [fan.office_fan]
+            grid_options: { columns: 36, rows: auto }
+      - type: grid
+        cards:
+          - type: heading
+            heading: Today
+            heading_style: title
+            icon: mdi:calendar-heart
+          - type: custom:button-card
+            template: family_household_notice
+          - type: custom:button-card
+            template: family_board_item
+            entity: input_boolean.family_household_notice_expires
+            name: Notice expiry
+            icon: mdi:timer-outline
+            state_display: |
+              [[[
+                if (entity?.state !== 'on') return 'Keep until someone changes it';
+                const until = states['input_datetime.family_household_notice_until'];
+                if (!until || ['unknown', 'unavailable'].includes(until.state)) return 'Long-press to choose a time';
+                const deadline = new Date(until.state.replace(' ', 'T'));
+                return Number.isNaN(deadline.getTime()) ? 'Long-press to choose a time'
+                  : `Until ${deadline.toLocaleString([], {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'})}`;
+              ]]]
+            tap_action: { action: toggle }
+            hold_action:
+              action: more-info
+              entity: input_datetime.family_household_notice_until
+            styles:
+              card:
+                - --status-accent: var(--pink)
+          - type: custom:button-card
+            template: family_board_item
+            entity: calendar.family
+            name: Next event
+            icon: mdi:calendar-clock
+            state_display: |
+              [[[
+                if (!entity || entity.state === 'unavailable') return 'Calendar unavailable';
+                const message = entity.attributes.message;
+                if (!message) return 'Nothing scheduled';
+                const start = entity.attributes.start_time;
+                const date = start ? new Date(start) : null;
+                return date && !Number.isNaN(date.getTime())
+                  ? `${date.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})} · ${message}`
+                  : message;
+              ]]]
+            styles:
+              card:
+                - --status-accent: var(--green)
+          - type: custom:button-card
+            template: family_washer_status
+            label: |
+              [[[
+                if (!entity || entity.state === 'unavailable') return 'Connects when the washer has power';
+                const remaining = states['sensor.front_load_washer_remaining_time'];
+                if (remaining && !['unknown', 'unavailable'].includes(remaining.state)) {
+                  const end = new Date(remaining.state);
+                  const minutes = Math.ceil((end.getTime() - Date.now()) / 60000);
+                  if (Number.isFinite(minutes) && minutes > 0) return minutes < 60
+                    ? `${minutes} min remaining` : `${Math.floor(minutes / 60)} hr ${minutes % 60} min remaining`;
+                }
+                const total = states['sensor.front_load_washer_total_time'];
+                const minutes = Number(total?.state);
+                return Number.isFinite(minutes) && minutes > 0
+                  ? `${minutes} min cycle` : 'No active cycle';
+              ]]]
+            show_label: true
+            styles:
+              grid:
+                - grid-template-areas: '"i n" "i s" "i l"'
+                - grid-template-rows: min-content min-content min-content
+              label:
+                - justify-self: start
+                - color: var(--contrast10)
+                - font-size: 11px
+          - type: custom:todo-swipe-card
+            entities:
+              - entity: todo.shopping_list
+                show_title: true
+                title: Shopping
+                display_order: none
+                icon: mdi:cart-outline
+            show_pagination: false
+            show_icons: false
+            show_addbutton: true
+            show_create: true
+            show_completed: true
+            show_completed_menu: false
+            enable_search: false
+            delete_confirmation: true
+            card_spacing: 0
+            font_size: 15
+            title_font_size: 18
+            card_mod:
+              style: |
+                :host {
+                  --todo-swipe-card-background: var(--contrast2);
+                  --todo-swipe-card-text-color: var(--primary-text-color);
+                  --todo-swipe-card-item-height: 40px;
+                  --todo-swipe-card-checkbox-size: 22px;
+                  --todo-swipe-card-checkbox-checked-color: var(--pink);
+                  --todo-swipe-card-title-background: transparent;
+                  --todo-swipe-card-title-color: var(--primary-text-color);
+                  --todo-swipe-card-title-font-weight: 650;
+                  --todo-swipe-card-add-button-color: var(--pink);
+                  --todo-swipe-card-delete-button-color: var(--red);
+                }
+                ha-card {
+                  background: var(--contrast2);
+                  border: 1px solid rgba(var(--rgb-primary-text-color), 0.06);
+                  border-radius: 24px;
+                  box-shadow: none;
+                  overflow: hidden;
+                }
 
   - title: Rooms
     path: rooms
@@ -1489,50 +1548,6 @@ views:
             card_param: cards
             filter:
               include:
-                - entity_id: camera.living_room_medium_resolution_channel
-                  state: idle
-                  options:
-                    type: picture-entity
-                    entity: camera.living_room_high_resolution_channel
-                    camera_image: camera.living_room_medium_resolution_channel
-                    name: Master Bedroom
-                    camera_view: live
-                    fit_mode: cover
-                    aspect_ratio: "16:9"
-                    show_state: false
-                    tap_action:
-                      action: more-info
-                    card_mod:
-                      style: |
-                        ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.living_room_high_resolution_channel
-                  state: unavailable
-                  options:
-                    type: custom:button-card
-                    template: family_camera_offline
-                    name: Master Bedroom · Offline
-                - entity_id: camera.hallway_medium_resolution_channel
-                  state: idle
-                  options:
-                    type: picture-entity
-                    entity: camera.hallway_high_resolution_channel
-                    camera_image: camera.hallway_medium_resolution_channel
-                    name: Hallway
-                    camera_view: live
-                    fit_mode: cover
-                    aspect_ratio: "16:9"
-                    show_state: false
-                    tap_action:
-                      action: more-info
-                    card_mod:
-                      style: |
-                        ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.hallway_high_resolution_channel
-                  state: unavailable
-                  options:
-                    type: custom:button-card
-                    template: family_camera_offline
-                    name: Hallway · Offline
                 - entity_id: camera.g5_turret_ultra_medium_resolution_channel
                   state: idle
                   options:
@@ -1549,12 +1564,56 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.g5_turret_ultra_high_resolution_channel
+                - entity_id: camera.g5_turret_ultra_medium_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
                     template: family_camera_offline
-                    name: Outside · Offline
+                    name: Outside
+                - entity_id: camera.living_room_medium_resolution_channel
+                  state: idle
+                  options:
+                    type: picture-entity
+                    entity: camera.living_room_high_resolution_channel
+                    camera_image: camera.living_room_medium_resolution_channel
+                    name: Master Bedroom
+                    camera_view: live
+                    fit_mode: cover
+                    aspect_ratio: "16:9"
+                    show_state: false
+                    tap_action:
+                      action: more-info
+                    card_mod:
+                      style: |
+                        ha-card { overflow: hidden; border-radius: 28px; }
+                - entity_id: camera.living_room_medium_resolution_channel
+                  state: unavailable
+                  options:
+                    type: custom:button-card
+                    template: family_camera_offline
+                    name: Master Bedroom
+                - entity_id: camera.hallway_medium_resolution_channel
+                  state: idle
+                  options:
+                    type: picture-entity
+                    entity: camera.hallway_high_resolution_channel
+                    camera_image: camera.hallway_medium_resolution_channel
+                    name: Hallway
+                    camera_view: live
+                    fit_mode: cover
+                    aspect_ratio: "16:9"
+                    show_state: false
+                    tap_action:
+                      action: more-info
+                    card_mod:
+                      style: |
+                        ha-card { overflow: hidden; border-radius: 28px; }
+                - entity_id: camera.hallway_medium_resolution_channel
+                  state: unavailable
+                  options:
+                    type: custom:button-card
+                    template: family_camera_offline
+                    name: Hallway
             show_empty: false
             visibility:
               - condition: user

@@ -15,10 +15,6 @@ routes:
     icon_selected: mdi:sofa
     url: /home-tablet/rooms
     label: Rooms
-    hidden: |
-      [[[
-        return Boolean(user?.is_admin);
-      ]]]
     badge:
       show: |
         [[[
@@ -37,14 +33,6 @@ routes:
           return fans.filter((id) => states[id]?.state === 'on').length;
         ]]]
       color: var(--yellow)
-  - icon: mdi:server-network-outline
-    icon_selected: mdi:server-network
-    url: /rack-admin/overview
-    label: Rack
-    hidden: |
-      [[[
-        return !user?.is_admin;
-      ]]]
   - icon: mdi:cctv
     icon_selected: mdi:video
     url: /home-tablet/cameras
@@ -53,10 +41,6 @@ routes:
     icon_selected: mdi:music
     url: /home-tablet/music
     label: Music
-    hidden: |
-      [[[
-        return Boolean(user?.is_admin);
-      ]]]
     badge:
       show: |
         [[[
@@ -66,6 +50,14 @@ routes:
             .some((id) => states[id]?.state === 'playing');
         ]]]
       color: var(--green)
+  - icon: mdi:server-network-outline
+    icon_selected: mdi:server-network
+    url: /rack-admin/overview
+    label: Rack
+    hidden: |
+      [[[
+        return !user?.is_admin;
+      ]]]
   - icon: mdi:cog-outline
     icon_selected: mdi:cog
     url: /config/dashboard

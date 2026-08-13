@@ -32,9 +32,9 @@ class DashboardStructureTests(unittest.TestCase):
         ]
 
         self.assertEqual(
-            labels, ["Home", "Rooms", "Rack", "Cameras", "Music", "Settings"]
+            labels, ["Home", "Rooms", "Cameras", "Music", "Rack", "Settings"]
         )
-        self.assertEqual(navigation.count("return Boolean(user?.is_admin);"), 2)
+        self.assertNotIn("return Boolean(user?.is_admin);", navigation)
         self.assertEqual(navigation.count("return !user?.is_admin;"), 2)
 
     def test_washer_card_is_read_only_and_uses_verified_entities(self):
@@ -59,8 +59,38 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("sensor.home_apparent_temperature", header)
         self.assertIn("sensor.home_thunderstorm_probability", header)
         self.assertIn("todo.shopping_list", header)
-        self.assertIn("states.fan | selectattr('state', 'eq', 'on')", header)
+        self.assertIn("input_text.family_household_notice", header)
+        self.assertIn("input_boolean.family_household_notice_expires", header)
         self.assertNotIn("All available fans are off", header)
+
+    def test_home_is_composed_as_a_family_console(self):
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        home_view = home.split("  - title: Home", 1)[1].split(
+            "  - title: Rooms", 1
+        )[0]
+
+        self.assertIn(
+            'grid-template-areas: \'"weather presence today activity attention"\'',
+            home_view,
+        )
+        self.assertIn("heading: Today", home_view)
+        self.assertIn("template: family_household_notice", home_view)
+        self.assertIn("template: family_media_hub", home_view)
+        self.assertIn("heading: Favourite rooms", home_view)
+        self.assertIn(
+            "entities: [fan.living_room_fan_1, fan.living_room_fan_2]",
+            home_view,
+        )
+        self.assertIn(":host { grid-column: span 2; }", home_view)
+        self.assertNotIn("name: Living Fan 1", home_view)
+        self.assertNotIn("name: Living Fan 2", home_view)
+
+    def test_family_notice_helpers_are_git_owned(self):
+        package = (ROOT / "packages/family_console.yaml").read_text()
+
+        self.assertIn("family_household_notice:", package)
+        self.assertIn("family_household_notice_expires:", package)
+        self.assertIn("family_household_notice_until:", package)
 
 
 if __name__ == "__main__":

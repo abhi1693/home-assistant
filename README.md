@@ -8,18 +8,18 @@ application code in cluster manifests.
 The desktop visual language closely follows the composition of
 [jlnbln/My-HA-Dashboard](https://github.com/jlnbln/My-HA-Dashboard): a fixed left
 navigation rail, narrative greeting, compact status strip, one dominant content
-zone, a narrow room matrix, soft rounded surfaces and useful information visible
+zone, a narrow Today rail, soft rounded surfaces and useful information visible
 without drilling through menus. Mobile-specific design is intentionally deferred.
 The native Home Assistant sidebar is hidden on these kiosk views so it does not
 compete with the family navigation rail.
 
-Home's status strip is one quiet visual sentence rather than a row of competing
-cards. It prioritizes decisions and context—weather, apparent temperature,
-storm risk, presence and sunset—over device-health counters. Its final slot is
-adaptive: active Jellyfin or music playback comes first, then outstanding
-shopping, a current family event, and finally internet availability. Icon color
-is semantic: normal states stay muted, while activity and conditions needing
-attention receive color.
+Home's five-item status strip is one quiet visual sentence rather than a row of
+competing cards. Weather and presence are stable anchors; the other positions
+adapt to the next family event, laundry, shopping, active playback or fans,
+humidity, sunset and genuine attention states. Internet appears only when
+degraded, the owner's phone only when below 25 percent, and routine fan-off
+states are omitted. Icon color is semantic: normal states stay muted, while
+activity and conditions needing attention receive color.
 
 ## Dashboards
 
@@ -28,9 +28,8 @@ attention receive color.
   embedded Music Assistant experience with Jellyfin activity.
 - **Rack** is admin-only. It keeps Kubernetes, UniFi and rack temperatures away
   from the shared family experience.
-- Every dashboard view consumes the same source-owned navigation rail. Admins
-  see Home, Rack, Cameras and Settings consistently across Home and Rack;
-  non-admin family accounts see Home, Rooms, Cameras and Music.
+- Every dashboard view consumes the same source-owned navigation rail. Everyone
+  sees Home, Rooms, Cameras and Music; admins additionally see Rack and Settings.
 - `Family Dark` is the local visual system. Bubble Card, Button Card, Navbar Card,
   Card Mod, Todo Swipe Card and Kiosk Mode are commit/version-pinned,
   checksum-verified assets.
@@ -43,18 +42,22 @@ bridge reuses the built-in integration's ten-second coordinator data to expose
 the actual Jellyfin account, device/client, title, episode and artwork without
 making additional server requests. Every concurrent viewer gets a separate card
 in the responsive media grid. Music Assistant and Jellyfin launchers remain
-visible above active sessions, so playback never removes navigation. Samsung TV,
-Fire TV and Jellyseerr request approval cards remain extension points for later
-phases.
+share one compact idle card above active sessions, so playback never removes
+navigation. Samsung TV, Fire TV and Jellyseerr request approval cards remain
+extension points for later phases.
 
 The shared overview favors household decisions over system telemetry. Its
 single-screen desktop composition has a personalized greeting, compact weather
 and household ribbon, account-filtered camera wall, adaptive Music
-Assistant/Jellyfin activity, an interactive family board, and a persistent
-room/fan matrix. The greeting ends with one prioritized household message: laundry
-completion, a current family event, significant heat or storms, shopping needs,
-or a quiet all-clear. Routine fan-off state is omitted; running fans are called
-out because they are useful household context. The compact Todo Swipe Shopping
+Assistant/Jellyfin activity, a narrow Today rail, and four relevant area
+summaries. The Living Room summary combines both fans; the full Rooms view owns
+individual controls for every area. The greeting ends with one prioritized
+household message: laundry completion, a current family event, significant heat
+or storms, shopping needs, or a quiet all-clear. A Git-owned household notice
+helper can override that message, remain until changed, or expire at an optional
+family-selected time.
+Routine fan-off state is omitted; running fans are called out because they are
+useful household context. The compact Todo Swipe Shopping
 card supports adding, editing, completing and removing list items directly from
 Home without the native card's large empty state; list contents remain normal
 mutable Home Assistant data while the card and its access policy stay Git-owned.
@@ -92,9 +95,10 @@ of silently widening access. The guarded reconciler backs up `.storage/auth`
 before a policy change and is idempotent on later Fleet rollouts.
 
 The built-in Moon, Uptime, Shopping List and Local Calendar integrations are
-configured without external accounts. Home presents a full-width interactive
-Shopping List beside the `Family` calendar summary, while Rack shows the Home
-Assistant start time. These config entries and shopping-list contents are
+configured without external accounts. Home presents an interactive Shopping
+List with the `Family` calendar, washer and household notice in its Today rail,
+while Rack shows the Home Assistant start time. These config entries and
+shopping-list contents are
 UI-owned on the persistent volume; the dashboard presentation and access rules
 remain Git-owned here.
 
@@ -119,8 +123,11 @@ the coordinates present when it is configured. API credentials remain untouched.
 Protect camera cards explicitly request live rendering through Home Assistant's
 LL-HLS stream proxy. The UniFi policy from the K8s network to the Protect console
 must allow TCP `443` for the API and TCP `7441` for RTSPS. Cards automatically
-recover as cameras reconnect in Protect. The connected camera is presented as
-`Master Bedroom`, matching its current Protect entity.
+recover as cameras reconnect in Protect. Outside is the primary, double-width
+Home tile; disconnected cameras render a designed offline state with the last
+Home Assistant check time and a route to the full camera wall instead of an
+empty snapshot. The connected indoor camera is presented as `Master Bedroom`,
+matching its current Protect entity.
 
 `access/protect-streams.json` declares the active Protect RTSPS tiers. The
 source-owned `family_camera_streams` integration reconciles those tiers through
@@ -142,7 +149,7 @@ stream quality configuration reproducible without committing Protect secrets.
 - `custom_components/family_jellyfin_sessions/`: exposes viewer-aware Jellyfin
   sessions for concurrent playback cards without another API poll
 - `themes/`: source-owned themes
-- `packages/`: future source-owned automations and helpers
+- `packages/`: source-owned helpers, including the household notice and expiry
 - `migrations/`: guarded, one-time area/device migration inputs
 - `bootstrap.py`: idempotent installer used by the Kubernetes init container
 - `bootstrap/manifest.json`: pinned and SHA-verified external assets and custom
