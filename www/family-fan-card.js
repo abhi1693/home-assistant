@@ -181,9 +181,9 @@ class FamilyFanCard extends HTMLElement {
         .room-heading { display:flex; min-height:44px; align-items:center; gap:12px; margin-bottom:14px; }
         .room-icon { display:grid; width:40px; height:40px; flex:0 0 40px; place-items:center; border-radius:14px; background:color-mix(in srgb, var(--fan-accent, var(--pink)) 13%, var(--contrast3)); color:var(--fan-accent, var(--pink)); }
         .room-icon ha-icon { width:21px; }
-        .room-copy { min-width:0; flex:1; }
-        .room-name { color:var(--contrast20); font-family:var(--primary-font-family, Inter, system-ui, sans-serif); font-size:18px; font-weight:720; letter-spacing:-.025em; }
-        .room-status { margin-top:3px; color:var(--contrast9); font-size:11px; font-weight:540; }
+        .room-copy { display:grid; min-width:0; flex:1; gap:3px; }
+        .room-name { display:block; color:var(--contrast20); font-family:var(--primary-font-family, Inter, system-ui, sans-serif); font-size:18px; font-weight:720; letter-spacing:-.025em; }
+        .room-status { display:block; color:var(--contrast9); font-size:11px; font-weight:540; }
         .all-off { display:inline-flex; min-height:36px; align-items:center; gap:6px; border:0; border-radius:12px; padding:0 11px; background:var(--contrast4); color:var(--contrast13); font-size:11px; font-weight:680; cursor:pointer; }
         .all-off:hover:not(:disabled) { background:var(--contrast5); color:var(--contrast20); }
         .all-off:disabled { cursor:default; opacity:.34; }
@@ -324,7 +324,9 @@ class FamilyFanSummaryCard extends HTMLElement {
     const running = available.filter((item) => item.state.state === "on");
     const unavailable = fans.length - available.length;
     let headline = "Home is quiet";
-    let detail = available.length ? `${available.length} fans ready` : "Fans are powered down";
+    let detail = available.length
+      ? available.length === 1 ? "1 fan ready" : `${available.length} fans ready`
+      : "Fans are powered down";
     if (running.length === 1) {
       const percentage = Number(running[0].state.attributes.percentage);
       const speed = Number.isFinite(percentage) ? Math.max(1, Math.min(6, Math.round(percentage / (100 / 6)))) : null;
