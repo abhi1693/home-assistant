@@ -302,11 +302,16 @@ class DashboardStructureTests(unittest.TestCase):
         )[0]
         card = (ROOT / "www/family-fan-card.js").read_text()
 
-        self.assertIn("/local/family-fan-card.js?v=1.1.1", configuration)
+        self.assertIn("/local/family-fan-card.js?v=2.0.0", configuration)
         self.assertEqual(rooms.count("type: custom:family-fan-card"), 7)
-        self.assertEqual(rooms.count("type: custom:family-fan-summary-card"), 1)
+        self.assertNotIn("type: custom:family-fan-summary-card", rooms)
         self.assertIn("max_columns: 3", rooms)
-        self.assertIn("grid_options: { columns: 24, rows: auto }", rooms)
+        self.assertEqual(
+            rooms.count("grid_options: { columns: 36, rows: auto }"), 1
+        )
+        self.assertEqual(
+            rooms.count("grid_options: { columns: 18, rows: auto }"), 6
+        )
         self.assertIn("light.office_fan_led", rooms)
         self.assertIn("switch.office_fan_sleep_mode", rooms)
         self.assertIn("select.office_fan_set_timer", rooms)
@@ -315,20 +320,27 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("type: custom:bubble-card", rooms)
 
         self.assertIn('customElements.define("family-fan-card"', card)
-        self.assertIn('customElements.define("family-fan-summary-card"', card)
-        self.assertIn('{ speed: 6, percentage: 100, label: "Boost" }', card)
-        self.assertIn('"light", service', card)
-        self.assertIn('"switch", service', card)
-        self.assertIn('"select", "select_option"', card)
-        self.assertIn('service = this._state(unit.fan)?.state === "on"', card)
-        self.assertIn('"fan", service, { percentage }, unit.fan', card)
-        self.assertIn("check wall power or Wi-Fi", card)
-        self.assertIn("Sleep mode", card)
-        self.assertIn("Auto-off", card)
-        self.assertIn("one speed every 2 hours", card)
+        self.assertNotIn('customElements.define("family-fan-summary-card"', card)
+        self.assertIn("{ speed: 6, percentage: 100 }", card)
+        self.assertIn('data-action="speed-down"', card)
+        self.assertIn('data-action="speed-up"', card)
+        self.assertIn("Starts at this speed", card)
+        self.assertIn('this._callService("light", service', card)
+        self.assertIn('this._callService("switch", service', card)
+        self.assertIn('this._callService("select", "select_option"', card)
+        self.assertIn('running ? "set_percentage" : "turn_on"', card)
+        self.assertIn("Check the wall switch or Wi-Fi.", card)
+        self.assertIn("Turn fan on first", card)
+        self.assertIn('running ? "Turn off later" : "Turn on later"', card)
+        self.assertIn('dialog class="timer-dialog"', card)
+        self.assertIn("dialog.showModal()", card)
+        self.assertNotIn("<select", card)
+        self.assertIn("await this._cancelTimer(unit);", card)
+        self.assertIn("this._busy.has(index)", card)
         self.assertIn("fingerprint !== this._lastFingerprint", card)
-        self.assertIn("this._timerRenderPending", card)
-        self.assertIn("min-height:46px", card)
+        self.assertIn("min-height:56px", card)
+        self.assertIn("prefers-reduced-motion:reduce", card)
+        self.assertIn(".running .fan-icon ha-icon", card)
 
 
 if __name__ == "__main__":

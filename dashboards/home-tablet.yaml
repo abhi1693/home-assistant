@@ -1496,17 +1496,6 @@ views:
             grid_options:
               columns: 36
               rows: 1
-          - type: custom:family-fan-summary-card
-            fans:
-              - { entity: fan.office_fan, name: Office }
-              - { entity: fan.master_bedroom_fan, name: Master Bedroom }
-              - { entity: fan.bedroom_fan, name: Bedroom }
-              - { entity: fan.guest_fan, name: Guest Room }
-              - { entity: fan.kitchen_fan, name: Kitchen }
-              - { entity: fan.dining_fan, name: Dining Room }
-              - { entity: fan.living_room_fan_1, name: Living Room Fan 1 }
-              - { entity: fan.living_room_fan_2, name: Living Room Fan 2 }
-            grid_options: { columns: 36, rows: auto }
           - type: custom:family-fan-card
             name: Living Room
             icon: mdi:sofa-outline
@@ -1524,7 +1513,7 @@ views:
                 sleep: switch.living_room_fan_2_sleep_mode
                 timer: select.living_room_fan_2_set_timer
                 timer_elapsed: sensor.living_room_fan_2_timer_elapsed_time
-            grid_options: { columns: 24, rows: auto }
+            grid_options: { columns: 36, rows: auto }
           - type: custom:family-fan-card
             name: Office
             icon: mdi:desk
@@ -1535,7 +1524,7 @@ views:
                 sleep: switch.office_fan_sleep_mode
                 timer: select.office_fan_set_timer
                 timer_elapsed: sensor.office_fan_timer_elapsed_time
-            grid_options: { columns: 12, rows: auto }
+            grid_options: { columns: 18, rows: auto }
           - type: custom:family-fan-card
             name: Master Bedroom
             icon: mdi:bed-king-outline
@@ -1546,7 +1535,7 @@ views:
                 sleep: switch.master_bedroom_fan_sleep_mode
                 timer: select.master_bedroom_fan_set_timer
                 timer_elapsed: sensor.master_bedroom_fan_timer_elapsed_time
-            grid_options: { columns: 12, rows: auto }
+            grid_options: { columns: 18, rows: auto }
           - type: custom:family-fan-card
             name: Bedroom
             icon: mdi:bed-outline
@@ -1557,7 +1546,7 @@ views:
                 sleep: switch.bedroom_fan_sleep_mode
                 timer: select.bedroom_fan_set_timer
                 timer_elapsed: sensor.bedroom_fan_timer_elapsed_time
-            grid_options: { columns: 12, rows: auto }
+            grid_options: { columns: 18, rows: auto }
           - type: custom:family-fan-card
             name: Guest Room
             icon: mdi:bed-single-outline
@@ -1568,7 +1557,7 @@ views:
                 sleep: switch.guest_fan_sleep_mode
                 timer: select.guest_fan_set_timer
                 timer_elapsed: sensor.guest_fan_timer_elapsed_time
-            grid_options: { columns: 12, rows: auto }
+            grid_options: { columns: 18, rows: auto }
           - type: custom:family-fan-card
             name: Kitchen
             icon: mdi:countertop-outline
@@ -1579,7 +1568,7 @@ views:
                 sleep: switch.kitchen_fan_sleep_mode
                 timer: select.kitchen_fan_set_timer
                 timer_elapsed: sensor.kitchen_fan_timer_elapsed_time
-            grid_options: { columns: 12, rows: auto }
+            grid_options: { columns: 18, rows: auto }
           - type: custom:family-fan-card
             name: Dining Room
             icon: mdi:table-furniture
@@ -1590,7 +1579,7 @@ views:
                 sleep: switch.dining_fan_sleep_mode
                 timer: select.dining_fan_set_timer
                 timer_elapsed: sensor.dining_fan_timer_elapsed_time
-            grid_options: { columns: 12, rows: auto }
+            grid_options: { columns: 18, rows: auto }
       - type: grid
         column_span: 3
         cards:
