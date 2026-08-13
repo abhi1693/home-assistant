@@ -690,7 +690,7 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.living_room_medium_resolution_channel
+                - entity_id: camera.living_room_high_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
@@ -712,7 +712,7 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.hallway_medium_resolution_channel
+                - entity_id: camera.hallway_high_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
@@ -734,7 +734,7 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.g5_turret_ultra_medium_resolution_channel
+                - entity_id: camera.g5_turret_ultra_high_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
@@ -1113,7 +1113,7 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.living_room_medium_resolution_channel
+                - entity_id: camera.living_room_high_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
@@ -1135,7 +1135,7 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.hallway_medium_resolution_channel
+                - entity_id: camera.hallway_high_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
@@ -1157,7 +1157,7 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.g5_turret_ultra_medium_resolution_channel
+                - entity_id: camera.g5_turret_ultra_high_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
