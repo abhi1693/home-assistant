@@ -1,0 +1,24 @@
+approve:
+  name: Approve Seerr request
+  description: Approve one currently pending request as a Home Assistant administrator.
+  fields:
+    request_id:
+      name: Request ID
+      description: The pending Seerr request ID exposed by the sensor.
+      required: true
+      selector:
+        number:
+          min: 1
+          mode: box
+decline:
+  name: Decline Seerr request
+  description: Decline one currently pending request as a Home Assistant administrator.
+  fields:
+    request_id:
+      name: Request ID
+      description: The pending Seerr request ID exposed by the sensor.
+      required: true
+      selector:
+        number:
+          min: 1
+          mode: box

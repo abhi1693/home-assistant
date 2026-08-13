@@ -1,0 +1,9 @@
+{
+  "domain": "family_seerr_requests",
+  "name": "Family Seerr Requests",
+  "codeowners": [],
+  "documentation": "https://github.com/abhi1693/home-assistant",
+  "integration_type": "system",
+  "iot_class": "local_polling",
+  "version": "1.0.0"
+}

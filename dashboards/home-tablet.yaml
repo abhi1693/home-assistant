@@ -1427,6 +1427,12 @@ views:
                   - font-size: 11px
           - type: custom:family-announcements-card
             entity: sensor.family_announcements
+          - type: custom:family-seerr-requests-card
+            entity: sensor.seerr_pending_requests
+            url: http://requests.media.home
+            visibility:
+              - condition: user
+                users: !include ../access/generated/profile-abhimanyu-saharan-users.json
           - type: custom:todo-swipe-card
             entities:
               - entity: todo.shopping_list

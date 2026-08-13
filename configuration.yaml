@@ -26,6 +26,10 @@ sensor:
     access_file: /config/access/family-dashboard.json
   - platform: family_jellyfin_sessions
   - platform: family_music_assistant_sessions
+  - platform: family_seerr_requests
+    base_url: http://jellyseerr.media.svc.cluster.local:10241
+    external_url: http://requests.media.home
+    api_key: !env_var SEERR_API_KEY
 
 lovelace:
   resource_mode: yaml
@@ -47,6 +51,8 @@ lovelace:
     - url: /local/family-responsive-grid-card.js?v=1.0.0
       type: module
     - url: /local/family-agenda-card.js?v=1.0.0
+      type: module
+    - url: /local/family-seerr-requests-card.js?v=1.0.0
       type: module
     - url: /local/community/todo-swipe-card/todo-swipe-card.js?v=3.6.0
       type: module

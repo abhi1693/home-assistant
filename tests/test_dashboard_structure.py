@@ -225,6 +225,41 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('callService("family_announcements", "dismiss"', card)
         self.assertFalse((ROOT / "packages/family_console.yaml").exists())
 
+    def test_seerr_requests_are_admin_gated_and_server_managed(self):
+        configuration = (ROOT / "configuration.yaml").read_text()
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        integration = (
+            ROOT / "custom_components/family_seerr_requests/sensor.py"
+        ).read_text()
+        card = (ROOT / "www/family-seerr-requests-card.js").read_text()
+        home_view = home.split("  - title: Home", 1)[1].split(
+            "  - title: Rooms", 1
+        )[0]
+
+        self.assertIn("platform: family_seerr_requests", configuration)
+        self.assertIn("api_key: !env_var SEERR_API_KEY", configuration)
+        self.assertIn("jellyseerr.media.svc.cluster.local:10241", configuration)
+        self.assertIn("/local/family-seerr-requests-card.js?v=1.0.0", configuration)
+        self.assertEqual(
+            home_view.count("type: custom:family-seerr-requests-card"), 1
+        )
+        self.assertIn("profile-abhimanyu-saharan-users.json", home_view)
+        self.assertGreater(
+            home_view.index("type: custom:family-seerr-requests-card"),
+            home_view.index("type: custom:family-announcements-card"),
+        )
+        self.assertLess(
+            home_view.index("type: custom:family-seerr-requests-card"),
+            home_view.index("type: custom:todo-swipe-card"),
+        )
+        self.assertIn("not user.is_admin", integration)
+        self.assertIn('await self._async_request("POST"', integration)
+        self.assertNotIn("X-Api-Key", card)
+        self.assertIn(
+            'callService("family_seerr_requests", action', card
+        )
+        self.assertIn("No requests waiting", card)
+
     def test_family_agenda_uses_permission_aware_calendar_responses(self):
         configuration = (ROOT / "configuration.yaml").read_text()
         manifest = (ROOT / "bootstrap/manifest.json").read_text()

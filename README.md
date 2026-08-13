@@ -47,9 +47,8 @@ columns. Jellyfin cards also identify the signed-in viewer and client. Music
 Assistant does not expose the person who initiated playback, so those cards
 truthfully identify the player/device rather than inferring a family member.
 Music Assistant and Jellyfin launchers share a compact action bar beneath active
-sessions, so playback never removes navigation. Samsung TV, Fire TV and
-Jellyseerr request approval cards remain
-extension points for later phases.
+sessions, so playback never removes navigation. Samsung TV, Fire TV and other
+playback controls remain extension points for later phases.
 
 The shared overview favors household decisions over system telemetry. Its
 single-screen desktop composition has a personalized greeting, compact weather
@@ -71,6 +70,12 @@ message remains until its sender or an administrator removes it, or disappears
 entirely at its optional end time. Publishing also sends the message to every
 mapped family Companion App phone.
 When the bulletin is empty it collapses to a compact Announcements/Add bar.
+For the owner account, a compact Seerr queue sits between Announcements and
+Shopping. It polls the in-cluster Seerr API once per minute, shows up to four
+pending movie or series requests with the requester, and offers immediate
+approval plus a confirm-before-decline action. The administrator API key stays
+inside the Home Assistant backend; Lovelace receives only sanitized request
+summaries, and both services reject inactive or non-admin Home Assistant users.
 Routine fan-off state is omitted; running fans are called out because they are
 useful household context. The compact Todo Swipe Shopping
 card supports adding, editing, completing and removing list items directly from
@@ -189,6 +194,9 @@ stream quality configuration reproducible without committing Protect secrets.
 - `custom_components/family_announcements/`: persists multiple account-attributed
   family bulletin messages, deletes them independently at expiry and sends each
   new message to the Companion App phones declared in the access policy
+- `custom_components/family_seerr_requests/`: polls the local pending-request
+  queue and exposes admin-checked approve/decline actions without sending the
+  Seerr API key to the browser
 - `themes/`: source-owned themes
 - `packages/`: source-owned helpers for normalized temperature presentation
 - `migrations/`: guarded, one-time area/device migration inputs
