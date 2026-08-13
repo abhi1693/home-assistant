@@ -691,7 +691,7 @@ views:
         text_only: true
         content: |-
           # {{ 'Good morning' if now().hour < 12 else 'Good afternoon' if now().hour < 17 else 'Good evening' }}, {{ user }}
-          It is **{{ now().strftime('%A') }}**. The weather is **{{ states('weather.home') | replace('_', ' ') | title }}** at **{{ states('sensor.home_temperature') }} °C**. {% set running = states.fan | selectattr('state', 'eq', 'on') | list | count %}{% if running %}{{ running }} fan{{ 's are' if running != 1 else ' is' }} running.{% else %}All available fans are off.{% endif %}
+          It is **{{ now().strftime('%A') }}**. **{{ state_translated('weather.home') }}**, **{{ states('sensor.home_temperature') }}°C**, and it feels like **{{ states('sensor.home_apparent_temperature') }}°C**, with a **{{ states('sensor.home_thunderstorm_probability') }}%** storm chance. {% set home = states.person | selectattr('state', 'eq', 'home') | map(attribute='name') | list %}{% if home | count == 0 %}**Nobody is home.**{% elif home | count == 1 %}**{{ home[0] }} is home.**{% else %}**{{ home | count }} people are home.**{% endif %}
         card_mod:
           style: |
             ha-card { background: transparent; padding: 8px 0 4px; }
