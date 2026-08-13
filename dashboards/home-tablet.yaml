@@ -564,6 +564,34 @@ views:
                         .some((id) => states[id]?.state === 'playing');
                     ]]]
                   color: var(--green)
+              - icon: mdi:shield-crown-outline
+                icon_selected: mdi:shield-crown
+                label: Admin
+                hidden: |
+                  [[[
+                    return !user?.is_admin;
+                  ]]]
+                tap_action:
+                  action: open-popup
+                popup:
+                  - icon: mdi:server-network
+                    url: /rack-admin/overview
+                    label: Rack
+                  - icon: mdi:cog
+                    url: /config/dashboard
+                    label: Settings
+                  - icon: mdi:devices
+                    url: /config/devices/dashboard
+                    label: Devices
+                  - icon: mdi:puzzle
+                    url: /config/integrations/dashboard
+                    label: Integrations
+                  - icon: mdi:robot-outline
+                    url: /config/automation/dashboard
+                    label: Automations
+                  - icon: mdi:tools
+                    url: /developer-tools/yaml
+                    label: Developer tools
             styles: |
               .navbar {
                 --navbar-primary-color: var(--purple);

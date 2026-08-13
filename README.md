@@ -20,6 +20,9 @@ compete with the family navigation rail.
   embedded Music Assistant experience with Jellyfin activity.
 - **Rack** is admin-only. It keeps Kubernetes, UniFi and rack temperatures away
   from the shared family experience.
+- Home's navbar adds a single admin-only menu for Rack, Settings, Devices,
+  Integrations, Automations and Developer Tools. Non-admin family accounts keep
+  the uncluttered Home, Rooms, Cameras and Music navigation.
 - `Family Dark` is the local visual system. Bubble Card, Button Card, Navbar Card,
   Card Mod, Todo Swipe Card and Kiosk Mode are commit/version-pinned,
   checksum-verified assets.
