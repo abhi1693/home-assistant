@@ -21,6 +21,9 @@ family_dashboard_guard:
 
 family_camera_streams:
 
+sensor:
+  - platform: family_jellyfin_sessions
+
 lovelace:
   resource_mode: yaml
   resources:

@@ -38,8 +38,12 @@ attention receive color.
 The current dashboard binds fixed controls only to entities verified in the
 live Home Assistant registry. Auto Entities discovers active Jellyfin and Music
 Assistant sessions at render time, so playback cards appear only while a known
-integration is playing or paused. Samsung TV, Fire TV and Jellyseerr request
-approval cards remain extension points for later phases.
+integration is playing or paused. A source-owned read-only Jellyfin session
+bridge reuses the built-in integration's ten-second coordinator data to expose
+the actual Jellyfin account, device/client, title, episode and artwork without
+making additional server requests. Every concurrent viewer gets a separate card
+in the responsive media grid. Samsung TV, Fire TV and Jellyseerr request approval
+cards remain extension points for later phases.
 
 The shared overview favors household decisions over system telemetry. Its
 single-screen desktop composition has a personalized greeting, compact weather
@@ -119,6 +123,8 @@ stream quality configuration reproducible without committing Protect secrets.
   Home panel after the frontend integration starts
 - `custom_components/family_camera_streams/`: reconciles Git-owned Protect
   stream tiers and their native Home Assistant entities
+- `custom_components/family_jellyfin_sessions/`: exposes viewer-aware Jellyfin
+  sessions for concurrent playback cards without another API poll
 - `themes/`: source-owned themes
 - `packages/`: future source-owned automations and helpers
 - `migrations/`: guarded, one-time area/device migration inputs

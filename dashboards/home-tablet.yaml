@@ -638,6 +638,92 @@ button_card_templates:
         - white-space: nowrap
         - max-width: 260px
 
+  family_jellyfin_viewing:
+    show_icon: true
+    show_entity_picture: true
+    show_name: true
+    show_state: true
+    show_label: true
+    name: |
+      [[[
+        const viewer = entity?.attributes.viewer || 'Unknown viewer';
+        const device = entity?.attributes.device_name;
+        return device && device.toLowerCase() !== viewer.toLowerCase()
+          ? `${viewer} · ${device}`
+          : viewer;
+      ]]]
+    state_display: |
+      [[[
+        if (!entity) return 'Unavailable';
+        const series = entity.attributes.media_series_title;
+        const title = entity.attributes.media_title;
+        return series && title ? `${series} · ${title}` : title || series || 'Watching';
+      ]]]
+    label: |
+      [[[
+        if (!entity) return '';
+        const season = entity.attributes.media_season;
+        const episode = entity.attributes.media_episode;
+        const number = season != null && episode != null ? `S${season} E${episode} · ` : '';
+        const status = entity.state === 'paused' ? 'Paused' : 'Watching now';
+        const client = entity.attributes.client_name;
+        return `${number}${status}${client ? ` on ${client}` : ''}`;
+      ]]]
+    tap_action:
+      action: more-info
+    styles:
+      grid:
+        - grid-template-areas: '"i n" "i s" "i l"'
+        - grid-template-columns: 70px 1fr
+        - grid-template-rows: min-content min-content min-content
+        - column-gap: 14px
+      card:
+        - height: 102px
+        - padding: 14px
+        - border-radius: 24px
+        - background: var(--contrast2)
+        - box-shadow: none
+      img_cell:
+        - width: 70px
+        - height: 70px
+        - border-radius: 18px
+        - background: var(--contrast4)
+        - overflow: hidden
+      entity_picture:
+        - width: 100%
+        - height: 100%
+        - object-fit: cover
+      icon:
+        - width: 27px
+        - color: var(--purple)
+      name:
+        - justify-self: start
+        - align-self: end
+        - color: var(--purple)
+        - font-size: 11px
+        - font-weight: 650
+        - text-transform: none
+      state:
+        - justify-self: start
+        - align-self: center
+        - color: var(--contrast20)
+        - font-size: 15px
+        - font-weight: 650
+        - text-overflow: ellipsis
+        - overflow: hidden
+        - white-space: nowrap
+        - max-width: 260px
+      label:
+        - justify-self: start
+        - align-self: start
+        - color: var(--contrast11)
+        - font-size: 11px
+        - font-weight: 500
+        - text-overflow: ellipsis
+        - overflow: hidden
+        - white-space: nowrap
+        - max-width: 260px
+
   family_launcher:
     show_icon: true
     show_name: true
@@ -1059,6 +1145,11 @@ views:
                       type: grid
                       columns: 2
                       square: false
+                      card_mod:
+                        style: |
+                          #root {
+                            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+                          }
                     card_param: cards
                     filter:
                       include:
@@ -1074,22 +1165,19 @@ views:
                           options:
                             type: custom:button-card
                             template: family_now_playing
-                        - integration: jellyfin
-                          domain: media_player
+                        - entity_id: sensor.jellyfin_session_*
                           state: playing
                           options:
                             type: custom:button-card
-                            template: family_now_playing
-                        - integration: jellyfin
-                          domain: media_player
+                            template: family_jellyfin_viewing
+                        - entity_id: sensor.jellyfin_session_*
                           state: paused
                           options:
                             type: custom:button-card
-                            template: family_now_playing
+                            template: family_jellyfin_viewing
                     sort:
                       method: last_updated
                       reverse: true
-                      count: 2
                     show_empty: false
                     else:
                       type: grid
@@ -1585,22 +1673,27 @@ views:
             name: Living room
             icon: mdi:speaker-wireless
           - type: heading
-            heading: Jellyfin
+            heading: Jellyfin viewers
             icon: mdi:jellyfish
-          - type: custom:button-card
-            template: family_room
-            entity: sensor.jellyfin_5876476948_vc8dc_active_clients
-            name: Active clients
-            icon: mdi:television-play
-            variables:
-              accent: var(--purple)
-            label: |
-              [[[
-                if (!entity || entity.state === 'unavailable') return 'Unavailable';
-                return Number(entity.state) === 1
-                  ? '1 device watching'
-                  : `${entity.state} devices watching`;
-              ]]]
-            tap_action:
-              action: url
-              url_path: http://watch.media.home
+          - type: custom:auto-entities
+            card:
+              type: grid
+              columns: 1
+              square: false
+            card_param: cards
+            filter:
+              include:
+                - entity_id: sensor.jellyfin_session_*
+                  state: playing
+                  options:
+                    type: custom:button-card
+                    template: family_jellyfin_viewing
+                - entity_id: sensor.jellyfin_session_*
+                  state: paused
+                  options:
+                    type: custom:button-card
+                    template: family_jellyfin_viewing
+            sort:
+              method: last_updated
+              reverse: true
+            show_empty: false
