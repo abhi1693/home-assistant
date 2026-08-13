@@ -302,7 +302,7 @@ class DashboardStructureTests(unittest.TestCase):
         )[0]
         card = (ROOT / "www/family-fan-card.js").read_text()
 
-        self.assertIn("/local/family-fan-card.js?v=3.1.0", configuration)
+        self.assertIn("/local/family-fan-card.js?v=3.1.1", configuration)
         self.assertEqual(rooms.count("type: custom:family-fan-card"), 7)
         self.assertNotIn("type: custom:family-fan-summary-card", rooms)
         self.assertIn("max_columns: 3", rooms)
@@ -341,6 +341,11 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("Turn on the wall switch", card)
         self.assertIn("Controls will appear automatically.", card)
         self.assertIn("Fan is off", card)
+        self.assertIn("_exclusiveModes(unit)", card)
+        self.assertIn("sleepUpdated > timerUpdated", card)
+        self.assertIn("Replaces timer", card)
+        self.assertIn("Replaces sleep mode", card)
+        self.assertIn("Sleep mode will turn off automatically", card)
         self.assertIn('running ? "Turn off later" : "Turn on later"', card)
         self.assertIn('dialog class="timer-dialog"', card)
         self.assertIn("dialog.showModal()", card)

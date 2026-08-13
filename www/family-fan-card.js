@@ -72,6 +72,20 @@ class FamilyFanCard extends HTMLElement {
     return Boolean(state && !["Off", "unknown", "unavailable"].includes(state));
   }
 
+  _exclusiveModes(unit) {
+    const sleep = this._state(unit.sleep);
+    const timer = this._state(unit.timer);
+    const sleepOn = sleep?.state === "on";
+    const timerOn = this._timerActive(unit);
+    if (!sleepOn || !timerOn) return { sleepOn, timerOn };
+
+    const sleepUpdated = Date.parse(sleep?.last_updated || "") || 0;
+    const timerUpdated = Date.parse(timer?.last_updated || "") || 0;
+    return sleepUpdated > timerUpdated
+      ? { sleepOn: true, timerOn: false }
+      : { sleepOn: false, timerOn: true };
+  }
+
   _fingerprint() {
     if (!this._config || !this._hass) return "";
     return JSON.stringify(this._config.fans.flatMap((unit) =>
@@ -191,9 +205,14 @@ class FamilyFanCard extends HTMLElement {
     const busy = this._busy.has(index);
     const fanName = this._fanName(unit, index);
     const ledOn = this._state(unit.led)?.state === "on";
-    const sleepOn = this._state(unit.sleep)?.state === "on";
-    const timerOn = this._timerActive(unit);
+    const { sleepOn, timerOn } = this._exclusiveModes(unit);
     const timerAction = running ? "Turn off later" : "Turn on later";
+    const sleepLabel = sleepOn
+      ? `Turn ${this._escape(fanName)} sleep mode off`
+      : timerOn
+        ? `Turn ${this._escape(fanName)} sleep mode on and replace the timer`
+        : `Turn ${this._escape(fanName)} sleep mode on`;
+    const timerHint = timerOn ? this._timerLabel(unit) : sleepOn ? "Replaces sleep mode" : timerAction;
     const spin = Math.max(0.55, 2.2 - speed * 0.25);
     const featureDisabled = busy || !running;
 
@@ -217,13 +236,13 @@ class FamilyFanCard extends HTMLElement {
             <span class="feature-icon"><ha-icon icon="${ledOn ? "mdi:lightbulb-on-outline" : "mdi:lightbulb-outline"}"></ha-icon></span>
             <span class="feature-copy"><strong>Light</strong><small>${running ? (ledOn ? "On" : "Off") : "Fan is off"}</small></span>
           </button>
-          <button class="feature${running && sleepOn ? " active sleep" : ""}" data-action="sleep" data-index="${index}"${this._disabled(featureDisabled)} aria-label="${running ? `Turn ${this._escape(fanName)} sleep mode ${sleepOn ? "off" : "on"}` : `${this._escape(fanName)} sleep mode. Turn fan on first`}" aria-pressed="${running && sleepOn ? "true" : "false"}">
+          <button class="feature${running && sleepOn ? " active sleep" : ""}" data-action="sleep" data-index="${index}"${this._disabled(featureDisabled)} aria-label="${running ? sleepLabel : `${this._escape(fanName)} sleep mode. Turn fan on first`}" aria-pressed="${running && sleepOn ? "true" : "false"}">
             <span class="feature-icon"><ha-icon icon="mdi:weather-night"></ha-icon></span>
-            <span class="feature-copy"><strong>Sleep</strong><small>${running ? (sleepOn ? "On · slows gradually" : "Off") : "Fan is off"}</small></span>
+            <span class="feature-copy"><strong>Sleep</strong><small>${running ? (sleepOn ? "On · slows gradually" : timerOn ? "Replaces timer" : "Off") : "Fan is off"}</small></span>
           </button>
-          <button class="feature timer${timerOn ? " active" : ""}" data-action="timer" data-index="${index}"${this._disabled(busy)} aria-label="${this._escape(timerAction)} for ${this._escape(fanName)}">
+          <button class="feature timer${timerOn ? " active" : ""}" data-action="timer" data-index="${index}"${this._disabled(busy)} aria-label="${this._escape(sleepOn ? `${timerAction} for ${fanName} and replace sleep mode` : `${timerAction} for ${fanName}`)}">
             <span class="feature-icon"><ha-icon icon="mdi:timer-outline"></ha-icon></span>
-            <span class="feature-copy"><strong>Timer</strong><small>${this._escape(timerOn ? this._timerLabel(unit) : timerAction)}</small></span>
+            <span class="feature-copy"><strong>Timer</strong><small>${this._escape(timerHint)}</small></span>
             <ha-icon class="chevron" icon="mdi:chevron-right"></ha-icon>
           </button>
         </div>
@@ -238,19 +257,19 @@ class FamilyFanCard extends HTMLElement {
     const running = this._running(unit);
     const fanName = this._fanName(unit, index);
     const current = this._state(unit.timer)?.state;
-    const active = this._timerActive(unit);
+    const { sleepOn, timerOn: active } = this._exclusiveModes(unit);
     const options = this._state(unit.timer)?.attributes?.options || ["Off", "1 hour", "2 hours", "3 hours", "6 hours"];
     const durations = options.filter((option) => option !== "Off");
     return `
       <dialog class="timer-dialog" aria-labelledby="timer-title-${index}">
         <div class="dialog-heading">
           <span class="dialog-icon"><ha-icon icon="mdi:timer-outline"></ha-icon></span>
-          <span><strong id="timer-title-${index}">Turn ${this._escape(fanName)} ${running ? "off" : "on"} after</strong><small>Choose a delay</small></span>
+          <span><strong id="timer-title-${index}">Turn ${this._escape(fanName)} ${running ? "off" : "on"} after</strong><small>${sleepOn ? "Sleep mode will turn off automatically" : "Choose a delay"}</small></span>
           <button class="dialog-close" data-action="close-timer" aria-label="Close timer"><ha-icon icon="mdi:close"></ha-icon></button>
         </div>
         <div class="timer-choices">
           ${active ? `<button class="timer-choice cancel-timer" data-action="timer-choice" data-index="${index}" data-option="Off"><ha-icon icon="mdi:timer-off-outline"></ha-icon><span><strong>Cancel timer</strong><small>${this._escape(this._timerLabel(unit))}</small></span></button>` : ""}
-          ${durations.map((option) => `<button class="timer-choice${current === option ? " selected" : ""}" data-action="timer-choice" data-index="${index}" data-option="${this._escape(option)}"><strong>${this._escape(option.replace(" hours", "").replace(" hour", ""))}</strong><small>${option === "1 hour" ? "hour" : "hours"}</small></button>`).join("")}
+          ${durations.map((option) => `<button class="timer-choice${active && current === option ? " selected" : ""}" data-action="timer-choice" data-index="${index}" data-option="${this._escape(option)}"><strong>${this._escape(option.replace(" hours", "").replace(" hour", ""))}</strong><small>${option === "1 hour" ? "hour" : "hours"}</small></button>`).join("")}
         </div>
         <button class="dialog-cancel" data-action="close-timer">Cancel</button>
       </dialog>`;
@@ -426,7 +445,7 @@ class FamilyFanCard extends HTMLElement {
       const service = this._state(unit.led)?.state === "on" ? "turn_off" : "turn_on";
       await this._runUnit(index, () => this._callService("light", service, {}, unit.led));
     } else if (action === "sleep" && this._running(unit)) {
-      const service = this._state(unit.sleep)?.state === "on" ? "turn_off" : "turn_on";
+      const service = this._exclusiveModes(unit).sleepOn ? "turn_off" : "turn_on";
       await this._runUnit(index, () => this._callService("switch", service, {}, unit.sleep));
     }
   }

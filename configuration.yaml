@@ -57,7 +57,7 @@ lovelace:
       type: module
     - url: /local/family-seerr-requests-card.js?v=1.0.0
       type: module
-    - url: /local/family-fan-card.js?v=3.1.0
+    - url: /local/family-fan-card.js?v=3.1.1
       type: module
     - url: /local/community/todo-swipe-card/todo-swipe-card.js?v=3.6.0
       type: module
