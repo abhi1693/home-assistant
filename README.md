@@ -23,13 +23,13 @@ activity and conditions needing attention receive color.
 
 ## Dashboards
 
-- **Home** is family-facing and desktop-first. Its four views cover the household
-  overview, rooms and Atomberg fans, a three-camera UniFi Protect wall, and an
-  embedded Music Assistant experience with Jellyfin activity.
+- **Home** is family-facing and desktop-first. Its three views cover the household
+  overview, rooms and Atomberg fans, and a three-camera UniFi Protect wall.
+  Music Assistant and Jellyfin activity remain embedded in the household overview.
 - **Rack** is admin-only. It keeps Kubernetes, UniFi and rack temperatures away
   from the shared family experience.
 - Every dashboard view consumes the same source-owned navigation rail. Everyone
-  sees Home, Rooms, Cameras and Music; admins additionally see Rack and Settings.
+  sees Home, Rooms and Cameras; admins additionally see Rack and Settings.
 - `Family Dark` is the local visual system. Bubble Card, Button Card, Navbar Card,
   Card Mod, Todo Swipe Card and Kiosk Mode are commit/version-pinned,
   checksum-verified assets.
@@ -41,8 +41,8 @@ integration is playing or paused. A source-owned read-only Jellyfin session
 bridge reuses the built-in integration's ten-second coordinator data to expose
 the actual Jellyfin account, device/client, title, episode and artwork without
 making additional server requests. Every concurrent viewer gets a separate card
-in the responsive media grid. Music Assistant and Jellyfin launchers remain
-share one compact idle card above active sessions, so playback never removes
+in the responsive media grid. Music Assistant and Jellyfin launchers continue
+to share one compact idle card above active sessions, so playback never removes
 navigation. Samsung TV, Fire TV and Jellyseerr request approval cards remain
 extension points for later phases.
 

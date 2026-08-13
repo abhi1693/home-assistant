@@ -16,7 +16,7 @@ class DashboardStructureTests(unittest.TestCase):
             ),
             1,
         )
-        self.assertEqual(home.count("- *family_navigation"), 3)
+        self.assertEqual(home.count("- *family_navigation"), 2)
         self.assertEqual(
             rack.count("- !include includes/family-navigation.yaml"), 1
         )
@@ -31,9 +31,7 @@ class DashboardStructureTests(unittest.TestCase):
             if line.startswith("    label: ")
         ]
 
-        self.assertEqual(
-            labels, ["Home", "Rooms", "Cameras", "Music", "Rack", "Settings"]
-        )
+        self.assertEqual(labels, ["Home", "Rooms", "Cameras", "Rack", "Settings"])
         self.assertNotIn("return Boolean(user?.is_admin);", navigation)
         self.assertEqual(navigation.count("return !user?.is_admin;"), 2)
 
@@ -96,9 +94,13 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("name: Living Fan 1", home_view)
         self.assertNotIn("name: Living Fan 2", home_view)
 
-        music_view = home.split("  - title: Music", 1)[1]
-        self.assertIn("heading: Now playing", music_view)
-        self.assertIn("sensor.music_assistant_session_*", music_view)
+        navigation = (
+            ROOT / "dashboards/includes/family-navigation.yaml"
+        ).read_text()
+        self.assertNotIn("  - title: Music", home)
+        self.assertNotIn("path: music", home)
+        self.assertNotIn("/home-tablet/music", navigation)
+        self.assertNotIn("label: Music", navigation)
 
     def test_family_announcement_helpers_and_composer_are_git_owned(self):
         package = (ROOT / "packages/family_console.yaml").read_text()
@@ -115,9 +117,7 @@ class DashboardStructureTests(unittest.TestCase):
 
     def test_camera_wall_applies_each_camera_user_gate(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
-        camera_view = home.split("  - title: Cameras", 1)[1].split(
-            "  - title: Music", 1
-        )[0]
+        camera_view = home.split("  - title: Cameras", 1)[1]
 
         self.assertEqual(camera_view.count("type: custom:auto-entities"), 3)
         for camera_key in ("outside", "master-bedroom", "hallway"):
