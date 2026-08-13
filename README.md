@@ -14,9 +14,11 @@ The native Home Assistant sidebar is hidden on these kiosk views so it does not
 compete with the family navigation rail.
 
 Home's status strip is one quiet visual sentence rather than a row of competing
-cards: borderless weather, comfort, humidity, fan, camera and shopping signals
-share the same typography and spacing. Icon color is semantic—normal inactive
-states stay muted, while activity, degraded availability and items needing
+cards. It prioritizes decisions and context—weather, apparent temperature,
+storm risk, presence and sunset—over device-health counters. Its final slot is
+adaptive: active Jellyfin or music playback comes first, then outstanding
+shopping, a current family event, and finally internet availability. Icon color
+is semantic: normal states stay muted, while activity and conditions needing
 attention receive color.
 
 ## Dashboards

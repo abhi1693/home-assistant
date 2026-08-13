@@ -107,9 +107,10 @@ button_card_templates:
     styles:
       grid:
         - grid-template-areas: '"i n" "i l"'
-        - grid-template-columns: 24px minmax(0, 1fr)
+        - grid-template-columns: 24px max-content
         - grid-template-rows: 14px 22px
         - column-gap: 10px
+        - justify-content: center
       card:
         - height: 54px
         - padding: 7px 12px
@@ -129,7 +130,7 @@ button_card_templates:
       name:
         - align-self: end
         - justify-self: start
-        - width: 100%
+        - max-width: 130px
         - overflow: hidden
         - color: var(--contrast14)
         - font-size: 11px
@@ -140,7 +141,7 @@ button_card_templates:
       label:
         - align-self: start
         - justify-self: start
-        - width: 100%
+        - max-width: 130px
         - overflow: hidden
         - color: var(--contrast20)
         - font-size: 16px
@@ -168,9 +169,7 @@ button_card_templates:
 
   family_ribbon_weather:
     template: family_ribbon
-    show_name: false
-    show_state: true
-    state_display: |
+    name: |
       [[[
         if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
           return 'Weather unavailable';
@@ -197,47 +196,107 @@ button_card_templates:
         const precision = Math.abs(celsius - Math.round(celsius)) < 0.05 ? 0 : 1;
         return `${celsius.toFixed(precision)}°C`;
       ]]]
-    styles:
-      grid:
-        - grid-template-areas: '"i s" "i l"'
-      state:
-        - align-self: end
-        - justify-self: start
-        - width: 100%
-        - overflow: hidden
-        - color: var(--contrast14)
-        - font-size: 11px
-        - font-weight: 500
-        - line-height: 14px
-        - text-overflow: ellipsis
-        - white-space: nowrap
 
-  family_ribbon_fans:
+  family_ribbon_presence:
     template: family_ribbon
+    entity: person.abhimanyu_saharan
+    name: At home
+    icon: mdi:home-heart
     label: |
       [[[
-        const ids = ['fan.master_bedroom_fan', 'fan.bedroom_fan',
-          'fan.guest_fan', 'fan.office_fan', 'fan.kitchen_fan',
-          'fan.dining_fan', 'fan.living_room_fan_1',
-          'fan.living_room_fan_2'];
-        const fans = ids.map((id) => states[id]).filter(Boolean);
-        const available = fans.filter((fan) => fan.state !== 'unavailable');
-        if (!available.length) return 'Unavailable';
-        const running = available.filter((fan) => fan.state === 'on').length;
-        return running ? `${running} running` : 'All off';
+        const people = Object.values(states)
+          .filter((item) => item.entity_id.startsWith('person.'));
+        const home = people.filter((person) => person.state === 'home');
+        if (!home.length) return 'Nobody';
+        if (home.length > 2) return `${home.length} people`;
+        return home.map((person) => person.attributes.friendly_name).join(' & ');
       ]]]
+    styles:
+      icon:
+        - color: |
+            [[[
+              const home = Object.values(states).some((item) =>
+                item.entity_id.startsWith('person.') && item.state === 'home');
+              return home ? 'var(--green)' : 'var(--contrast10)';
+            ]]]
 
-  family_ribbon_shopping:
+  family_ribbon_context:
     template: family_ribbon
+    entity: sensor.home_state
+    variables:
+      context: |
+        [[[
+          const jellyfin = states['sensor.jellyfin_5876476948_vc8dc_active_clients'];
+          const watching = Number(jellyfin?.state || 0);
+          if (watching > 0) {
+            return {
+              name: 'Jellyfin',
+              label: watching === 1 ? '1 watching' : `${watching} watching`,
+              icon: 'mdi:jellyfish',
+              color: 'var(--purple)'
+            };
+          }
+          const playing = Object.values(states).find((item) =>
+            item.entity_id.startsWith('media_player.') && item.state === 'playing');
+          if (playing) {
+            return {
+              name: 'Now playing',
+              label: playing.attributes.media_title || playing.attributes.friendly_name,
+              icon: 'mdi:music-note',
+              color: 'var(--purple)'
+            };
+          }
+          const shopping = states['todo.shopping_list'];
+          const items = Number(shopping?.state || 0);
+          if (items > 0) {
+            return {
+              name: 'Shopping',
+              label: items === 1 ? '1 item' : `${items} items`,
+              icon: 'mdi:cart-outline',
+              color: 'var(--pink)'
+            };
+          }
+          const calendar = states['calendar.family'];
+          if (calendar?.state === 'on' && calendar.attributes.message) {
+            return {
+              name: 'Family now',
+              label: calendar.attributes.message,
+              icon: 'mdi:calendar-heart',
+              color: 'var(--blue)'
+            };
+          }
+          const online = entity?.state === 'connected';
+          return {
+            name: 'Internet',
+            label: online ? 'Online' : 'Needs attention',
+            icon: online ? 'mdi:wifi' : 'mdi:wifi-alert',
+            color: online ? 'var(--green)' : 'var(--red)'
+          };
+        ]]]
+    name: '[[[ return variables.context.name; ]]]'
+    label: '[[[ return variables.context.label; ]]]'
+    icon: '[[[ return variables.context.icon; ]]]'
+    styles:
+      icon:
+        - color: '[[[ return variables.context.color; ]]]'
+
+  family_ribbon_sunset:
+    template: family_ribbon
+    entity: sensor.sun_next_setting
+    name: Sunset
+    icon: mdi:weather-sunset-down
     label: |
       [[[
         if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
           return 'Unavailable';
         }
-        const count = Number(entity.state);
-        if (!Number.isFinite(count)) return entity.state;
-        return count === 1 ? '1 item' : `${count} items`;
+        const setting = new Date(entity.state);
+        if (Number.isNaN(setting.getTime())) return 'Unavailable';
+        return setting.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
       ]]]
+    styles:
+      icon:
+        - color: var(--yellow)
 
   family_media:
     template: family_status
@@ -782,111 +841,100 @@ views:
                 text-align: left;
                 white-space: nowrap;
               }
-          - type: grid
-            square: false
-            columns: 6
-            cards:
-              - type: custom:button-card
-                template: family_ribbon_weather
-                entity: weather.home
-                styles:
-                  icon:
-                    - color: |
-                        [[[
-                          if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
-                            return 'var(--red)';
-                          }
-                          if (entity.state === 'sunny') return 'var(--yellow)';
-                          if (entity.state === 'partlycloudy') return 'var(--contrast14)';
-                          return 'var(--blue)';
-                        ]]]
-              - type: custom:button-card
-                template: family_ribbon_temperature
-                entity: sensor.home_apparent_temperature
-                name: Feels like
-                icon: mdi:sun-thermometer-outline
-                styles:
-                  icon:
-                    - color: var(--contrast10)
-              - type: custom:button-card
-                template: family_ribbon
-                entity: sensor.home_humidity
-                name: Humidity
-                icon: mdi:water-percent
-                styles:
-                  icon:
-                    - color: |
-                        [[[
-                          if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
-                            return 'var(--red)';
-                          }
-                          return Number(entity.state) > 70 ? 'var(--red)' : 'var(--blue)';
-                        ]]]
-              - type: custom:button-card
-                template: family_ribbon_fans
-                entity: fan.living_room_fan_1
-                name: Fans
-                icon: mdi:fan
-                styles:
-                  icon:
-                    - color: |
-                        [[[
-                          const ids = ['fan.master_bedroom_fan', 'fan.bedroom_fan',
-                            'fan.guest_fan', 'fan.office_fan', 'fan.kitchen_fan',
-                            'fan.dining_fan', 'fan.living_room_fan_1',
-                            'fan.living_room_fan_2'];
-                          const fans = ids.map((id) => states[id]).filter(Boolean);
-                          const available = fans.filter((fan) => fan.state !== 'unavailable');
-                          if (!available.length) return 'var(--red)';
-                          return available.some((fan) => fan.state === 'on')
-                            ? 'var(--teal)' : 'var(--contrast10)';
-                        ]]]
-              - type: custom:button-card
-                template: family_ribbon
-                entity: camera.living_room_high_resolution_channel
-                name: Cameras
-                icon: mdi:cctv
-                label: |
-                  [[[
-                    const ids = ['camera.living_room_high_resolution_channel',
-                      'camera.hallway_high_resolution_channel',
-                      'camera.g5_turret_ultra_high_resolution_channel'];
-                    const visible = ids.filter((id) => states[id]);
-                    const online = visible.filter((id) =>
-                      !['unknown', 'unavailable'].includes(states[id].state)).length;
-                    return `${online} of ${visible.length} online`;
-                  ]]]
-                styles:
-                  icon:
-                    - color: |
-                        [[[
-                          const ids = ['camera.living_room_high_resolution_channel',
-                            'camera.hallway_high_resolution_channel',
-                            'camera.g5_turret_ultra_high_resolution_channel'];
-                          const visible = ids.filter((id) => states[id]);
-                          const online = visible.filter((id) =>
-                            !['unknown', 'unavailable'].includes(states[id].state)).length;
-                          if (!online) return 'var(--red)';
-                          return online === visible.length ? 'var(--green)' : 'var(--yellow)';
-                        ]]]
-                visibility:
-                  - condition: user
-                    users: !include ../access/generated/camera-any-users.json
-              - type: custom:button-card
-                template: family_ribbon_shopping
-                entity: todo.shopping_list
-                name: Shopping
-                icon: mdi:cart-outline
-                styles:
-                  icon:
-                    - color: |
-                        [[[
-                          if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
-                            return 'var(--red)';
-                          }
-                          return Number(entity.state) > 0
-                            ? 'var(--pink)' : 'var(--contrast10)';
-                        ]]]
+          - type: custom:button-card
+            show_icon: false
+            show_name: false
+            show_state: false
+            styles:
+              grid:
+                - grid-template-areas: '"weather comfort storm presence sunset context"'
+                - grid-template-columns: repeat(6, minmax(0, 1fr))
+              card:
+                - width: 100%
+                - max-width: 1120px
+                - margin: 0 auto
+                - padding: 4px 8px
+                - background: none
+                - border: none
+                - border-radius: 0
+                - box-shadow: none
+              custom_fields:
+                weather:
+                  - width: 100%
+                comfort:
+                  - width: 100%
+                storm:
+                  - width: 100%
+                presence:
+                  - width: 100%
+                sunset:
+                  - width: 100%
+                context:
+                  - width: 100%
+            custom_fields:
+              weather:
+                card:
+                  type: custom:button-card
+                  template: family_ribbon_weather
+                  entity: weather.home
+                  styles:
+                    icon:
+                      - color: |
+                          [[[
+                            if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
+                              return 'var(--red)';
+                            }
+                            if (entity.state === 'sunny') return 'var(--yellow)';
+                            if (entity.state === 'partlycloudy') return 'var(--contrast14)';
+                            return 'var(--blue)';
+                          ]]]
+              comfort:
+                card:
+                  type: custom:button-card
+                  template: family_ribbon_temperature
+                  entity: sensor.home_apparent_temperature
+                  name: Feels like
+                  icon: mdi:sun-thermometer-outline
+                  styles:
+                    icon:
+                      - color: |
+                          [[[
+                            const value = Number(entity?.state);
+                            if (!Number.isFinite(value)) return 'var(--red)';
+                            if (value >= 40) return 'var(--red)';
+                            if (value >= 35) return 'var(--orange)';
+                            if (value <= 10) return 'var(--blue)';
+                            return 'var(--contrast10)';
+                          ]]]
+              storm:
+                card:
+                  type: custom:button-card
+                  template: family_ribbon
+                  entity: sensor.home_thunderstorm_probability
+                  name: Storm chance
+                  icon: mdi:weather-lightning-rainy
+                  styles:
+                    icon:
+                      - color: |
+                          [[[
+                            const value = Number(entity?.state);
+                            if (!Number.isFinite(value)) return 'var(--red)';
+                            if (value >= 60) return 'var(--red)';
+                            if (value >= 30) return 'var(--yellow)';
+                            return 'var(--contrast10)';
+                          ]]]
+              presence:
+                card:
+                  type: custom:button-card
+                  template: family_ribbon_presence
+              sunset:
+                card:
+                  type: custom:button-card
+                  template: family_ribbon_sunset
+              context:
+                card:
+                  type: custom:button-card
+                  template: family_ribbon_context
             grid_options:
               columns: 36
               rows: auto
