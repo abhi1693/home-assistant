@@ -53,7 +53,7 @@ class DashboardStructureTests(unittest.TestCase):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
         header = home.split("    header:", 1)[1].split("    badges:", 1)[0]
 
-        self.assertIn("**Family note:**", header)
+        self.assertNotIn("Family note:", header)
         self.assertIn("sensor.front_load_washer_current_status", header)
         self.assertIn("calendar.family", header)
         self.assertIn("sensor.home_apparent_temperature", header)

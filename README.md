@@ -51,7 +51,7 @@ The shared overview favors household decisions over system telemetry. Its
 single-screen desktop composition has a personalized greeting, compact weather
 and household ribbon, account-filtered camera wall, adaptive Music
 Assistant/Jellyfin activity, an interactive family board, and a persistent
-room/fan matrix. The greeting ends with one prioritized family note: laundry
+room/fan matrix. The greeting ends with one prioritized household message: laundry
 completion, a current family event, significant heat or storms, shopping needs,
 or a quiet all-clear. Routine fan-off state is omitted; running fans are called
 out because they are useful household context. The compact Todo Swipe Shopping
