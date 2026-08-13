@@ -89,7 +89,9 @@ poll calls per rolling 24 hours. Calls are spaced below five per second. Local
 UDP broadcasts remain the preferred zero-quota low-latency update path when
 they can reach Home Assistant. Atomberg's HTTP 403 explicit-deny quota response
 opens a persisted 24-hour circuit breaker instead of triggering repeated
-authentication retries.
+authentication retries. During that circuit break, HA starts the integration
+from its device cache and uses matching network trackers for zero-quota local
+UDP command fallback instead of leaving the fans unavailable.
 
 ## Validation
 
