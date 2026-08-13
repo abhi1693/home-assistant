@@ -9,7 +9,7 @@
       "name": "Atomberg",
       "version": "2.2.11",
       "url": "https://codeload.github.com/abhi1693/ha-atomberg-integration/tar.gz/e0164ce50573b541a79c7caaf4206834bc2c043c",
-      "sha256": "a0ec857be14fe41c8105c8ca487bd3ef8f02f4c6847748d3de53bff858405ae9",
+      "sha256": "5a93d290eec6c4d3c0b6e3626913f075220ff3f72579929461f94a4df4e5e3e9",
       "source_subdirectory": "custom_components/atomberg",
       "destination": "custom_components/atomberg"
     }
