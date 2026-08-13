@@ -26,6 +26,8 @@
       "person_name": "Abhimanyu",
       "notify_entity_id": "notify.abhimanyu_pixel_8",
       "next_alarm_entity_id": "sensor.pixel_8_next_alarm",
+      "battery_level_entity_id": "sensor.pixel_8_battery_level",
+      "battery_state_entity_id": "sensor.pixel_8_battery_state",
       "device_trackers": [
         "device_tracker.abhi_pc",
         "device_tracker.abhimanyu_pixel_8",
@@ -46,6 +48,8 @@
       "person_name": "Krishna",
       "notify_entity_id": "notify.pixel_10_pro",
       "next_alarm_entity_id": "sensor.pixel_10_pro_next_alarm",
+      "battery_level_entity_id": "sensor.pixel_10_pro_battery_level",
+      "battery_state_entity_id": "sensor.pixel_10_pro_battery_state",
       "device_trackers": [
         "device_tracker.pixel_10_pro",
         "device_tracker.pixel_10_pro_2"
@@ -66,6 +70,8 @@
       "person_entity_id": "person.manisha",
       "person_name": "Manisha",
       "notify_entity_id": "notify.iphone",
+      "battery_level_entity_id": "sensor.iphone_battery_level",
+      "battery_state_entity_id": "sensor.iphone_battery_state",
       "device_trackers": [
         "device_tracker.iphone"
       ],

@@ -296,6 +296,34 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('"weather presence today activity attention alarm"', home)
         self.assertIn("template: family_ribbon_alarm", home)
 
+    def test_family_phone_batteries_use_visual_state(self):
+        access = (ROOT / "access/family-dashboard.json").read_text()
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        home_view = home.split("  - title: Home", 1)[1].split(
+            "  - title: Rooms", 1
+        )[0]
+
+        for entity_id in (
+            "sensor.pixel_8_battery_level",
+            "sensor.pixel_8_battery_state",
+            "sensor.pixel_10_pro_battery_level",
+            "sensor.pixel_10_pro_battery_state",
+            "sensor.iphone_battery_level",
+            "sensor.iphone_battery_state",
+        ):
+            self.assertIn(entity_id, access)
+            self.assertIn(entity_id, home_view)
+        self.assertIn("family_phone_battery:", home)
+        self.assertIn("heading: Phones", home_view)
+        self.assertIn("mdi:battery-charging", home)
+        self.assertIn("var(--red)", home)
+        self.assertIn("var(--yellow)", home)
+        self.assertIn("var(--green)", home)
+        self.assertNotIn("On battery", home_view)
+        self.assertLess(
+            home_view.index("heading: Phones"), home_view.index("type: conditional")
+        )
+
     def test_camera_wall_applies_each_camera_user_gate(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
         camera_view = home.split("  - title: Cameras", 1)[1]

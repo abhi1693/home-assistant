@@ -404,6 +404,70 @@ button_card_templates:
       icon:
         - color: var(--purple)
 
+  family_phone_battery:
+    show_icon: true
+    show_name: true
+    show_state: false
+    show_label: true
+    icon: |
+      [[[
+        const level = Number(entity?.state);
+        const batteryState = String(states[variables.state_entity]?.state || '').toLowerCase();
+        if (batteryState === 'charging') return 'mdi:battery-charging';
+        if (batteryState === 'full' || (Number.isFinite(level) && level >= 95)) {
+          return 'mdi:battery';
+        }
+        if (!Number.isFinite(level)) return 'mdi:battery-unknown';
+        const bucket = Math.max(10, Math.min(90, Math.ceil(level / 10) * 10));
+        return `mdi:battery-${bucket}`;
+      ]]]
+    label: |
+      [[[
+        const level = Number(entity?.state);
+        return Number.isFinite(level) ? `${Math.round(level)}%` : '—';
+      ]]]
+    tap_action:
+      action: more-info
+    hold_action:
+      action: none
+    styles:
+      grid:
+        - grid-template-areas: '"i" "n" "l"'
+        - grid-template-columns: 1fr
+        - grid-template-rows: 28px 16px 22px
+        - justify-items: center
+      card:
+        - height: 86px
+        - padding: 8px 6px
+        - border-radius: 18px
+        - background: var(--contrast2)
+        - border: 1px solid rgba(var(--rgb-primary-text-color), 0.06)
+        - box-shadow: none
+      img_cell:
+        - width: 28px
+        - height: 28px
+      icon:
+        - width: 24px
+        - color: |
+            [[[
+              const level = Number(entity?.state);
+              const batteryState = String(states[variables.state_entity]?.state || '').toLowerCase();
+              if (batteryState === 'charging' || batteryState === 'full'
+                  || (Number.isFinite(level) && level >= 95)) return 'var(--green)';
+              if (Number.isFinite(level) && level <= 20) return 'var(--red)';
+              if (Number.isFinite(level) && level <= 40) return 'var(--yellow)';
+              if (Number.isFinite(level)) return 'var(--blue)';
+              return 'var(--contrast8)';
+            ]]]
+      name:
+        - color: var(--contrast11)
+        - font-size: 11px
+        - font-weight: 600
+      label:
+        - color: var(--contrast20)
+        - font-size: 16px
+        - font-weight: 750
+
   family_media:
     template: family_status
     state_display: |
@@ -1447,6 +1511,32 @@ views:
             visibility:
               - condition: user
                 users: !include ../access/generated/calendar-household-users.json
+          - type: heading
+            heading: Phones
+            heading_style: subtitle
+            icon: mdi:cellphone
+          - type: grid
+            square: false
+            columns: 3
+            cards:
+              - type: custom:button-card
+                template: family_phone_battery
+                entity: sensor.pixel_8_battery_level
+                name: Abhimanyu
+                variables:
+                  state_entity: sensor.pixel_8_battery_state
+              - type: custom:button-card
+                template: family_phone_battery
+                entity: sensor.pixel_10_pro_battery_level
+                name: Krishna
+                variables:
+                  state_entity: sensor.pixel_10_pro_battery_state
+              - type: custom:button-card
+                template: family_phone_battery
+                entity: sensor.iphone_battery_level
+                name: Manisha
+                variables:
+                  state_entity: sensor.iphone_battery_state
           - type: conditional
             conditions:
               - condition: state

@@ -17,7 +17,7 @@ Home's status strip is one quiet visual sentence rather than a row of
 competing cards. Weather and presence are stable anchors; the other positions
 adapt to laundry, shopping, sunrise or sunset, active playback or fans, humidity
 and genuine attention states. Internet appears only when
-degraded, the owner's phone only when below 25 percent, and routine fan-off
+degraded, the signed-in person's phone only when below 25 percent, and routine fan-off
 states are omitted. Abhimanyu and Krishna each see their own Android phone's
 next alarm beside the attention card, formatted as a local day and time or
 `No alarm`; each phone must have Companion App **Next alarm** enabled under
@@ -27,6 +27,13 @@ the next scheduled alarm but does not reliably identify and replace the first
 Clock alarm, so this household surface intentionally remains read-only rather
 than risking duplicate alarms. Icon color is semantic: normal states stay muted, while
 activity and conditions needing attention receive color.
+
+The household sidebar presents all three family phones as a single compact
+three-column group. Each person gets only a battery icon and percentage: the
+icon shape distinguishes charging from battery use, while green, blue, amber
+and red communicate full/charging, normal, low and critical levels. The Pixel 8,
+Pixel 10 Pro and iPhone level/state entity pairs are recorded in the Git-owned
+family access matrix.
 
 ## Dashboards
 
