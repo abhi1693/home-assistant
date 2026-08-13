@@ -299,9 +299,9 @@ class FamilyFanCard extends HTMLElement {
         .speed.remembered { border-color:var(--contrast7); color:var(--contrast17); }
         .speed.active { border-color:var(--fan-accent,var(--pink)); background:var(--fan-accent,var(--pink)); color:var(--black,#08090b); box-shadow:0 0 0 5px color-mix(in srgb,var(--fan-accent,var(--pink)) 12%,transparent); }
         .speed-1 { left:0; top:176px; }
-        .speed-2 { left:32px; top:55px; }
+        .speed-2 { left:24px; top:55px; }
         .speed-3 { left:calc(50% - 28px); top:0; }
-        .speed-4 { right:32px; top:55px; }
+        .speed-4 { right:24px; top:55px; }
         .speed-5 { right:0; top:176px; }
         .speed-6 { width:74px; left:calc(50% - 37px); bottom:0; border-radius:20px; font-size:10px; }
         .feature-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:8px; }
