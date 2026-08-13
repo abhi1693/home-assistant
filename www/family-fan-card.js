@@ -112,6 +112,7 @@ class FamilyFanCard extends HTMLElement {
   _fanName(unit, index) {
     if (unit.name) return unit.name;
     if (this._config.fans.length > 1) return `Fan ${index + 1}`;
+    if (this._config.embedded) return "Fan";
     return `${this._config.name} Fan`;
   }
 
@@ -291,13 +292,15 @@ class FamilyFanCard extends HTMLElement {
   _render() {
     if (!this._config) return;
     const multiple = this._config.fans.length > 1;
+    const framed = multiple && !this._config.embedded;
+    const accent = this._config.accent || (this._config.embedded ? "var(--room-accent,var(--pink))" : "var(--pink)");
     this.shadowRoot.innerHTML = `
       <style>
         :host { display:block; color:var(--primary-text-color); font-family:var(--secondary-font-family); }
         * { box-sizing:border-box; }
         button { font:inherit; -webkit-tap-highlight-color:transparent; }
         button:focus-visible { outline:3px solid var(--fan-accent, var(--pink)); outline-offset:3px; }
-        ha-card { overflow:hidden; border:1px solid rgba(var(--rgb-primary-text-color),.06); border-radius:28px; padding:${multiple ? "20px" : "0"}; background:${multiple ? "var(--contrast2, var(--ha-card-background))" : "transparent"}; box-shadow:none; }
+        ha-card { overflow:hidden; border:${framed ? "1px solid rgba(var(--rgb-primary-text-color),.06)" : "0"}; border-radius:${framed ? "28px" : "0"}; padding:${framed ? "20px" : "0"}; background:${framed ? "var(--contrast2, var(--ha-card-background))" : "transparent"}; box-shadow:none; }
         .room-heading { display:flex; min-height:48px; align-items:center; gap:12px; margin-bottom:16px; }
         .room-icon { display:grid; width:42px; height:42px; place-items:center; border-radius:15px; background:color-mix(in srgb,var(--fan-accent,var(--pink)) 14%,var(--contrast3)); color:var(--fan-accent,var(--pink)); }
         .room-icon ha-icon { width:22px; }
@@ -389,8 +392,8 @@ class FamilyFanCard extends HTMLElement {
         @keyframes busy-spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
         @media (prefers-reduced-motion:reduce) { * { animation:none!important; transition:none!important; } }
       </style>
-      <ha-card style="--fan-accent:${this._escape(this._config.accent || "var(--pink)")}">
-        ${multiple ? `<header class="room-heading"><span class="room-icon"><ha-icon icon="${this._escape(this._config.icon || "mdi:fan")}"></ha-icon></span><span class="room-copy"><strong>${this._escape(this._config.name)}</strong><small>${this._escape(this._roomSummary())}</small></span></header>` : ""}
+      <ha-card style="--fan-accent:${this._escape(accent)}">
+        ${framed ? `<header class="room-heading"><span class="room-icon"><ha-icon icon="${this._escape(this._config.icon || "mdi:fan")}"></ha-icon></span><span class="room-copy"><strong>${this._escape(this._config.name)}</strong><small>${this._escape(this._roomSummary())}</small></span></header>` : ""}
         <div class="fan-list">${this._config.fans.map((unit, index) => this._unit(unit, index)).join("")}</div>
         ${this._error ? `<div class="error" role="alert">${this._escape(this._error)}</div>` : ""}
       </ha-card>

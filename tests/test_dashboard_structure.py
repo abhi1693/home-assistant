@@ -301,9 +301,17 @@ class DashboardStructureTests(unittest.TestCase):
             "  - title: Cameras", 1
         )[0]
         card = (ROOT / "www/family-fan-card.js").read_text()
+        room_card = (ROOT / "www/family-room-card.js").read_text()
 
-        self.assertIn("/local/family-fan-card.js?v=3.1.2", configuration)
+        self.assertIn("/local/family-fan-card.js?v=3.2.0", configuration)
+        self.assertIn("/local/family-room-card.js?v=1.0.0", configuration)
+        self.assertLess(
+            configuration.index("/local/family-fan-card.js?v=3.2.0"),
+            configuration.index("/local/family-room-card.js?v=1.0.0"),
+        )
+        self.assertEqual(rooms.count("type: custom:family-room-card"), 7)
         self.assertEqual(rooms.count("type: custom:family-fan-card"), 7)
+        self.assertEqual(rooms.count("embedded: true"), 7)
         self.assertNotIn("type: custom:family-fan-summary-card", rooms)
         self.assertIn("max_columns: 3", rooms)
         self.assertEqual(
@@ -318,6 +326,13 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("sensor.office_fan_timer_elapsed_time", rooms)
         self.assertNotIn("button_type: slider", rooms)
         self.assertNotIn("type: custom:bubble-card", rooms)
+
+        self.assertIn('customElements.define("family-room-card"', room_card)
+        self.assertIn("window.loadCardHelpers()", room_card)
+        self.assertIn("helpers.createCardElement(config)", room_card)
+        self.assertIn("content.append(...cards)", room_card)
+        self.assertIn('className = "room-content"', room_card)
+        self.assertIn("--room-accent", room_card)
 
         self.assertIn('customElements.define("family-fan-card"', card)
         self.assertNotIn('customElements.define("family-fan-summary-card"', card)
@@ -367,6 +382,9 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('class="fan-hub" cx="24" cy="24"', card)
         self.assertIn(".running .fan-blades", card)
         self.assertIn("transform-origin:24px 24px", card)
+        self.assertIn('if (this._config.embedded) return "Fan"', card)
+        self.assertIn("const framed = multiple && !this._config.embedded", card)
+        self.assertIn('this._config.embedded ? "var(--room-accent,var(--pink))"', card)
         self.assertIn(
             'grid-template-columns:${multiple ? "repeat(2,minmax(0,1fr))"',
             card,

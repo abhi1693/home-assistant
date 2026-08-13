@@ -32,6 +32,7 @@ class BootstrapTests(unittest.TestCase):
         self.write("www/bubble/bubble-modules.yaml", "modules: {}\n")
         self.write("www/family-announcements-card.js", "export default {};\n")
         self.write("www/family-responsive-grid-card.js", "export default {};\n")
+        self.write("www/family-room-card.js", "export default {};\n")
         self.write("www/family-agenda-card.js", "export default {};\n")
         self.write(
             "custom_components/family_dashboard_guard/__init__.py",
@@ -84,6 +85,10 @@ class BootstrapTests(unittest.TestCase):
         )
         self.assertEqual(
             (self.config / "www/family-responsive-grid-card.js").read_text(),
+            "export default {};\n",
+        )
+        self.assertEqual(
+            (self.config / "www/family-room-card.js").read_text(),
             "export default {};\n",
         )
         self.assertEqual(

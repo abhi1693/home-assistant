@@ -1496,89 +1496,117 @@ views:
             grid_options:
               columns: 36
               rows: 1
-          - type: custom:family-fan-card
+          - type: custom:family-room-card
             name: Living Room
             icon: mdi:sofa-outline
             accent: var(--yellow)
-            fans:
-              - name: Fan 1
-                fan: fan.living_room_fan_1
-                led: light.living_room_fan_1_led
-                sleep: switch.living_room_fan_1_sleep_mode
-                timer: select.living_room_fan_1_set_timer
-                timer_elapsed: sensor.living_room_fan_1_timer_elapsed_time
-              - name: Fan 2
-                fan: fan.living_room_fan_2
-                led: light.living_room_fan_2_led
-                sleep: switch.living_room_fan_2_sleep_mode
-                timer: select.living_room_fan_2_set_timer
-                timer_elapsed: sensor.living_room_fan_2_timer_elapsed_time
+            cards:
+              - type: custom:family-fan-card
+                name: Living Room
+                embedded: true
+                fans:
+                  - name: Fan 1
+                    fan: fan.living_room_fan_1
+                    led: light.living_room_fan_1_led
+                    sleep: switch.living_room_fan_1_sleep_mode
+                    timer: select.living_room_fan_1_set_timer
+                    timer_elapsed: sensor.living_room_fan_1_timer_elapsed_time
+                  - name: Fan 2
+                    fan: fan.living_room_fan_2
+                    led: light.living_room_fan_2_led
+                    sleep: switch.living_room_fan_2_sleep_mode
+                    timer: select.living_room_fan_2_set_timer
+                    timer_elapsed: sensor.living_room_fan_2_timer_elapsed_time
             grid_options: { columns: 36, rows: auto }
-          - type: custom:family-fan-card
+          - type: custom:family-room-card
             name: Office
             icon: mdi:desk
             accent: var(--teal)
-            fans:
-              - fan: fan.office_fan
-                led: light.office_fan_led
-                sleep: switch.office_fan_sleep_mode
-                timer: select.office_fan_set_timer
-                timer_elapsed: sensor.office_fan_timer_elapsed_time
+            cards:
+              - type: custom:family-fan-card
+                name: Office
+                embedded: true
+                fans:
+                  - fan: fan.office_fan
+                    led: light.office_fan_led
+                    sleep: switch.office_fan_sleep_mode
+                    timer: select.office_fan_set_timer
+                    timer_elapsed: sensor.office_fan_timer_elapsed_time
             grid_options: { columns: 18, rows: auto }
-          - type: custom:family-fan-card
+          - type: custom:family-room-card
             name: Master Bedroom
             icon: mdi:bed-king-outline
             accent: var(--blue)
-            fans:
-              - fan: fan.master_bedroom_fan
-                led: light.master_bedroom_fan_led
-                sleep: switch.master_bedroom_fan_sleep_mode
-                timer: select.master_bedroom_fan_set_timer
-                timer_elapsed: sensor.master_bedroom_fan_timer_elapsed_time
+            cards:
+              - type: custom:family-fan-card
+                name: Master Bedroom
+                embedded: true
+                fans:
+                  - fan: fan.master_bedroom_fan
+                    led: light.master_bedroom_fan_led
+                    sleep: switch.master_bedroom_fan_sleep_mode
+                    timer: select.master_bedroom_fan_set_timer
+                    timer_elapsed: sensor.master_bedroom_fan_timer_elapsed_time
             grid_options: { columns: 18, rows: auto }
-          - type: custom:family-fan-card
+          - type: custom:family-room-card
             name: Bedroom
             icon: mdi:bed-outline
             accent: var(--purple)
-            fans:
-              - fan: fan.bedroom_fan
-                led: light.bedroom_fan_led
-                sleep: switch.bedroom_fan_sleep_mode
-                timer: select.bedroom_fan_set_timer
-                timer_elapsed: sensor.bedroom_fan_timer_elapsed_time
+            cards:
+              - type: custom:family-fan-card
+                name: Bedroom
+                embedded: true
+                fans:
+                  - fan: fan.bedroom_fan
+                    led: light.bedroom_fan_led
+                    sleep: switch.bedroom_fan_sleep_mode
+                    timer: select.bedroom_fan_set_timer
+                    timer_elapsed: sensor.bedroom_fan_timer_elapsed_time
             grid_options: { columns: 18, rows: auto }
-          - type: custom:family-fan-card
+          - type: custom:family-room-card
             name: Guest Room
             icon: mdi:bed-single-outline
             accent: var(--pink)
-            fans:
-              - fan: fan.guest_fan
-                led: light.guest_fan_led
-                sleep: switch.guest_fan_sleep_mode
-                timer: select.guest_fan_set_timer
-                timer_elapsed: sensor.guest_fan_timer_elapsed_time
+            cards:
+              - type: custom:family-fan-card
+                name: Guest Room
+                embedded: true
+                fans:
+                  - fan: fan.guest_fan
+                    led: light.guest_fan_led
+                    sleep: switch.guest_fan_sleep_mode
+                    timer: select.guest_fan_set_timer
+                    timer_elapsed: sensor.guest_fan_timer_elapsed_time
             grid_options: { columns: 18, rows: auto }
-          - type: custom:family-fan-card
+          - type: custom:family-room-card
             name: Kitchen
             icon: mdi:countertop-outline
             accent: var(--orange)
-            fans:
-              - fan: fan.kitchen_fan
-                led: light.kitchen_fan_led
-                sleep: switch.kitchen_fan_sleep_mode
-                timer: select.kitchen_fan_set_timer
-                timer_elapsed: sensor.kitchen_fan_timer_elapsed_time
+            cards:
+              - type: custom:family-fan-card
+                name: Kitchen
+                embedded: true
+                fans:
+                  - fan: fan.kitchen_fan
+                    led: light.kitchen_fan_led
+                    sleep: switch.kitchen_fan_sleep_mode
+                    timer: select.kitchen_fan_set_timer
+                    timer_elapsed: sensor.kitchen_fan_timer_elapsed_time
             grid_options: { columns: 18, rows: auto }
-          - type: custom:family-fan-card
+          - type: custom:family-room-card
             name: Dining Room
             icon: mdi:table-furniture
             accent: var(--green)
-            fans:
-              - fan: fan.dining_fan
-                led: light.dining_fan_led
-                sleep: switch.dining_fan_sleep_mode
-                timer: select.dining_fan_set_timer
-                timer_elapsed: sensor.dining_fan_timer_elapsed_time
+            cards:
+              - type: custom:family-fan-card
+                name: Dining Room
+                embedded: true
+                fans:
+                  - fan: fan.dining_fan
+                    led: light.dining_fan_led
+                    sleep: switch.dining_fan_sleep_mode
+                    timer: select.dining_fan_set_timer
+                    timer_elapsed: sensor.dining_fan_timer_elapsed_time
             grid_options: { columns: 18, rows: auto }
       - type: grid
         column_span: 3
