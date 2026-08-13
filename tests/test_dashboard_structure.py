@@ -302,7 +302,7 @@ class DashboardStructureTests(unittest.TestCase):
         )[0]
         card = (ROOT / "www/family-fan-card.js").read_text()
 
-        self.assertIn("/local/family-fan-card.js?v=3.0.1", configuration)
+        self.assertIn("/local/family-fan-card.js?v=3.1.0", configuration)
         self.assertEqual(rooms.count("type: custom:family-fan-card"), 7)
         self.assertNotIn("type: custom:family-fan-summary-card", rooms)
         self.assertIn("max_columns: 3", rooms)
@@ -325,7 +325,10 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('class="power-core"', card)
         self.assertIn('data-action="speed"', card)
         self.assertIn('class="speed speed-${item.speed}', card)
-        self.assertIn("Tap to start at", card)
+        self.assertIn('icon="mdi:fan-plus"', card)
+        self.assertIn('running ? "On" : "Off"', card)
+        self.assertIn('running ? "Tap to turn off" : "Tap to turn on"', card)
+        self.assertNotIn("Tap to start at", card)
         self.assertIn("Last speed", card)
         self.assertNotIn('data-action="speed-down"', card)
         self.assertNotIn('data-action="speed-up"', card)
@@ -337,7 +340,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('running ? "set_percentage" : "turn_on"', card)
         self.assertIn("Turn on the wall switch", card)
         self.assertIn("Controls will appear automatically.", card)
-        self.assertIn("Turn fan on first", card)
+        self.assertIn("Fan is off", card)
         self.assertIn('running ? "Turn off later" : "Turn on later"', card)
         self.assertIn('dialog class="timer-dialog"', card)
         self.assertIn("dialog.showModal()", card)
@@ -353,7 +356,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn(".speed-4 { right:24px", card)
         self.assertIn("min-height:64px", card)
         self.assertIn("prefers-reduced-motion:reduce", card)
-        self.assertIn(".running .core-fan ha-icon", card)
+        self.assertIn(".running .fan-rotor", card)
+        self.assertIn("transform-origin:50% 50%", card)
         self.assertIn(
             'grid-template-columns:${multiple ? "repeat(2,minmax(0,1fr))"',
             card,
