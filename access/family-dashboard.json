@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "default_dashboard": "home-tablet",
   "cameras": {
     "master-bedroom": "camera.living_room_high_resolution_channel",
     "hallway": "camera.hallway_high_resolution_channel",
@@ -11,6 +12,7 @@
       "user_name": "Abhimanyu",
       "person_entity_id": "person.abhimanyu_saharan",
       "is_owner": true,
+      "default_dashboard": "home-tablet",
       "cameras": [
         "master-bedroom",
         "hallway",
@@ -23,6 +25,7 @@
       "user_name": "Codex Dashboard Reviewer",
       "person_entity_id": null,
       "is_owner": false,
+      "default_dashboard": "home-tablet",
       "enforce_camera_policy": true,
       "cameras": [
         "master-bedroom"

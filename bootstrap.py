@@ -526,6 +526,88 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     )
 
 
+def reconcile_dashboard_defaults(source: Path, config: Path) -> None:
+    """Reconcile the system and family profile default dashboard panels."""
+    access_path = source / "access/family-dashboard.json"
+    access = json.loads(access_path.read_text())
+    if access.get("version") != 1:
+        raise RuntimeError("Unsupported family dashboard access schema")
+
+    system_default = access.get("default_dashboard")
+    profile_defaults = {
+        profile["user_id"]: profile.get("default_dashboard", system_default)
+        for profile in access.get("profiles", {}).values()
+    }
+    desired_panels = {system_default, *profile_defaults.values()}
+    if None in desired_panels or not all(
+        isinstance(panel, str) and panel for panel in desired_panels
+    ):
+        raise RuntimeError("Every family profile must define a default dashboard")
+
+    dashboards_path = source / "dashboards/lovelace-dashboards.yaml"
+    registered_panels = {
+        line[:-1]
+        for line in dashboards_path.read_text().splitlines()
+        if line and not line[0].isspace() and line.endswith(":")
+    }
+    unknown_panels = desired_panels - registered_panels
+    if unknown_panels:
+        raise RuntimeError(
+            f"Default dashboards are not registered: {sorted(unknown_panels)}"
+        )
+
+    storage = config / ".storage"
+    auth_path = storage / "auth"
+    if not auth_path.exists():
+        raise RuntimeError("Home Assistant auth storage is missing")
+    auth = json.loads(auth_path.read_text())
+    users = {item["id"] for item in auth.get("data", {}).get("users", [])}
+    missing_users = set(profile_defaults) - users
+    if missing_users:
+        raise RuntimeError(
+            f"Default dashboard profiles reference missing users: {sorted(missing_users)}"
+        )
+
+    desired_hash = sha256(access_path)[:12]
+
+    def reconcile(path: Path, panel: str) -> bool:
+        if path.exists():
+            document = json.loads(path.read_text())
+        else:
+            document = {
+                "version": 1,
+                "minor_version": 1,
+                "key": path.name,
+                "data": {},
+            }
+        data = document.setdefault("data", {})
+        core = data.setdefault("core", {})
+        if not isinstance(core, dict):
+            raise RuntimeError(f"Invalid frontend core preferences in {path.name}")
+        if core.get("default_panel") == panel:
+            return False
+
+        core["default_panel"] = panel
+        if path.exists():
+            backup = config / (
+                f"backups/{path.name}.pre-default-dashboard-{desired_hash}"
+            )
+            backup.parent.mkdir(parents=True, exist_ok=True)
+            if not backup.exists():
+                shutil.copy2(path, backup)
+        atomic_json(path, document)
+        return True
+
+    changed = reconcile(storage / "frontend.system_data", system_default)
+    for user_id, panel in profile_defaults.items():
+        changed = reconcile(storage / f"frontend.user_data_{user_id}", panel) or changed
+
+    if changed:
+        print("Reconciled Git-owned default dashboards for system and family profiles")
+    else:
+        print("System and family profile default dashboards are already current")
+
+
 def validate_protect_streams(source: Path, config: Path) -> None:
     """Validate Git-owned Protect stream tiers against enabled high entities."""
     desired = json.loads((source / "access/protect-streams.json").read_text())
@@ -690,6 +772,7 @@ def main() -> None:
     reconcile_home_location(source, config)
     validate_protect_streams(source, config)
     reconcile_family_access(source, config)
+    reconcile_dashboard_defaults(source, config)
     remove_storage_dashboards(config)
 
 

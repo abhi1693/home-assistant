@@ -420,6 +420,91 @@ class BootstrapTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Cannot enforce camera policy"):
             bootstrap.reconcile_family_access(self.source, self.config)
 
+    def test_dashboard_defaults_preserve_existing_frontend_preferences(self):
+        owner_id = "owner-user-id"
+        reviewer_id = "reviewer-user-id"
+        self.write(
+            "access/family-dashboard.json",
+            json.dumps(
+                {
+                    "version": 1,
+                    "default_dashboard": "home-tablet",
+                    "profiles": {
+                        "owner": {
+                            "user_id": owner_id,
+                            "default_dashboard": "home-tablet",
+                        },
+                        "reviewer": {
+                            "user_id": reviewer_id,
+                            "default_dashboard": "rack-admin",
+                        },
+                    },
+                }
+            ),
+        )
+        self.write(
+            "dashboards/lovelace-dashboards.yaml",
+            "home-tablet:\n  mode: yaml\nrack-admin:\n  mode: yaml\n",
+        )
+        storage = self.config / ".storage"
+        storage.mkdir()
+        (storage / "auth").write_text(
+            json.dumps(
+                {
+                    "data": {
+                        "users": [
+                            {"id": owner_id},
+                            {"id": reviewer_id},
+                        ]
+                    }
+                }
+            )
+        )
+        (storage / "frontend.system_data").write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "minor_version": 1,
+                    "key": "frontend.system_data",
+                    "data": {"core": {"onboarded_version": "2026.4.4"}},
+                }
+            )
+        )
+        owner_preferences = storage / f"frontend.user_data_{owner_id}"
+        owner_preferences.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "minor_version": 1,
+                    "key": owner_preferences.name,
+                    "data": {"theme": {"theme": "Family Dark"}},
+                }
+            )
+        )
+
+        bootstrap.reconcile_dashboard_defaults(self.source, self.config)
+
+        system = json.loads((storage / "frontend.system_data").read_text())
+        owner = json.loads(owner_preferences.read_text())
+        reviewer = json.loads(
+            (storage / f"frontend.user_data_{reviewer_id}").read_text()
+        )
+        self.assertEqual(system["data"]["core"]["default_panel"], "home-tablet")
+        self.assertEqual(system["data"]["core"]["onboarded_version"], "2026.4.4")
+        self.assertEqual(owner["data"]["core"]["default_panel"], "home-tablet")
+        self.assertEqual(owner["data"]["theme"], {"theme": "Family Dark"})
+        self.assertEqual(reviewer["data"]["core"]["default_panel"], "rack-admin")
+        self.assertTrue(
+            next(
+                (self.config / "backups").glob(
+                    "frontend.system_data.pre-default-dashboard-*"
+                )
+            )
+        )
+
+        bootstrap.reconcile_dashboard_defaults(self.source, self.config)
+        self.assertEqual(json.loads(owner_preferences.read_text()), owner)
+
     def test_protect_streams_validate_high_entities_and_qualities(self):
         self.write(
             "access/protect-streams.json",

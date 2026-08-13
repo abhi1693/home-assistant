@@ -62,10 +62,14 @@ the admin-only dashboard.
 `access/family-dashboard.json` is the desired-state access matrix for the family
 dashboard. It binds immutable Home Assistant user IDs to their expected account
 name and person entity, lists the Protect cameras each account may see, and
-records whether a non-owner camera policy must be enforced. Bootstrap validates
+records each profile's default dashboard and whether a non-owner camera policy
+must be enforced. The same document sets `home-tablet` as the system fallback,
+so opening the bare Home Assistant address lands on `/home-tablet/home` instead
+of the removed built-in Home panel. Bootstrap validates
 every account, person link and camera entity against the live registries before
 Home Assistant starts. It then generates the Lovelace user include files and
-reconciles non-owner permission groups from the same document.
+reconciles non-owner permission groups and frontend defaults from the same
+document without overwriting personal theme or locale preferences.
 
 The initial profile is Abhimanyu. The connected Master Bedroom camera remains a
 temporary dashboard-testing grant until the mother's account is added. Because
@@ -158,10 +162,10 @@ Bootstrap atomically installs source-owned files, installs HACS only when
 missing, verifies every frontend asset before replacement, and installs the
 forked Atomberg integration from a commit-pinned archive. It also applies the
 prepared area and Atomberg assignments once, reconciles the family access
-matrix on every rollout, and removes legacy storage-mode dashboards after
-backing them up. A source-owned system integration unregisters the built-in
-`/home/overview` panel on every startup, leaving the custom `Home` and `Rack`
-dashboards as the intentional dashboard surfaces.
+matrix and default dashboard preferences on every rollout, and removes legacy
+storage-mode dashboards after backing them up. A source-owned system integration
+unregisters the built-in `/home/overview` panel on every startup, leaving the
+custom `Home` and `Rack` dashboards as the intentional dashboard surfaces.
 
 The Atomberg fork publishes successful command state immediately, polls all fan
 states once per hour, and persists hard limits of 100 total cloud calls and 24
