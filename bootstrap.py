@@ -344,14 +344,14 @@ def migrate_areas(source: Path, config: Path) -> None:
     print("Renamed areas and assigned all Atomberg fans")
 
 
-def _family_camera_policy(
-    allowed_cameras: list[str], non_camera_domains: set[str]
+def _family_entity_policy(
+    allowed_entities: list[str], unrestricted_domains: set[str]
 ) -> dict:
-    """Allow registered non-camera domains and explicitly granted cameras."""
+    """Allow unrestricted domains and individually granted private domains."""
     return {
         "entities": {
-            "entity_ids": {entity_id: True for entity_id in allowed_cameras},
-            "domains": {domain: True for domain in sorted(non_camera_domains)},
+            "entity_ids": {entity_id: True for entity_id in allowed_entities},
+            "domains": {domain: True for domain in sorted(unrestricted_domains)},
         }
     }
 
@@ -361,7 +361,7 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     access_path = source / "access/family-dashboard.json"
     access = json.loads(access_path.read_text())
     streams = json.loads((source / "access/protect-streams.json").read_text())
-    if access.get("version") != 1:
+    if access.get("version") != 2:
         raise RuntimeError("Unsupported family dashboard access schema")
 
     auth_path = config / ".storage/auth"
@@ -391,11 +391,33 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     entities = {
         item["entity_id"]: item for item in entity_registry["data"]["entities"]
     }
-    non_camera_domains = {
+    unrestricted_domains = {
         entity_id.partition(".")[0]
         for entity_id in entities
-        if entity_id.partition(".")[0] != "camera"
+        if entity_id.partition(".")[0] not in {"calendar", "camera"}
     }
+
+    calendars = access.get("calendars", {})
+    shared_calendars = calendars.get("shared", [])
+    owner_only_calendars = calendars.get("owner_only", [])
+    all_calendars = [*shared_calendars, *owner_only_calendars]
+    if (
+        not shared_calendars
+        or not all(isinstance(item, str) for item in all_calendars)
+        or len(all_calendars) != len(set(all_calendars))
+    ):
+        raise RuntimeError("Family dashboard calendars must be unique and shared")
+    for entity_id in all_calendars:
+        entity = entities.get(entity_id)
+        if (
+            not entity_id.startswith("calendar.")
+            or entity is None
+            or entity.get("platform") != "google"
+            or entity.get("disabled_by") is not None
+        ):
+            raise RuntimeError(
+                f"Family dashboard calendar is not an enabled Google entity: {entity_id}"
+            )
 
     cameras = access.get("cameras", {})
     if not cameras:
@@ -424,6 +446,8 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     generated.mkdir(parents=True, exist_ok=True)
     desired_generated = set()
     users_by_camera = {key: [] for key in cameras}
+    owner_users = []
+    household_users = []
     desired_people = {}
     desired_tracker_owners = {}
     desired_notify_owners = {}
@@ -437,6 +461,10 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             raise RuntimeError(f"Family profile {profile_key} username changed")
         if bool(user.get("is_owner")) != bool(profile.get("is_owner", False)):
             raise RuntimeError(f"Family profile {profile_key} owner status changed")
+        if user.get("is_owner"):
+            owner_users.append(user_id)
+        else:
+            household_users.append(user_id)
 
         notify_entity_id = profile.get("notify_entity_id")
         if notify_entity_id:
@@ -558,8 +586,8 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             desired_groups[group_id] = {
                 "id": group_id,
                 "name": f"Family access: {profile.get('person_name', profile['username'])}",
-                "policy": _family_camera_policy(
-                    allowed_entities, non_camera_domains
+                "policy": _family_entity_policy(
+                    [*allowed_entities, *shared_calendars], unrestricted_domains
                 ),
             }
             user["group_ids"] = [group_id]
@@ -589,6 +617,13 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     any_camera_include = generated / "camera-any-users.json"
     atomic_json(any_camera_include, any_camera_users, mode=0o644)
     desired_generated.add(any_camera_include.name)
+    for name, user_ids in (
+        ("calendar-owner-users.json", sorted(owner_users)),
+        ("calendar-household-users.json", sorted(household_users)),
+    ):
+        include = generated / name
+        atomic_json(include, user_ids, mode=0o644)
+        desired_generated.add(include.name)
 
     for stale in generated.glob("*.json"):
         if stale.name not in desired_generated:
@@ -642,7 +677,7 @@ def reconcile_family_access(source: Path, config: Path) -> None:
 
     atomic_json(
         config / FAMILY_ACCESS_STATE,
-        {"version": 1, "sha256": desired_hash},
+        {"version": 2, "sha256": desired_hash},
         mode=0o644,
     )
 
@@ -651,7 +686,7 @@ def reconcile_dashboard_defaults(source: Path, config: Path) -> None:
     """Reconcile the system and family profile default dashboard panels."""
     access_path = source / "access/family-dashboard.json"
     access = json.loads(access_path.read_text())
-    if access.get("version") != 1:
+    if access.get("version") != 2:
         raise RuntimeError("Unsupported family dashboard access schema")
 
     system_default = access.get("default_dashboard")

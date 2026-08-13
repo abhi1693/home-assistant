@@ -1,10 +1,22 @@
 {
-  "version": 1,
+  "version": 2,
   "default_dashboard": "home-tablet",
   "cameras": {
     "master-bedroom": "camera.living_room_high_resolution_channel",
     "hallway": "camera.hallway_high_resolution_channel",
     "outside": "camera.g5_turret_ultra_high_resolution_channel"
+  },
+  "calendars": {
+    "shared": [
+      "calendar.birthdays"
+    ],
+    "owner_only": [
+      "calendar.holidays_in_india",
+      "calendar.family_2",
+      "calendar.desk_abhimanyu_gmail_com",
+      "calendar.topmate_calendar",
+      "calendar.topmate_calendar_2"
+    ]
   },
   "profiles": {
     "abhimanyu-saharan": {

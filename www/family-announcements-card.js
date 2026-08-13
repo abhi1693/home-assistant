@@ -35,7 +35,7 @@ class FamilyAnnouncementsCard extends HTMLElement {
   }
 
   getCardSize() {
-    return Math.max(2, this._announcements().length + 1);
+    return Math.max(1, this._announcements().length + 1);
   }
 
   _build() {
@@ -64,6 +64,9 @@ class FamilyAnnouncementsCard extends HTMLElement {
           box-shadow: none;
           color: var(--primary-text-color);
         }
+        .bulletin.empty { padding-block: 4px; }
+        .bulletin.empty .bulletin-header { min-height: 42px; }
+        .bulletin.empty .content { display: none; }
         .bulletin-header {
           display: flex;
           min-height: 50px;
@@ -159,15 +162,6 @@ class FamilyAnnouncementsCard extends HTMLElement {
         .remove:disabled { cursor: default; opacity: 0.32; }
         .remove ha-icon { width: 17px; }
         .remove-spacer { width: 32px; height: 32px; }
-        .empty {
-          display: flex;
-          min-height: 48px;
-          align-items: center;
-          border-top: 1px solid var(--contrast4);
-          color: var(--contrast9, var(--secondary-text-color));
-          font-size: 12px;
-        }
-
         dialog {
           width: min(520px, calc(100vw - 48px));
           max-height: calc(100vh - 48px);
@@ -398,16 +392,11 @@ class FamilyAnnouncementsCard extends HTMLElement {
     const announcements = this._announcements();
     const summary = this.shadowRoot.querySelector(".summary");
     summary.textContent = announcements.length ? `· ${announcements.length}` : "";
+    this.shadowRoot.querySelector(".bulletin").classList.toggle("empty", !announcements.length);
     const content = this.shadowRoot.querySelector(".content");
     content.replaceChildren();
 
-    if (!announcements.length) {
-      const empty = document.createElement("div");
-      empty.className = "empty";
-      empty.textContent = "Nothing shared right now.";
-      content.append(empty);
-      return;
-    }
+    if (!announcements.length) return;
 
     const list = document.createElement("div");
     list.className = "announcement-list";

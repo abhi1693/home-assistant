@@ -55,7 +55,8 @@ class DashboardStructureTests(unittest.TestCase):
 
         self.assertNotIn("Family note:", header)
         self.assertIn("sensor.front_load_washer_current_status", header)
-        self.assertIn("calendar.family", header)
+        self.assertIn("state_attr('calendar.birthdays', 'message')", header)
+        self.assertNotIn("state_attr('calendar.family',", header)
         self.assertIn("sensor.home_apparent_temperature", header)
         self.assertIn("sensor.home_thunderstorm_probability", header)
         self.assertIn("todo.shopping_list", header)
@@ -80,7 +81,12 @@ class DashboardStructureTests(unittest.TestCase):
             'grid-template-areas: \'"weather presence today activity attention"\'',
             home_view,
         )
-        self.assertIn("heading: Today", home_view)
+        self.assertIn("heading: Coming up", home_view)
+        self.assertIn("type: custom:atomic-calendar-revive", home_view)
+        self.assertIn("maxDaysToShow: 14", home_view)
+        self.assertIn("maxEventCount: 4", home_view)
+        self.assertIn("calendar-owner-users.json", home_view)
+        self.assertIn("calendar-household-users.json", home_view)
         self.assertEqual(
             home_view.count("type: custom:family-announcements-card"), 1
         )
@@ -90,6 +96,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("name: Notice expiry", home_view)
         self.assertIn("template: family_media_launchers", home_view)
         self.assertIn("sensor.music_assistant_session_*", home_view)
+        self.assertIn("type: custom:family-responsive-grid-card", home_view)
         self.assertIn("return 'Music Assistant';", home)
         self.assertIn("`${status} on ${player}", home)
         self.assertIn("Jellyfin · ${viewer}", home)
@@ -106,13 +113,15 @@ class DashboardStructureTests(unittest.TestCase):
             home_view,
         )
         self.assertIn('aspect_ratio: "32:9"', home_view)
-        self.assertIn("aspect_ratio: 32 / 9", home_view)
+        self.assertIn("- height: 88px", home)
         self.assertIn("camera-outside-users.json", home_view)
         self.assertIn("camera.g5_turret_ultra_high_resolution_channel", home_view)
         self.assertIn("user?.id === '9302d11f48c64fe796a3c9e5cb563650'", home)
         self.assertIn("user?.id === '8117b77542614a06b4672a8ae1a979b5'", home)
         self.assertIn("user?.id === '734722ec932a41a68d47553b6c2f7f5d'", home)
         self.assertIn("sensor.iphone_battery_level", home)
+        self.assertIn('state_not: "off"', home_view)
+        self.assertIn("state_not: unavailable", home_view)
         self.assertNotIn("name: Living Fan 1", home_view)
         self.assertNotIn("name: Living Fan 2", home_view)
 
@@ -146,7 +155,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('customElements.define("family-announcements-card"', card)
         self.assertIn("dialog.showModal()", card)
         self.assertIn("user?.is_admin", card)
-        self.assertIn("Nothing shared right now.", card)
+        self.assertIn('.bulletin.empty .content { display: none; }', card)
+        self.assertNotIn("Nothing shared right now.", card)
         self.assertIn('callService("family_announcements", "publish"', card)
         self.assertIn('callService("family_announcements", "dismiss"', card)
         self.assertFalse((ROOT / "packages/family_console.yaml").exists())

@@ -222,7 +222,7 @@ button_card_templates:
 
   family_ribbon_today:
     template: family_ribbon
-    entity: calendar.family
+    entity: calendar.birthdays
     variables:
       context: |
         [[[
@@ -253,14 +253,17 @@ button_card_templates:
               icon: 'mdi:cart-outline', color: 'var(--pink)'
             };
           }
-          const sunset = states['sensor.sun_next_setting'];
-          const setting = sunset ? new Date(sunset.state) : null;
+          const sun = states['sun.sun'];
+          const afterSunset = sun?.state === 'below_horizon';
+          const next = sun?.attributes?.[afterSunset ? 'next_rising' : 'next_setting'];
+          const transition = next ? new Date(next) : null;
           return {
-            name: 'Sunset',
-            label: setting && !Number.isNaN(setting.getTime())
-              ? setting.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})
-              : 'Later today',
-            icon: 'mdi:weather-sunset-down', color: 'var(--yellow)'
+            name: afterSunset ? 'Sunrise' : 'Sunset',
+            label: transition && !Number.isNaN(transition.getTime())
+              ? transition.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})
+              : 'Later',
+            icon: afterSunset ? 'mdi:weather-sunset-up' : 'mdi:weather-sunset-down',
+            color: 'var(--yellow)'
           };
         ]]]
     name: '[[[ return variables.context.name; ]]]'
@@ -596,33 +599,38 @@ button_card_templates:
       navigation_path: /home-tablet/cameras
     styles:
       card:
-        - height: auto
-        - aspect-ratio: '[[[ return variables.aspect_ratio || "16 / 9"; ]]]'
-        - min-height: 174px
-        - border-radius: 28px
-        - background: radial-gradient(circle at 50% 35%, var(--contrast4), var(--contrast2) 52%)
+        - height: 88px
+        - min-height: 88px
+        - border-radius: 22px
+        - padding: 12px 15px
+        - background: var(--contrast2)
         - box-shadow: none
       grid:
-        - grid-template-areas: '"i" "n" "l"'
-        - grid-template-rows: 1fr min-content min-content
+        - grid-template-areas: '"i n" "i l"'
+        - grid-template-columns: 44px minmax(0, 1fr)
+        - grid-template-rows: min-content min-content
+        - column-gap: 12px
       img_cell:
         - align-self: center
-        - width: 52px
-        - height: 52px
-        - border-radius: 50%
+        - grid-row: 1 / 3
+        - width: 42px
+        - height: 42px
+        - border-radius: 14px
         - background: var(--contrast4)
       icon:
-        - width: 25px
+        - width: 21px
         - color: var(--contrast9)
       name:
         - justify-self: start
-        - padding: 0 18px 3px
+        - align-self: end
+        - padding: 0
         - color: var(--contrast12)
         - font-size: 14px
         - font-weight: 600
       label:
         - justify-self: start
-        - padding: 0 18px 16px
+        - align-self: start
+        - padding: 2px 0 0
         - color: var(--contrast9)
         - font-size: 11px
         - font-weight: 500
@@ -938,7 +946,6 @@ views:
       - type: grid
         column_span: 3
         cards:
-          - &family_navigation !include includes/family-navigation.yaml
           - type: markdown
             text_only: true
             content: |-
@@ -954,15 +961,15 @@ views:
               {% set home = states.person | selectattr('state', 'eq', 'home') | map(attribute='name') | list %}
               {% set known_people = states.person | rejectattr('state', 'eq', 'unknown') | rejectattr('state', 'eq', 'unavailable') | list %}
               {% set washer = states('sensor.front_load_washer_current_status') | lower %}
-              {% set event = state_attr('calendar.family', 'message') %}
-              {% set event_start_raw = state_attr('calendar.family', 'start_time') %}
+              {% set event = state_attr('calendar.birthdays', 'message') %}
+              {% set event_start_raw = state_attr('calendar.birthdays', 'start_time') %}
               {% set event_start = as_local(as_datetime(event_start_raw)) if event_start_raw else none %}
               {% set event_days = (event_start.date() - now().date()).days if event_start else none %}
-              {% set event_all_day = state_attr('calendar.family', 'all_day') %}
+              {% set event_all_day = state_attr('calendar.birthdays', 'all_day') %}
               {% set shopping = states('todo.shopping_list') | int(0) %}
               **{{ now().strftime('%A') }} {{ daypart }} · {{ now().strftime('%-I:%M %p') }}**{% if condition not in ['unknown', 'unavailable'] %} · {{ condition }}{% endif %}{% if temperature_known %} · **{{ temperature }} °C** outside{% endif %}{% if home | count == 0 and known_people | count > 0 %} · Home is empty{% elif home | count == 1 %} · {{ home[0] }} is home{% elif home | count == 2 %} · {{ home[0] }} and {{ home[1] }} are home{% elif home | count > 2 %} · {{ home | count }} people are home{% endif %}
 
-              {% if washer in ['complete', 'completed', 'finished', 'end'] %}The laundry is ready to be collected.{% elif is_state('calendar.family', 'on') and event %}**{{ event }}** is happening now.{% elif event and event_days == 0 %}{% if event_all_day %}**{{ event }}** is scheduled for today.{% else %}Next: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif event and event_days == 1 %}{% if event_all_day %}Tomorrow: **{{ event }}**.{% else %}Tomorrow: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif apparent >= 38 and storm >= 30 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside, and storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—take water and an umbrella if you are heading out.{% elif apparent >= 38 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside—{% if hour < 12 %}take water if you are heading out later{% elif hour < 17 %}keep outdoor plans short and stay hydrated{% elif hour < 22 %}take water if you are heading out{% else %}keep the house cool overnight{% endif %}.{% elif storm >= 30 %}Storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—keep an umbrella handy.{% elif shopping > 0 %}There {% if shopping == 1 %}is **1 item**{% else %}are **{{ shopping }} items**{% endif %} on the shopping list.{% elif hour < 5 %}Everything at home is settled for the night.{% elif hour < 12 %}Nothing at home needs attention this morning.{% elif hour < 17 %}Nothing at home needs attention right now.{% elif hour < 22 %}Nothing at home needs attention this evening.{% else %}Everything at home is settled for the night.{% endif %}
+              {% if washer in ['complete', 'completed', 'finished', 'end'] %}The laundry is ready to be collected.{% elif is_state('calendar.birthdays', 'on') and event %}**{{ event }}** is happening today.{% elif event and event_days == 0 %}{% if event_all_day %}**{{ event }}** is today.{% else %}Next: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif event and event_days == 1 %}{% if event_all_day %}Tomorrow: **{{ event }}**.{% else %}Tomorrow: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif apparent >= 38 and storm >= 30 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside, and storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—take water and an umbrella if you are heading out.{% elif apparent >= 38 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside—{% if hour < 12 %}take water if you are heading out later{% elif hour < 17 %}keep outdoor plans short and stay hydrated{% elif hour < 22 %}take water if you are heading out{% else %}keep the house cool overnight{% endif %}.{% elif storm >= 30 %}Storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—keep an umbrella handy.{% elif shopping > 0 %}There {% if shopping == 1 %}is **1 item**{% else %}are **{{ shopping }} items**{% endif %} on the shopping list.{% elif hour < 5 %}Everything at home is settled for the night.{% elif hour < 12 %}Nothing at home needs attention this morning.{% elif hour < 17 %}Nothing at home needs attention right now.{% elif hour < 22 %}Nothing at home needs attention this evening.{% else %}Everything at home is settled for the night.{% endif %}
             card_mod:
               style: |
                 ha-card { background: transparent; padding: 2px 0 0; }
@@ -1104,8 +1111,6 @@ views:
                             type: custom:button-card
                             template: family_camera_offline
                             name: Master Bedroom
-                            variables:
-                              aspect_ratio: 32 / 9
                     show_empty: false
                     visibility:
                       - condition: user
@@ -1139,8 +1144,6 @@ views:
                             type: custom:button-card
                             template: family_camera_offline
                             name: Hallway
-                            variables:
-                              aspect_ratio: 32 / 9
                     show_empty: false
                     visibility:
                       - condition: user
@@ -1156,12 +1159,8 @@ views:
             grid_options: { columns: 36, rows: 1 }
           - type: custom:auto-entities
             card:
-              type: grid
-              columns: 2
-              square: false
-              card_mod:
-                style: |
-                  #root { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important; }
+              type: custom:family-responsive-grid-card
+              min_width: 420
             card_param: cards
             filter:
               include:
@@ -1242,57 +1241,140 @@ views:
                   accent: var(--teal)
                   entities: [fan.office_fan]
             grid_options: { columns: 36, rows: auto }
+          - &family_navigation !include includes/family-navigation.yaml
       - type: grid
         cards:
           - type: heading
-            heading: Today
+            heading: Coming up
             heading_style: title
             icon: mdi:calendar-heart
-          - type: custom:button-card
-            template: family_board_item
-            entity: calendar.family
-            name: Next event
-            icon: mdi:calendar-clock
-            state_display: |
-              [[[
-                if (!entity || entity.state === 'unavailable') return 'Calendar unavailable';
-                const message = entity.attributes.message;
-                if (!message) return 'Nothing scheduled';
-                const start = entity.attributes.start_time;
-                const date = start ? new Date(start) : null;
-                return date && !Number.isNaN(date.getTime())
-                  ? `${date.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})} · ${message}`
-                  : message;
-              ]]]
-            styles:
-              card:
-                - --status-accent: var(--green)
-          - type: custom:button-card
-            template: family_washer_status
-            label: |
-              [[[
-                if (!entity || entity.state === 'unavailable') return 'Connects when the washer has power';
-                const remaining = states['sensor.front_load_washer_remaining_time'];
-                if (remaining && !['unknown', 'unavailable'].includes(remaining.state)) {
-                  const end = new Date(remaining.state);
-                  const minutes = Math.ceil((end.getTime() - Date.now()) / 60000);
-                  if (Number.isFinite(minutes) && minutes > 0) return minutes < 60
-                    ? `${minutes} min remaining` : `${Math.floor(minutes / 60)} hr ${minutes % 60} min remaining`;
+            badges:
+              - type: entity
+                entity: calendar.birthdays
+                name: Open calendar
+                show_state: false
+                icon: mdi:calendar-arrow-right
+                color: pink
+                tap_action:
+                  action: navigate
+                  navigation_path: /calendar
+          - type: custom:atomic-calendar-revive
+            entities:
+              - entity: calendar.birthdays
+                name: Birthdays
+                color: var(--pink)
+              - entity: calendar.family_2
+                name: Family
+                color: var(--green)
+              - entity: calendar.desk_abhimanyu_gmail_com
+                name: Abhimanyu
+                color: var(--blue)
+              - entity: calendar.topmate_calendar
+                name: Topmate
+                color: var(--purple)
+              - entity: calendar.topmate_calendar_2
+                name: Topmate 2
+                color: var(--teal)
+              - entity: calendar.holidays_in_india
+                name: Holidays
+                color: var(--orange)
+            maxDaysToShow: 14
+            maxEventCount: 4
+            compactMode: true
+            hideFinishedEvents: true
+            showCalendarName: true
+            showDescription: false
+            showLocation: false
+            showRelativeTime: true
+            showEventIcon: true
+            showProgressBar: false
+            showLoader: false
+            disableEventLink: true
+            firstDayOfWeek: 1
+            noEventsForNextDaysText: Nothing scheduled in the next 14 days
+            visibility:
+              - condition: user
+                users: !include ../access/generated/calendar-owner-users.json
+            card_mod:
+              style: |
+                ha-card {
+                  background: var(--contrast2);
+                  border: 1px solid rgba(var(--rgb-primary-text-color), 0.055);
+                  border-radius: 24px;
+                  box-shadow: none;
+                  overflow: hidden;
                 }
-                const total = states['sensor.front_load_washer_total_time'];
-                const minutes = Number(total?.state);
-                return Number.isFinite(minutes) && minutes > 0
-                  ? `${minutes} min cycle` : 'No active cycle';
-              ]]]
-            show_label: true
-            styles:
-              grid:
-                - grid-template-areas: '"i n" "i s" "i l"'
-                - grid-template-rows: min-content min-content min-content
-              label:
-                - justify-self: start
-                - color: var(--contrast10)
-                - font-size: 11px
+          - type: custom:atomic-calendar-revive
+            entities:
+              - entity: calendar.birthdays
+                name: Birthdays
+                color: var(--pink)
+            maxDaysToShow: 14
+            maxEventCount: 4
+            compactMode: true
+            hideFinishedEvents: true
+            showCalendarName: false
+            showDescription: false
+            showLocation: false
+            showRelativeTime: true
+            showEventIcon: true
+            showProgressBar: false
+            showLoader: false
+            disableEventLink: true
+            firstDayOfWeek: 1
+            noEventsForNextDaysText: No birthdays in the next 14 days
+            visibility:
+              - condition: user
+                users: !include ../access/generated/calendar-household-users.json
+            card_mod:
+              style: |
+                ha-card {
+                  background: var(--contrast2);
+                  border: 1px solid rgba(var(--rgb-primary-text-color), 0.055);
+                  border-radius: 24px;
+                  box-shadow: none;
+                  overflow: hidden;
+                }
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.front_load_washer_current_status
+                state_not: "off"
+              - condition: state
+                entity: sensor.front_load_washer_current_status
+                state_not: power_off
+              - condition: state
+                entity: sensor.front_load_washer_current_status
+                state_not: unavailable
+              - condition: state
+                entity: sensor.front_load_washer_current_status
+                state_not: unknown
+            card:
+              type: custom:button-card
+              template: family_washer_status
+              label: |
+                [[[
+                  const remaining = states['sensor.front_load_washer_remaining_time'];
+                  if (remaining && !['unknown', 'unavailable'].includes(remaining.state)) {
+                    const end = new Date(remaining.state);
+                    const minutes = Math.ceil((end.getTime() - Date.now()) / 60000);
+                    if (Number.isFinite(minutes) && minutes > 0) return minutes < 60
+                      ? `${minutes} min remaining` : `${Math.floor(minutes / 60)} hr ${minutes % 60} min remaining`;
+                  }
+                  const total = states['sensor.front_load_washer_total_time'];
+                  const minutes = Number(total?.state);
+                  return Number.isFinite(minutes) && minutes > 0
+                    ? `${minutes} min cycle` : 'Cycle in progress';
+                ]]]
+              show_label: true
+              styles:
+                grid:
+                  - grid-template-areas: '"i n" "i s" "i l"'
+                  - grid-template-rows: min-content min-content min-content
+                label:
+                  - justify-self: start
+                  - color: var(--contrast10)
+                  - font-size: 11px
           - type: custom:todo-swipe-card
             entities:
               - entity: todo.shopping_list
@@ -1357,7 +1439,6 @@ views:
             grid_options:
               columns: 48
               rows: 2
-          - *family_navigation
       - type: grid
         cards:
           - type: heading
@@ -1455,6 +1536,10 @@ views:
             icon: mdi:fan
             show_state: true
             styles: *family_fan_control_style
+      - type: grid
+        column_span: 4
+        cards:
+          - *family_navigation
 
   - title: Cameras
     path: cameras
@@ -1480,7 +1565,6 @@ views:
             grid_options:
               columns: 48
               rows: 2
-          - *family_navigation
           - type: grid
             square: false
             columns: 3
@@ -1590,3 +1674,7 @@ views:
             grid_options:
               columns: 48
               rows: auto
+      - type: grid
+        column_span: 4
+        cards:
+          - *family_navigation

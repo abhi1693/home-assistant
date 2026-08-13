@@ -119,10 +119,6 @@ views:
         color: blue
     sections:
       - type: grid
-        column_span: 4
-        cards:
-          - !include includes/family-navigation.yaml
-      - type: grid
         column_span: 2
         cards:
           - type: heading
@@ -246,3 +242,7 @@ views:
             show_state: false
             tap_action:
               action: more-info
+      - type: grid
+        column_span: 4
+        cards:
+          - !include includes/family-navigation.yaml

@@ -31,6 +31,7 @@ class BootstrapTests(unittest.TestCase):
         self.write("location/home.json", '{"version": 1}\n')
         self.write("www/bubble/bubble-modules.yaml", "modules: {}\n")
         self.write("www/family-announcements-card.js", "export default {};\n")
+        self.write("www/family-responsive-grid-card.js", "export default {};\n")
         self.write(
             "custom_components/family_dashboard_guard/__init__.py",
             "VALUE = 1\n",
@@ -78,6 +79,10 @@ class BootstrapTests(unittest.TestCase):
         )
         self.assertEqual(
             (self.config / "www/family-announcements-card.js").read_text(),
+            "export default {};\n",
+        )
+        self.assertEqual(
+            (self.config / "www/family-responsive-grid-card.js").read_text(),
             "export default {};\n",
         )
 
@@ -166,10 +171,14 @@ class BootstrapTests(unittest.TestCase):
             "access/family-dashboard.json",
             json.dumps(
                 {
-                    "version": 1,
+                    "version": 2,
                     "cameras": {
                         "master-bedroom": "camera.master_bedroom",
                         "hallway": "camera.hallway",
+                    },
+                    "calendars": {
+                        "shared": ["calendar.birthdays"],
+                        "owner_only": ["calendar.private"],
                     },
                     "profiles": {
                         "owner": {
@@ -291,6 +300,16 @@ class BootstrapTests(unittest.TestCase):
                         "platform": "example",
                         "disabled_by": None,
                     },
+                    {
+                        "entity_id": "calendar.birthdays",
+                        "platform": "google",
+                        "disabled_by": None,
+                    },
+                    {
+                        "entity_id": "calendar.private",
+                        "platform": "google",
+                        "disabled_by": None,
+                    },
                 ]
             },
         }
@@ -315,12 +334,15 @@ class BootstrapTests(unittest.TestCase):
             {
                 "camera.master_bedroom": True,
                 "camera.master_bedroom_medium": True,
+                "calendar.birthdays": True,
             },
         )
         self.assertEqual(
             group["policy"]["entities"]["domains"],
             {"fan": True, "sensor": True},
         )
+        self.assertNotIn("calendar.private", group["policy"]["entities"]["entity_ids"])
+        self.assertNotIn("calendar", group["policy"]["entities"]["domains"])
         self.assertNotIn("all", group["policy"]["entities"])
         self.assertEqual(
             json.loads(
@@ -343,6 +365,21 @@ class BootstrapTests(unittest.TestCase):
             ),
             sorted([owner_id, reviewer_id]),
         )
+        self.assertEqual(
+            json.loads(
+                (self.config / "access/generated/calendar-owner-users.json").read_text()
+            ),
+            [owner_id],
+        )
+        self.assertEqual(
+            json.loads(
+                (
+                    self.config
+                    / "access/generated/calendar-household-users.json"
+                ).read_text()
+            ),
+            [reviewer_id],
+        )
         self.assertTrue(
             next((self.config / "backups").glob("auth.pre-family-access-*"))
         )
@@ -357,8 +394,12 @@ class BootstrapTests(unittest.TestCase):
             "access/family-dashboard.json",
             json.dumps(
                 {
-                    "version": 1,
+                    "version": 2,
                     "cameras": {"master-bedroom": "camera.master_bedroom"},
+                    "calendars": {
+                        "shared": ["calendar.birthdays"],
+                        "owner_only": ["calendar.private"],
+                    },
                     "profiles": {
                         "owner": {
                             "user_id": owner_id,
@@ -471,6 +512,16 @@ class BootstrapTests(unittest.TestCase):
                                 "platform": "unifiprotect",
                                 "disabled_by": None,
                             },
+                            {
+                                "entity_id": "calendar.birthdays",
+                                "platform": "google",
+                                "disabled_by": None,
+                            },
+                            {
+                                "entity_id": "calendar.private",
+                                "platform": "google",
+                                "disabled_by": None,
+                            },
                             *[
                                 {
                                     "entity_id": entity_id,
@@ -570,8 +621,12 @@ class BootstrapTests(unittest.TestCase):
             "access/family-dashboard.json",
             json.dumps(
                 {
-                    "version": 1,
+                    "version": 2,
                     "cameras": {"inside": "camera.inside"},
+                    "calendars": {
+                        "shared": ["calendar.birthdays"],
+                        "owner_only": ["calendar.private"],
+                    },
                     "profiles": {
                         "owner": {
                             "user_id": "owner-user-id",
@@ -649,7 +704,17 @@ class BootstrapTests(unittest.TestCase):
                                 "entity_id": "camera.inside",
                                 "platform": "unifiprotect",
                                 "disabled_by": None,
-                            }
+                            },
+                            {
+                                "entity_id": "calendar.birthdays",
+                                "platform": "google",
+                                "disabled_by": None,
+                            },
+                            {
+                                "entity_id": "calendar.private",
+                                "platform": "google",
+                                "disabled_by": None,
+                            },
                         ]
                     }
                 }
@@ -666,7 +731,7 @@ class BootstrapTests(unittest.TestCase):
             "access/family-dashboard.json",
             json.dumps(
                 {
-                    "version": 1,
+                    "version": 2,
                     "default_dashboard": "home-tablet",
                     "profiles": {
                         "owner": {

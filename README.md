@@ -31,8 +31,8 @@ activity and conditions needing attention receive color.
 - Every dashboard view consumes the same source-owned navigation rail. Everyone
   sees Home, Rooms and Cameras; admins additionally see Rack and Settings.
 - `Family Dark` is the local visual system. Bubble Card, Button Card, Navbar Card,
-  Card Mod, Todo Swipe Card and Kiosk Mode are commit/version-pinned,
-  checksum-verified assets.
+  Card Mod, Auto Entities, Atomic Calendar Revive, Todo Swipe Card and Kiosk
+  Mode are commit/version-pinned, checksum-verified assets.
 
 The current dashboard binds fixed controls only to entities verified in the
 live Home Assistant registry. Auto Entities discovers active Jellyfin and Music
@@ -54,7 +54,7 @@ extension points for later phases.
 The shared overview favors household decisions over system telemetry. Its
 single-screen desktop composition has a personalized greeting, compact weather
 and household ribbon, account-filtered camera wall, adaptive Music
-Assistant/Jellyfin activity, a narrow Today rail, and four relevant area
+Assistant/Jellyfin activity, a narrow Coming up rail, and four relevant area
 summaries. The Living Room summary combines both fans; the full Rooms view owns
 individual controls for every area. The greeting ends with one prioritized
 household message: laundry completion, a current or next-day family event,
@@ -66,6 +66,7 @@ updates in one quiet surface. Its Add action opens a focused composer; each
 message remains until its sender or an administrator removes it, or disappears
 entirely at its optional end time. Publishing also sends the message to every
 mapped family Companion App phone.
+When the bulletin is empty it collapses to a compact Announcements/Add bar.
 Routine fan-off state is omitted; running fans are called out because they are
 useful household context. The compact Todo Swipe Shopping
 card supports adding, editing, completing and removing list items directly from
@@ -73,13 +74,23 @@ Home without the native card's large empty state; list contents remain normal
 mutable Home Assistant data while the card and its access policy stay Git-owned.
 Rack health remains confined to the admin-only dashboard.
 
+The Coming up rail shows at most four events across the next 14 days. The owner
+profile combines Birthdays, the Google Family calendar, India holidays, the
+personal Google calendar and both Topmate calendars. Non-owner family and review
+profiles can read only Birthdays. This is enforced in Home Assistant's backend
+entity policy as well as by account-specific Lovelace rendering, so private
+calendar content is not merely hidden with frontend conditions. Atomic Calendar
+Revive supplies the compact agenda presentation. The washer is absent while it
+is off or unavailable and appears only when a useful cycle status exists.
+
 ## Family access
 
 `access/family-dashboard.json` is the desired-state access matrix for the family
 dashboard. It binds immutable Home Assistant user IDs to their local login
-username and person entity, lists the Protect cameras each account may see, and
-records each profile's default dashboard and whether a non-owner camera policy
-must be enforced. The same document sets `home-tablet` as the system fallback,
+username and person entity, lists the Protect cameras each account may see,
+separates shared and owner-only Google calendars, and records each profile's
+default dashboard and whether a non-owner private-entity policy must be
+enforced. The same document sets `home-tablet` as the system fallback,
 so opening the bare Home Assistant address lands on `/home-tablet/home` instead
 of the removed built-in Home panel. Bootstrap validates
 every account, person link and camera entity against the live registries before
@@ -95,10 +106,11 @@ Bedroom camera is rendered for Krishna but omitted from Manisha, Abhimanyu and
 the browser-review profile. Because Abhimanyu is the Home
 Assistant owner, hiding a camera from that profile can only be a presentation
 rule: owners always retain administrative entity access.
-Non-owner family profiles receive both Lovelace filtering and backend camera
-permissions. Their generated policy explicitly allows every registered
-non-camera domain and only the camera entities granted in the access matrix;
-this avoids Home Assistant's unconditional `all` permission fallback.
+Non-owner family profiles receive both Lovelace filtering and backend camera and
+calendar permissions. Their generated policy explicitly allows every registered
+non-camera/non-calendar domain, only the camera entities granted in the access
+matrix, and the shared Birthdays calendar; this avoids Home Assistant's
+unconditional `all` permission fallback.
 Restricted camera cards are omitted and the remaining cards reflow. Unknown
 users receive no cameras by default.
 
@@ -112,17 +124,18 @@ idempotent on later Fleet rollouts.
 
 The built-in Moon, Uptime, Shopping List and Local Calendar integrations are
 configured without external accounts. Home presents an interactive Shopping
-List with the `Family` calendar and washer in its Today rail, while Rack shows
-the Home Assistant start time. These config entries and
+List beside its Google-backed agenda, while Rack shows the Home Assistant start
+time. These config entries and
 shopping-list contents are
 UI-owned on the persistent volume; the dashboard presentation and access rules
 remain Git-owned here.
 
 Home also presents the LG ThinQ front-load washer as a compact read-only family
-status. It shows the current stage, remaining or total cycle time, and completion
-state. Because the cloud integration reports an electrically-off washer as
-unavailable, the card deliberately renders that normal condition as `Washer is
-off`; it exposes no power, operation, delayed-end, or remote-start controls.
+status while a meaningful cycle state exists. It shows the current stage,
+remaining or total cycle time, and completion state. Because the cloud
+integration reports an electrically-off washer as unavailable, that normal
+condition is hidden; the dashboard exposes no power, operation, delayed-end, or
+remote-start controls.
 
 The source configuration fixes Home Assistant to the metric unit system. All
 temperature cards render an explicit `°C`, and package-owned template sensors
@@ -140,9 +153,9 @@ Protect camera cards explicitly request live rendering through Home Assistant's
 LL-HLS stream proxy. The UniFi policy from the K8s network to the Protect console
 must allow TCP `443` for the API and TCP `7441` for RTSPS. Cards automatically
 recover as cameras reconnect in Protect. Outside is the primary, double-width
-Home tile; disconnected cameras render a designed offline state with the last
-Home Assistant check time and a route to the full camera wall instead of an
-empty snapshot. The connected indoor camera is presented as `Master Bedroom`,
+Home tile; disconnected cameras collapse to compact status rows with the last
+Home Assistant check time and a route to the full camera wall instead of large
+empty panels. The connected indoor camera is presented as `Master Bedroom`,
 matching its current Protect entity.
 
 `access/protect-streams.json` declares the active Protect RTSPS tiers. The
