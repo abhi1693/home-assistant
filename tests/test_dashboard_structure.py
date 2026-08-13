@@ -85,7 +85,10 @@ class DashboardStructureTests(unittest.TestCase):
             home_view,
         )
         self.assertIn(":host { grid-column: span 2; }", home_view)
-        self.assertIn("#root > *:first-child { grid-column: span 2; }", home_view)
+        self.assertIn(
+            "#root > hui-card:first-of-type { grid-column: span 2 !important; }",
+            home_view,
+        )
         self.assertIn("camera.g5_turret_ultra_high_resolution_channel", home_view)
         self.assertIn("user?.name === 'Abhimanyu'", home)
         self.assertNotIn("name: Living Fan 1", home_view)

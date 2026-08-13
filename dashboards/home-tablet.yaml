@@ -1091,7 +1091,7 @@ views:
               card_mod:
                 style: |
                   #root { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
-                  #root > *:first-child { grid-column: span 2; }
+                  #root > hui-card:first-of-type { grid-column: span 2 !important; }
             card_param: cards
             filter:
               include:
