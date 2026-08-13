@@ -84,11 +84,9 @@ class DashboardStructureTests(unittest.TestCase):
             "entities: [fan.living_room_fan_1, fan.living_room_fan_2]",
             home_view,
         )
-        self.assertIn(":host { grid-column: span 2; }", home_view)
-        self.assertIn(
-            "#root > hui-card:first-of-type { grid-column: span 2 !important; }",
-            home_view,
-        )
+        self.assertIn('aspect_ratio: "32:9"', home_view)
+        self.assertIn("aspect_ratio: 32 / 9", home_view)
+        self.assertIn("camera-outside-users.json", home_view)
         self.assertIn("camera.g5_turret_ultra_high_resolution_channel", home_view)
         self.assertIn("user?.name === 'Abhimanyu'", home)
         self.assertNotIn("name: Living Fan 1", home_view)

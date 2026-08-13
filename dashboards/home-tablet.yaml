@@ -588,7 +588,7 @@ button_card_templates:
     styles:
       card:
         - height: auto
-        - aspect-ratio: 16 / 9
+        - aspect-ratio: '[[[ return variables.aspect_ratio || "16 / 9"; ]]]'
         - min-height: 174px
         - border-radius: 28px
         - background: radial-gradient(circle at 50% 35%, var(--contrast4), var(--contrast2) 52%)
@@ -1083,86 +1083,115 @@ views:
             visibility:
               - condition: user
                 users: !include ../access/generated/camera-any-users.json
-          - type: custom:auto-entities
-            card:
-              type: grid
-              square: false
-              columns: 4
-              card_mod:
-                style: |
-                  #root { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
-                  #root > hui-card:first-of-type { grid-column: span 2 !important; }
-            card_param: cards
-            filter:
-              include:
-                - entity_id: camera.g5_turret_ultra_medium_resolution_channel
-                  state: idle
-                  options:
-                    type: picture-entity
-                    entity: camera.g5_turret_ultra_high_resolution_channel
-                    camera_image: camera.g5_turret_ultra_medium_resolution_channel
-                    name: Outside
-                    camera_view: live
-                    fit_mode: cover
-                    aspect_ratio: "16:9"
-                    show_state: false
-                    tap_action: { action: more-info }
-                    card_mod:
-                      style: |
-                        :host { grid-column: span 2; }
-                        ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.g5_turret_ultra_high_resolution_channel
-                  state: unavailable
-                  options:
-                    type: custom:button-card
-                    template: family_camera_offline
-                    name: Outside
-                    card_mod:
-                      style: |
-                        :host { grid-column: span 2; }
-                - entity_id: camera.living_room_medium_resolution_channel
-                  state: idle
-                  options:
-                    type: picture-entity
-                    entity: camera.living_room_high_resolution_channel
-                    camera_image: camera.living_room_medium_resolution_channel
-                    name: Master Bedroom
-                    camera_view: live
-                    fit_mode: cover
-                    aspect_ratio: "16:9"
-                    show_state: false
-                    tap_action: { action: more-info }
-                    card_mod:
-                      style: |
-                        ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.living_room_high_resolution_channel
-                  state: unavailable
-                  options:
-                    type: custom:button-card
-                    template: family_camera_offline
-                    name: Master Bedroom
-                - entity_id: camera.hallway_medium_resolution_channel
-                  state: idle
-                  options:
-                    type: picture-entity
-                    entity: camera.hallway_high_resolution_channel
-                    camera_image: camera.hallway_medium_resolution_channel
-                    name: Hallway
-                    camera_view: live
-                    fit_mode: cover
-                    aspect_ratio: "16:9"
-                    show_state: false
-                    tap_action: { action: more-info }
-                    card_mod:
-                      style: |
-                        ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.hallway_high_resolution_channel
-                  state: unavailable
-                  options:
-                    type: custom:button-card
-                    template: family_camera_offline
-                    name: Hallway
-            show_empty: false
+          - type: grid
+            square: false
+            columns: 2
+            cards:
+              - type: custom:auto-entities
+                card:
+                  type: grid
+                  square: false
+                  columns: 1
+                card_param: cards
+                filter:
+                  include:
+                    - entity_id: camera.g5_turret_ultra_medium_resolution_channel
+                      state: idle
+                      options:
+                        type: picture-entity
+                        entity: camera.g5_turret_ultra_high_resolution_channel
+                        camera_image: camera.g5_turret_ultra_medium_resolution_channel
+                        name: Outside
+                        camera_view: live
+                        fit_mode: cover
+                        aspect_ratio: "16:9"
+                        show_state: false
+                        tap_action: { action: more-info }
+                        card_mod:
+                          style: |
+                            ha-card { overflow: hidden; border-radius: 28px; }
+                    - entity_id: camera.g5_turret_ultra_high_resolution_channel
+                      state: unavailable
+                      options:
+                        type: custom:button-card
+                        template: family_camera_offline
+                        name: Outside
+                show_empty: false
+                visibility:
+                  - condition: user
+                    users: !include ../access/generated/camera-outside-users.json
+              - type: vertical-stack
+                cards:
+                  - type: custom:auto-entities
+                    card:
+                      type: grid
+                      square: false
+                      columns: 1
+                    card_param: cards
+                    filter:
+                      include:
+                        - entity_id: camera.living_room_medium_resolution_channel
+                          state: idle
+                          options:
+                            type: picture-entity
+                            entity: camera.living_room_high_resolution_channel
+                            camera_image: camera.living_room_medium_resolution_channel
+                            name: Master Bedroom
+                            camera_view: live
+                            fit_mode: cover
+                            aspect_ratio: "32:9"
+                            show_state: false
+                            tap_action: { action: more-info }
+                            card_mod:
+                              style: |
+                                ha-card { overflow: hidden; border-radius: 28px; }
+                        - entity_id: camera.living_room_high_resolution_channel
+                          state: unavailable
+                          options:
+                            type: custom:button-card
+                            template: family_camera_offline
+                            name: Master Bedroom
+                            variables:
+                              aspect_ratio: 32 / 9
+                    show_empty: false
+                    visibility:
+                      - condition: user
+                        users: !include ../access/generated/camera-master-bedroom-users.json
+                  - type: custom:auto-entities
+                    card:
+                      type: grid
+                      square: false
+                      columns: 1
+                    card_param: cards
+                    filter:
+                      include:
+                        - entity_id: camera.hallway_medium_resolution_channel
+                          state: idle
+                          options:
+                            type: picture-entity
+                            entity: camera.hallway_high_resolution_channel
+                            camera_image: camera.hallway_medium_resolution_channel
+                            name: Hallway
+                            camera_view: live
+                            fit_mode: cover
+                            aspect_ratio: "32:9"
+                            show_state: false
+                            tap_action: { action: more-info }
+                            card_mod:
+                              style: |
+                                ha-card { overflow: hidden; border-radius: 28px; }
+                        - entity_id: camera.hallway_high_resolution_channel
+                          state: unavailable
+                          options:
+                            type: custom:button-card
+                            template: family_camera_offline
+                            name: Hallway
+                            variables:
+                              aspect_ratio: 32 / 9
+                    show_empty: false
+                    visibility:
+                      - condition: user
+                        users: !include ../access/generated/camera-hallway-users.json
             visibility:
               - condition: user
                 users: !include ../access/generated/camera-any-users.json
