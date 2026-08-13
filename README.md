@@ -160,6 +160,14 @@ temperature cards render an explicit `°C`, and package-owned template sensors
 convert the two UniFi readings that publish Fahrenheit into Celsius before they
 reach the Rack dashboard.
 
+Recorder history, events and long-term statistics use the dedicated
+`home_assistant` database on the home-lab CloudNativePG cluster. Kubernetes
+injects the encrypted connection URL through `HOME_ASSISTANT_RECORDER_DB_URL`;
+the source repository contains no database credentials. The previous SQLite
+files remain on the persistent config volume as an offline rollback archive and
+are not imported because Home Assistant does not support Recorder database
+migration.
+
 Home's canonical location is G3-012, Indiabulls Centrum Park, Sector 103,
 Gurugram, Haryana 122006 at `28.4978819, 76.9830822`, approximately 211 metres
 above sea level. The Home zone uses a 100 metre radius and `Asia/Kolkata`.

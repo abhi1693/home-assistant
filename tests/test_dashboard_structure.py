@@ -260,6 +260,15 @@ class DashboardStructureTests(unittest.TestCase):
         )
         self.assertIn("No requests waiting", card)
 
+    def test_recorder_uses_gitops_injected_postgresql_url(self):
+        configuration = (ROOT / "configuration.yaml").read_text()
+
+        self.assertIn("recorder:\n", configuration)
+        self.assertIn(
+            "db_url: !env_var HOME_ASSISTANT_RECORDER_DB_URL", configuration
+        )
+        self.assertNotIn("postgresql://", configuration)
+
     def test_family_agenda_uses_permission_aware_calendar_responses(self):
         configuration = (ROOT / "configuration.yaml").read_text()
         manifest = (ROOT / "bootstrap/manifest.json").read_text()
