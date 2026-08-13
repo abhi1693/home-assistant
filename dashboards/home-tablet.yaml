@@ -682,7 +682,7 @@ views:
                     conditions:
                       - condition: state
                         entity: camera.living_room_high_resolution_channel
-                        state_not: unavailable
+                        state: idle
                     card:
                       type: picture-entity
                       entity: camera.living_room_high_resolution_channel
@@ -714,7 +714,7 @@ views:
                     conditions:
                       - condition: state
                         entity: camera.hallway_high_resolution_channel
-                        state_not: unavailable
+                        state: idle
                     card:
                       type: picture-entity
                       entity: camera.hallway_high_resolution_channel
@@ -746,7 +746,7 @@ views:
                     conditions:
                       - condition: state
                         entity: camera.g5_turret_ultra_high_resolution_channel
-                        state_not: unavailable
+                        state: idle
                     card:
                       type: picture-entity
                       entity: camera.g5_turret_ultra_high_resolution_channel
@@ -1127,7 +1127,7 @@ views:
                     conditions:
                       - condition: state
                         entity: camera.living_room_high_resolution_channel
-                        state_not: unavailable
+                        state: idle
                     card:
                       type: picture-entity
                       entity: camera.living_room_high_resolution_channel
@@ -1159,7 +1159,7 @@ views:
                     conditions:
                       - condition: state
                         entity: camera.hallway_high_resolution_channel
-                        state_not: unavailable
+                        state: idle
                     card:
                       type: picture-entity
                       entity: camera.hallway_high_resolution_channel
@@ -1191,7 +1191,7 @@ views:
                     conditions:
                       - condition: state
                         entity: camera.g5_turret_ultra_high_resolution_channel
-                        state_not: unavailable
+                        state: idle
                     card:
                       type: picture-entity
                       entity: camera.g5_turret_ultra_high_resolution_channel
