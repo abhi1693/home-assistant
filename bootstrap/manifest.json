@@ -44,6 +44,12 @@
       "url": "https://github.com/NemesisRE/kiosk-mode/releases/download/v14.0.2/kiosk-mode.js",
       "sha256": "9dc2b2b4fb8a7f2e8d84b17e950a979d5fea15f3a92b931e5b4777f330972e8b",
       "destination": "www/community/kiosk-mode/kiosk-mode.js"
+    },
+    {
+      "name": "Auto Entities 1.16.1",
+      "url": "https://raw.githubusercontent.com/thomasloven/lovelace-auto-entities/v1.16.1/auto-entities.js",
+      "sha256": "b7327b2fcd39f1fb859b60b53c869760d1d762ab4d4e4617b748971f528bd407",
+      "destination": "www/community/auto-entities/auto-entities.js"
     }
   ]
 }

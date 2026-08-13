@@ -23,6 +23,8 @@ lovelace:
       type: module
     - url: /local/community/kiosk-mode/kiosk-mode.js?v=14.0.2
       type: module
+    - url: /local/community/auto-entities/auto-entities.js?v=1.16.1
+      type: module
   dashboards: !include dashboards/lovelace-dashboards.yaml
 
 automation: !include automations.yaml

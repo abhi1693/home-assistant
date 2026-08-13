@@ -23,21 +23,47 @@ compete with the family navigation rail.
 - `Family Dark` is the local visual system. Bubble Card, Button Card, Navbar Card,
   Card Mod and Kiosk Mode are commit/version-pinned, checksum-verified assets.
 
-The current dashboard only references entities verified in the live Home
-Assistant registry. Samsung TV, Fire TV, per-session Jellyfin playback and
-Jellyseerr request approval cards are extension points for later phases; they
-will be added after their integrations expose stable entities.
+The current dashboard binds fixed controls only to entities verified in the
+live Home Assistant registry. Auto Entities discovers active Jellyfin and Music
+Assistant sessions at render time, so playback cards appear only while a known
+integration is playing or paused. Samsung TV, Fire TV and Jellyseerr request
+approval cards remain extension points for later phases.
 
-The shared overview favors household decisions over system telemetry: weather,
-presence, fan availability, shopping, three equal camera glances, simple media
-destinations, the family calendar, and large room controls. Rack health remains
-confined to the admin-only dashboard.
+The shared overview favors household decisions over system telemetry. Its
+single-screen desktop composition has a personalized greeting, compact weather
+and household ribbon, account-filtered camera wall, adaptive Music
+Assistant/Jellyfin activity, a compact family board, and a persistent room/fan
+matrix. Rack health remains confined to the admin-only dashboard.
+
+## Family access
+
+`access/family-dashboard.json` is the desired-state access matrix for the family
+dashboard. It binds immutable Home Assistant user IDs to their expected account
+name and person entity, lists the Protect cameras each account may see, and
+records whether a non-owner camera policy must be enforced. Bootstrap validates
+every account, person link and camera entity against the live registries before
+Home Assistant starts. It then generates the Lovelace user include files and
+reconciles non-owner permission groups from the same document.
+
+The initial profile is Abhimanyu. The connected Master Bedroom camera remains a
+temporary dashboard-testing grant until the mother's account is added. Because
+Abhimanyu is the Home Assistant owner, hiding a camera from that profile can
+only be a presentation rule: owners always retain administrative entity access.
+Non-owner family profiles receive both Lovelace filtering and backend camera
+permissions. Restricted camera cards are omitted and the remaining cards reflow.
+Unknown users receive no cameras by default.
+
+Family credentials are never Git-owned. Create each account privately in Home
+Assistant, then add its immutable user ID, expected name, person entity and
+camera grants to the access matrix. A profile mismatch stops bootstrap instead
+of silently widening access. The guarded reconciler backs up `.storage/auth`
+before a policy change and is idempotent on later Fleet rollouts.
 
 The built-in Moon, Uptime, Shopping List and Local Calendar integrations are
-configured without external accounts. Moon joins the family status strip, the
-Home view includes a shared shopping list and `Family` calendar, and the Rack
-view shows the Home Assistant start time. These config entries are UI-owned on
-the persistent volume; the dashboard references remain Git-owned here.
+configured without external accounts. Home presents compact Shopping List and
+`Family` calendar summaries, while Rack shows the Home Assistant start time.
+These config entries are UI-owned on the persistent volume; the dashboard
+references remain Git-owned here.
 
 The source configuration fixes Home Assistant to the metric unit system. All
 temperature cards render an explicit `°C`, and package-owned template sensors
@@ -52,6 +78,7 @@ recover as cameras reconnect in Protect. The connected camera is presented as
 
 ## Repository layout
 
+- `access/`: Git-owned account mappings and camera access policy
 - `configuration.yaml`: authoritative top-level Home Assistant YAML
 - `dashboards/`: the family and admin Lovelace dashboards
 - `custom_components/family_dashboard_guard/`: removes the superseded built-in
@@ -79,10 +106,11 @@ python3 /source/bootstrap.py --source /source --config /config
 Bootstrap atomically installs source-owned files, installs HACS only when
 missing, verifies every frontend asset before replacement, and installs the
 forked Atomberg integration from a commit-pinned archive. It also applies the
-prepared area and Atomberg assignments once and removes legacy storage-mode
-dashboards after backing them up. A source-owned system integration unregisters
-the built-in `/home/overview` panel on every startup, leaving the custom `Home`
-and `Rack` dashboards as the intentional dashboard surfaces.
+prepared area and Atomberg assignments once, reconciles the family access
+matrix on every rollout, and removes legacy storage-mode dashboards after
+backing them up. A source-owned system integration unregisters the built-in
+`/home/overview` panel on every startup, leaving the custom `Home` and `Rack`
+dashboards as the intentional dashboard surfaces.
 
 The Atomberg fork publishes successful command state immediately, polls all fan
 states once per hour, and persists hard limits of 100 total cloud calls and 24

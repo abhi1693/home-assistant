@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "cameras": {
+    "master-bedroom": "camera.living_room_high_resolution_channel",
+    "hallway": "camera.hallway_high_resolution_channel",
+    "outside": "camera.g5_turret_ultra_high_resolution_channel"
+  },
+  "profiles": {
+    "abhimanyu-saharan": {
+      "user_id": "9302d11f48c64fe796a3c9e5cb563650",
+      "user_name": "Abhimanyu",
+      "person_entity_id": "person.abhimanyu_saharan",
+      "is_owner": true,
+      "cameras": [
+        "master-bedroom",
+        "hallway",
+        "outside"
+      ],
+      "notes": "Master Bedroom access is temporary until the mother profile exists."
+    },
+    "codex-dashboard-reviewer": {
+      "user_id": "2d1be8070c364e6a9ba70103c007d4d0",
+      "user_name": "Codex Dashboard Reviewer",
+      "person_entity_id": null,
+      "is_owner": false,
+      "enforce_camera_policy": true,
+      "cameras": [
+        "master-bedroom"
+      ],
+      "notes": "Temporary browser-validation profile; remove after dashboard acceptance."
+    }
+  }
+}

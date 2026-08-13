@@ -17,6 +17,7 @@ from pathlib import Path, PurePosixPath
 
 MANAGED_STATE = ".home-assistant-source-files.json"
 CUSTOM_INTEGRATION_STATE = ".home-assistant-custom-integrations.json"
+FAMILY_ACCESS_STATE = ".home-assistant-family-access.json"
 
 
 def sha256(path: Path) -> str:
@@ -67,12 +68,13 @@ def sync_source_files(source: Path, config: Path) -> None:
     managed: dict[str, str] = {
         "configuration.yaml": sha256(source / "configuration.yaml")
     }
-    for directory in ("dashboards", "packages", "themes", "www"):
+    for directory in ("access", "dashboards", "packages", "themes", "www"):
         source_directory = source / directory
         if not source_directory.exists():
             continue
-        for path in sorted(source_directory.rglob("*.yaml")):
-            managed[str(path.relative_to(source))] = sha256(path)
+        for path in sorted(source_directory.rglob("*")):
+            if path.is_file() and path.suffix in {".json", ".yaml"}:
+                managed[str(path.relative_to(source))] = sha256(path)
 
     source_components = source / "custom_components"
     if source_components.exists():
@@ -334,6 +336,165 @@ def migrate_areas(source: Path, config: Path) -> None:
     print("Renamed areas and assigned all Atomberg fans")
 
 
+def _family_camera_policy(allowed_cameras: list[str]) -> dict:
+    """Build an allow-all-except-camera policy with explicit camera grants."""
+    return {
+        "entities": {
+            "entity_ids": {entity_id: True for entity_id in allowed_cameras},
+            "domains": {"camera": {}},
+            "all": True,
+        }
+    }
+
+
+def reconcile_family_access(source: Path, config: Path) -> None:
+    """Validate and reconcile Git-owned dashboard users and camera access."""
+    access_path = source / "access/family-dashboard.json"
+    access = json.loads(access_path.read_text())
+    if access.get("version") != 1:
+        raise RuntimeError("Unsupported family dashboard access schema")
+
+    auth_path = config / ".storage/auth"
+    person_path = config / ".storage/person"
+    entity_path = config / ".storage/core.entity_registry"
+    if not all(path.exists() for path in (auth_path, person_path, entity_path)):
+        raise RuntimeError("Home Assistant auth, person, or entity registry is missing")
+
+    auth = json.loads(auth_path.read_text())
+    person = json.loads(person_path.read_text())
+    entity_registry = json.loads(entity_path.read_text())
+    users = {item["id"]: item for item in auth["data"]["users"]}
+    people = {item["id"]: item for item in person["data"]["items"]}
+    entities = {
+        item["entity_id"]: item for item in entity_registry["data"]["entities"]
+    }
+
+    cameras = access.get("cameras", {})
+    if not cameras:
+        raise RuntimeError("Family dashboard access defines no cameras")
+    camera_entities = set(cameras.values())
+    if len(camera_entities) != len(cameras):
+        raise RuntimeError("Family dashboard camera entities must be unique")
+    for camera_key, entity_id in cameras.items():
+        entity = entities.get(entity_id)
+        if (
+            entity is None
+            or entity.get("platform") != "unifiprotect"
+            or entity.get("disabled_by") is not None
+        ):
+            raise RuntimeError(
+                f"Camera {camera_key} does not match an enabled UniFi Protect entity"
+            )
+
+    desired_groups = {}
+    generated = config / "access/generated"
+    generated.mkdir(parents=True, exist_ok=True)
+    desired_generated = set()
+    users_by_camera = {key: [] for key in cameras}
+
+    for profile_key, profile in access.get("profiles", {}).items():
+        user_id = profile["user_id"]
+        user = users.get(user_id)
+        if user is None:
+            raise RuntimeError(f"Family profile {profile_key} user is missing")
+        if user.get("name") != profile["user_name"]:
+            raise RuntimeError(f"Family profile {profile_key} user name changed")
+        if bool(user.get("is_owner")) != bool(profile.get("is_owner", False)):
+            raise RuntimeError(f"Family profile {profile_key} owner status changed")
+
+        person_entity_id = profile.get("person_entity_id")
+        if person_entity_id:
+            person_id = person_entity_id.removeprefix("person.")
+            person_entry = people.get(person_id)
+            if person_entry is None or person_entry.get("user_id") != user_id:
+                raise RuntimeError(
+                    f"Family profile {profile_key} is not linked to {person_entity_id}"
+                )
+
+        allowed_keys = profile.get("cameras", [])
+        unknown_keys = set(allowed_keys) - set(cameras)
+        if unknown_keys:
+            raise RuntimeError(
+                f"Family profile {profile_key} has unknown cameras: "
+                f"{sorted(unknown_keys)}"
+            )
+        allowed_entities = [cameras[key] for key in allowed_keys]
+        for camera_key in allowed_keys:
+            users_by_camera[camera_key].append(user_id)
+
+        profile_include = generated / f"profile-{profile_key}-users.json"
+        atomic_json(profile_include, [user_id], mode=0o644)
+        desired_generated.add(profile_include.name)
+
+        if profile.get("enforce_camera_policy"):
+            if user.get("is_owner"):
+                raise RuntimeError(
+                    f"Cannot enforce camera policy for owner profile {profile_key}"
+                )
+            group_id = f"family-access-{profile_key}"
+            desired_groups[group_id] = {
+                "id": group_id,
+                "name": f"Family access: {profile['user_name']}",
+                "policy": _family_camera_policy(allowed_entities),
+            }
+            user["group_ids"] = [group_id]
+
+    for camera_key, user_ids in users_by_camera.items():
+        include = generated / f"camera-{camera_key}-users.json"
+        atomic_json(include, user_ids, mode=0o644)
+        desired_generated.add(include.name)
+    any_camera_users = sorted(
+        {user_id for user_ids in users_by_camera.values() for user_id in user_ids}
+    )
+    any_camera_include = generated / "camera-any-users.json"
+    atomic_json(any_camera_include, any_camera_users, mode=0o644)
+    desired_generated.add(any_camera_include.name)
+
+    for stale in generated.glob("*.json"):
+        if stale.name not in desired_generated:
+            stale.unlink()
+
+    groups = auth["data"]["groups"]
+    groups[:] = [
+        group
+        for group in groups
+        if not group["id"].startswith("family-access-")
+        or group["id"] in desired_groups
+    ]
+    groups_by_id = {group["id"]: group for group in groups}
+    for group_id, desired in desired_groups.items():
+        if group_id in groups_by_id:
+            groups_by_id[group_id].clear()
+            groups_by_id[group_id].update(desired)
+        else:
+            groups.append(desired)
+
+    desired_hash = sha256(access_path)
+    current_state = (
+        json.loads((config / FAMILY_ACCESS_STATE).read_text())
+        if (config / FAMILY_ACCESS_STATE).exists()
+        else {}
+    )
+    auth_changed = json.loads(auth_path.read_text()) != auth
+    if auth_changed:
+        backup = config / f"backups/auth.pre-family-access-{desired_hash[:12]}"
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        if not backup.exists():
+            shutil.copy2(auth_path, backup)
+        atomic_json(auth_path, auth)
+        print("Reconciled Git-owned family account permissions")
+    elif current_state.get("sha256") == desired_hash:
+        print("Family account mappings and permissions are already current")
+    else:
+        print("Validated Git-owned family account mappings")
+
+    atomic_json(
+        config / FAMILY_ACCESS_STATE,
+        {"version": 1, "sha256": desired_hash},
+        mode=0o644,
+    )
+
+
 def remove_storage_dashboards(config: Path) -> None:
     marker = config / ".dashboard-cleanup-2026-08-13"
     if marker.exists():
@@ -379,6 +540,7 @@ def main() -> None:
     install_assets(manifest, config)
     install_custom_integrations(manifest, config)
     migrate_areas(source, config)
+    reconcile_family_access(source, config)
     remove_storage_dashboards(config)
 
 
