@@ -665,7 +665,7 @@ views:
             card_mod:
               style: |
                 #root {
-                  grid-template-columns: repeat(auto-fit, minmax(420px, 640px)) !important;
+                  grid-template-columns: repeat(auto-fit, minmax(420px, 600px)) !important;
                   justify-content: start;
                 }
             visibility:
@@ -1113,7 +1113,7 @@ views:
             card_mod:
               style: |
                 #root {
-                  grid-template-columns: repeat(auto-fit, minmax(420px, 640px)) !important;
+                  grid-template-columns: repeat(auto-fit, minmax(420px, 600px)) !important;
                   justify-content: start;
                 }
             cards:
