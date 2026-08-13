@@ -60,11 +60,12 @@ individual controls for every area. The greeting ends with one prioritized
 household message: laundry completion, a current or next-day family event,
 significant heat or storms, shopping needs, or a time-appropriate all-clear.
 Its context line includes the weekday, day part and current time, and its weather
-advice changes between morning, afternoon, evening and night. A Git-owned
-Announcements composer lets family members add independent household updates,
-keep each until dismissed or give it an end time. Active messages appear as
-account-attributed banners below the briefing and are sent to every mapped
-family Companion App phone.
+advice changes between morning, afternoon, evening and night. A Git-owned family
+bulletin below the briefing groups independent, account-attributed household
+updates in one quiet surface. Its Add action opens a focused composer; each
+message remains until its sender or an administrator removes it, or disappears
+entirely at its optional end time. Publishing also sends the message to every
+mapped family Companion App phone.
 Routine fan-off state is omitted; running fans are called out because they are
 useful household context. The compact Todo Swipe Shopping
 card supports adding, editing, completing and removing list items directly from
@@ -111,8 +112,8 @@ idempotent on later Fleet rollouts.
 
 The built-in Moon, Uptime, Shopping List and Local Calendar integrations are
 configured without external accounts. Home presents an interactive Shopping
-List with the `Family` calendar, washer and Announcements composer in its Today
-rail, while Rack shows the Home Assistant start time. These config entries and
+List with the `Family` calendar and washer in its Today rail, while Rack shows
+the Home Assistant start time. These config entries and
 shopping-list contents are
 UI-owned on the persistent volume; the dashboard presentation and access rules
 remain Git-owned here.
@@ -167,8 +168,8 @@ stream quality configuration reproducible without committing Protect secrets.
   Assistant players that deliberately opt out of native Home Assistant entities,
   reusing the integration's existing event stream without polling
 - `custom_components/family_announcements/`: persists multiple account-attributed
-  family banners, expires them independently and sends each new message to the
-  Companion App phones declared in the access policy
+  family bulletin messages, deletes them independently at expiry and sends each
+  new message to the Companion App phones declared in the access policy
 - `themes/`: source-owned themes
 - `packages/`: source-owned helpers for normalized temperature presentation
 - `migrations/`: guarded, one-time area/device migration inputs

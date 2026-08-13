@@ -971,7 +971,6 @@ views:
             grid_options: { columns: 36, rows: auto }
           - type: custom:family-announcements-card
             entity: sensor.family_announcements
-            mode: banner
             grid_options: { columns: 36, rows: auto }
           - type: custom:button-card
             show_icon: false
@@ -1249,9 +1248,6 @@ views:
             heading: Today
             heading_style: title
             icon: mdi:calendar-heart
-          - type: custom:family-announcements-card
-            entity: sensor.family_announcements
-            mode: composer
           - type: custom:button-card
             template: family_board_item
             entity: calendar.family

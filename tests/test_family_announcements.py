@@ -51,6 +51,25 @@ class FamilyAnnouncementModelTests(unittest.TestCase):
             ["newer", "older"],
         )
 
+    def test_expiry_boundary_removes_the_record_and_all_content(self):
+        now = datetime(2026, 8, 13, 15, 0, tzinfo=UTC)
+        record = {
+            "id": "expires-now",
+            "message": "This content must disappear",
+            "created_at": (now - timedelta(minutes=2)).isoformat(),
+            "expires_at": now.isoformat(),
+        }
+
+        self.assertEqual(MODEL.active_announcements([record], now), [])
+
+    def test_only_sender_or_admin_can_dismiss(self):
+        record = {"sender_user_id": "sender"}
+
+        self.assertTrue(MODEL.can_dismiss(record, "sender", False))
+        self.assertTrue(MODEL.can_dismiss(record, "admin", True))
+        self.assertFalse(MODEL.can_dismiss(record, "family-member", False))
+        self.assertFalse(MODEL.can_dismiss(record, None, True))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -11,14 +11,12 @@ class FamilyAnnouncementsCard extends HTMLElement {
     this._dismissing = new Set();
     this._error = "";
     this._clock = null;
+    this._returnFocus = null;
   }
 
   setConfig(config) {
     if (!config.entity) throw new Error("Family announcements require an entity");
-    if (config.mode && !["banner", "composer"].includes(config.mode)) {
-      throw new Error("Family announcements mode must be banner or composer");
-    }
-    this._config = { mode: "banner", ...config };
+    this._config = config;
     this._build();
   }
 
@@ -37,222 +35,332 @@ class FamilyAnnouncementsCard extends HTMLElement {
   }
 
   getCardSize() {
-    return this._config?.mode === "composer" ? 5 : Math.max(1, this._announcements().length);
+    return Math.max(2, this._announcements().length + 1);
   }
 
   _build() {
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display: block; color: var(--primary-text-color); }
-        :host([hidden]) { display: none; }
-        ha-card { box-shadow: none; color: var(--primary-text-color); }
+        :host {
+          display: block;
+          color: var(--primary-text-color);
+          font-family: var(--secondary-font-family, Inter, system-ui, sans-serif);
+        }
+        * { box-sizing: border-box; }
+        button, textarea, input { font: inherit; }
+        button { -webkit-tap-highlight-color: transparent; }
+        button:focus-visible, textarea:focus-visible, input:focus-visible {
+          outline: 2px solid var(--pink, var(--primary-color));
+          outline-offset: 2px;
+        }
 
-        .banner-list { display: grid; gap: 8px; }
-        .banner {
-          position: relative;
-          display: grid;
-          grid-template-columns: 42px minmax(0, 1fr) 34px;
-          align-items: center;
-          gap: 13px;
-          min-height: 68px;
+        .bulletin {
+          display: block;
           overflow: hidden;
-          padding: 10px 11px 10px 13px;
-          border: 1px solid color-mix(in srgb, var(--pink, var(--primary-color)) 22%, transparent);
-          border-radius: 20px;
-          background:
-            linear-gradient(90deg, color-mix(in srgb, var(--pink, var(--primary-color)) 9%, transparent), transparent 31%),
-            var(--contrast2, var(--ha-card-background));
+          padding: 8px 18px 9px;
+          border: 1px solid rgba(var(--rgb-primary-text-color), 0.055);
+          border-radius: 24px;
+          background: var(--contrast2, var(--ha-card-background));
+          box-shadow: none;
+          color: var(--primary-text-color);
         }
-        .banner::before {
-          position: absolute;
-          inset: 13px auto 13px 0;
-          width: 3px;
-          border-radius: 0 5px 5px 0;
-          background: var(--pink, var(--primary-color));
-          content: "";
+        .bulletin-header {
+          display: flex;
+          min-height: 50px;
+          align-items: center;
+          gap: 10px;
         }
-        .banner-icon {
-          display: grid;
-          width: 42px;
-          height: 42px;
-          place-items: center;
-          border-radius: 15px;
-          background: color-mix(in srgb, var(--pink, var(--primary-color)) 16%, transparent);
-          color: var(--pink, var(--primary-color));
-        }
-        .banner-icon ha-icon { width: 20px; }
-        .banner-content { min-width: 0; }
-        .banner-message {
+        .heading {
+          margin: 0;
           color: var(--contrast20, var(--primary-text-color));
+          font-family: var(--primary-font-family, Inter, system-ui, sans-serif);
           font-size: 15px;
+          font-weight: 680;
+          letter-spacing: -0.015em;
+        }
+        .summary {
+          flex: 1;
+          color: var(--contrast8, var(--secondary-text-color));
+          font-size: 11px;
+          font-weight: 560;
+        }
+        .add {
+          display: inline-flex;
+          min-height: 34px;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          border: 0;
+          border-radius: 12px;
+          padding: 0 11px;
+          background: var(--contrast4, rgba(var(--rgb-primary-text-color), 0.08));
+          color: var(--contrast17, var(--primary-text-color));
+          font-size: 11px;
+          font-weight: 680;
+          cursor: pointer;
+          transition: background 140ms ease, color 140ms ease, transform 120ms ease;
+        }
+        .add:hover { background: var(--contrast5); color: var(--contrast20); }
+        .add:active { transform: scale(0.98); }
+        .add ha-icon { width: 15px; }
+
+        .announcement-list { border-top: 1px solid var(--contrast4); }
+        .announcement {
+          display: grid;
+          grid-template-columns: 38px minmax(0, 1fr) 34px;
+          align-items: center;
+          gap: 12px;
+          min-height: 66px;
+          padding: 9px 0;
+        }
+        .announcement + .announcement { border-top: 1px solid var(--contrast4); }
+        .avatar {
+          display: grid;
+          width: 36px;
+          height: 36px;
+          place-items: center;
+          border: 1px solid color-mix(in srgb, var(--avatar-color) 26%, transparent);
+          border-radius: 13px;
+          background: color-mix(in srgb, var(--avatar-color) 14%, var(--contrast3));
+          color: var(--avatar-color);
+          font-family: var(--primary-font-family, Inter, system-ui, sans-serif);
+          font-size: 12px;
+          font-weight: 760;
+          letter-spacing: 0.02em;
+        }
+        .announcement-content { min-width: 0; }
+        .message {
+          color: var(--contrast20, var(--primary-text-color));
+          font-size: 14px;
           font-weight: 610;
-          line-height: 1.35;
+          line-height: 1.38;
           overflow-wrap: anywhere;
         }
-        .banner-meta {
-          margin-top: 4px;
-          color: var(--contrast10, var(--secondary-text-color));
+        .meta {
+          margin-top: 3px;
+          color: var(--contrast9, var(--secondary-text-color));
           font-size: 10.5px;
-          font-weight: 540;
+          font-weight: 520;
+          line-height: 1.35;
         }
-        .dismiss {
+        .remove {
           display: grid;
-          width: 34px;
-          height: 34px;
+          width: 32px;
+          height: 32px;
+          place-items: center;
+          border: 0;
+          border-radius: 11px;
+          background: transparent;
+          color: var(--contrast8, var(--secondary-text-color));
+          cursor: pointer;
+          transition: background 140ms ease, color 140ms ease;
+        }
+        .remove:hover { background: var(--contrast4); color: var(--contrast18); }
+        .remove:disabled { cursor: default; opacity: 0.32; }
+        .remove ha-icon { width: 17px; }
+        .remove-spacer { width: 32px; height: 32px; }
+        .empty {
+          display: flex;
+          min-height: 48px;
+          align-items: center;
+          border-top: 1px solid var(--contrast4);
+          color: var(--contrast9, var(--secondary-text-color));
+          font-size: 12px;
+        }
+
+        dialog {
+          width: min(520px, calc(100vw - 48px));
+          max-height: calc(100vh - 48px);
+          overflow: auto;
+          margin: auto;
+          border: 1px solid var(--contrast5);
+          border-radius: 28px;
+          padding: 0;
+          background: var(--contrast2, var(--ha-card-background));
+          box-shadow: 0 24px 90px rgba(0, 0, 0, 0.55);
+          color: var(--primary-text-color);
+        }
+        dialog::backdrop {
+          background: rgba(2, 4, 8, 0.76);
+          backdrop-filter: blur(5px);
+        }
+        .dialog-shell { padding: 22px; }
+        .dialog-header { display: flex; align-items: flex-start; gap: 14px; }
+        .dialog-title { min-width: 0; flex: 1; }
+        .dialog-title h2 {
+          margin: 0;
+          color: var(--contrast20);
+          font-family: var(--primary-font-family, Inter, system-ui, sans-serif);
+          font-size: 21px;
+          font-weight: 720;
+          letter-spacing: -0.025em;
+        }
+        .dialog-title p {
+          margin: 5px 0 0;
+          color: var(--contrast9);
+          font-size: 11px;
+          line-height: 1.45;
+        }
+        .dialog-close {
+          display: grid;
+          width: 36px;
+          height: 36px;
+          flex: 0 0 36px;
           place-items: center;
           border: 0;
           border-radius: 12px;
-          background: transparent;
-          color: var(--contrast9, var(--secondary-text-color));
-          cursor: pointer;
-        }
-        .dismiss:hover { background: var(--contrast4); color: var(--contrast18); }
-        .dismiss:disabled { cursor: default; opacity: 0.35; }
-        .dismiss ha-icon { width: 18px; }
-
-        .composer {
-          padding: 18px;
-          border: 1px solid rgba(var(--rgb-primary-text-color), 0.06);
-          border-radius: 24px;
-          background: var(--contrast2, var(--ha-card-background));
-        }
-        .composer-header { display: flex; align-items: center; gap: 11px; margin-bottom: 15px; }
-        .composer-icon {
-          display: grid;
-          width: 38px;
-          height: 38px;
-          flex: 0 0 38px;
-          place-items: center;
-          border-radius: 14px;
-          background: color-mix(in srgb, var(--pink, var(--primary-color)) 15%, transparent);
-          color: var(--pink, var(--primary-color));
-        }
-        .composer-icon ha-icon { width: 19px; }
-        .composer-heading { min-width: 0; flex: 1; }
-        h2 { margin: 0; color: var(--contrast20); font-size: 17px; font-weight: 680; letter-spacing: -0.02em; }
-        .subtitle { margin-top: 2px; color: var(--contrast9); font-size: 10px; line-height: 1.3; }
-        .count {
-          padding: 5px 9px;
-          border-radius: 999px;
           background: var(--contrast4);
           color: var(--contrast11);
-          font-size: 10px;
+          cursor: pointer;
+        }
+        .dialog-close:hover { color: var(--contrast20); }
+        .dialog-close ha-icon { width: 18px; }
+        .field-label {
+          display: block;
+          margin: 20px 0 8px 2px;
+          color: var(--contrast12, var(--secondary-text-color));
+          font-size: 11px;
           font-weight: 650;
-          white-space: nowrap;
         }
         textarea, input[type="datetime-local"] {
-          box-sizing: border-box;
           width: 100%;
-          border: 1px solid var(--contrast5, rgba(var(--rgb-primary-text-color), 0.12));
+          border: 1px solid var(--contrast5);
           outline: 0;
           background: var(--contrast1, var(--primary-background-color));
           color: var(--contrast20, var(--primary-text-color));
-          font: inherit;
           transition: border-color 140ms ease, box-shadow 140ms ease;
         }
         textarea {
-          min-height: 78px;
-          padding: 12px 13px;
+          min-height: 112px;
+          padding: 14px 15px;
           resize: vertical;
-          border-radius: 16px;
-          font-size: 13px;
-          line-height: 1.45;
+          border-radius: 17px;
+          font-size: 14px;
+          line-height: 1.48;
         }
         textarea::placeholder { color: var(--contrast8); }
         textarea:focus, input[type="datetime-local"]:focus {
           border-color: var(--pink, var(--primary-color));
-          box-shadow: 0 0 0 3px color-mix(in srgb, var(--pink, var(--primary-color)) 15%, transparent);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--pink, var(--primary-color)) 14%, transparent);
         }
-        .draft-meta {
+        .field-meta {
           display: flex;
           justify-content: space-between;
-          margin: 6px 2px 12px;
+          margin: 6px 2px 0;
           color: var(--contrast8);
           font-size: 10px;
         }
-        .duration-label { margin: 0 0 7px 2px; color: var(--contrast10); font-size: 10.5px; font-weight: 620; }
-        .durations { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+        .durations { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
         .duration {
-          min-height: 34px;
+          min-height: 38px;
           border: 0;
-          border-radius: 11px;
+          border-radius: 12px;
+          padding: 0 8px;
           background: var(--contrast4);
           color: var(--contrast10);
-          font: inherit;
-          font-size: 10.5px;
-          font-weight: 620;
+          font-size: 11px;
+          font-weight: 640;
           cursor: pointer;
         }
+        .duration:hover { color: var(--contrast18); }
         .duration.active {
-          background: color-mix(in srgb, var(--pink, var(--primary-color)) 18%, transparent);
+          background: color-mix(in srgb, var(--pink, var(--primary-color)) 18%, var(--contrast3));
           color: var(--pink, var(--primary-color));
         }
-        .custom-time { display: none; margin-top: 8px; }
+        .custom-time { display: none; margin-top: 9px; }
         .custom-time.visible { display: block; }
-        input[type="datetime-local"] { height: 40px; padding: 0 11px; border-radius: 13px; color-scheme: dark; font-size: 11px; }
-        .composer-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
-        .delivery { min-width: 0; flex: 1; color: var(--contrast8); font-size: 9.5px; line-height: 1.3; }
-        .publish {
+        input[type="datetime-local"] {
+          height: 44px;
+          padding: 0 12px;
+          border-radius: 14px;
+          color-scheme: dark;
+          font-size: 12px;
+        }
+        .error { min-height: 0; color: var(--red, var(--error-color)); font-size: 11px; }
+        .error.visible { min-height: 16px; margin-top: 10px; }
+        .dialog-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+          margin-top: 18px;
+        }
+        .dialog-action {
           display: inline-flex;
-          min-height: 40px;
+          min-height: 42px;
           align-items: center;
           justify-content: center;
           gap: 7px;
           border: 0;
           border-radius: 14px;
           padding: 0 16px;
-          background: var(--pink, var(--primary-color));
-          color: var(--black, #09090b);
-          font: inherit;
           font-size: 12px;
           font-weight: 700;
           cursor: pointer;
         }
+        .cancel { background: var(--contrast4); color: var(--contrast12); }
+        .publish { background: var(--pink, var(--primary-color)); color: var(--black, #09090b); }
         .publish:disabled { cursor: default; opacity: 0.38; }
         .publish ha-icon { width: 17px; }
-        .error { min-height: 0; color: var(--red, var(--error-color)); font-size: 10.5px; }
-        .error.visible { min-height: 15px; margin-top: 8px; }
-        button:focus-visible { outline: 2px solid var(--pink, var(--primary-color)); outline-offset: 2px; }
+
         @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
       </style>
-      <div class="root"></div>
-    `;
-
-    if (this._config.mode === "composer") this._buildComposer();
-    this._update();
-  }
-
-  _buildComposer() {
-    const root = this.shadowRoot.querySelector(".root");
-    root.innerHTML = `
-      <ha-card class="composer">
-        <div class="composer-header">
-          <div class="composer-icon"><ha-icon icon="mdi:bullhorn-outline"></ha-icon></div>
-          <div class="composer-heading"><h2>Announcements</h2><div class="subtitle">Banner everyone sees · notification to family phones</div></div>
-          <div class="count"></div>
+      <ha-card class="bulletin">
+        <div class="bulletin-header">
+          <h2 class="heading">Announcements</h2>
+          <div class="summary"></div>
+          <button type="button" class="add"><ha-icon icon="mdi:plus"></ha-icon>Add</button>
         </div>
-        <textarea maxlength="180" placeholder="Dinner is at 8, plumber arriving at 11…" aria-label="Announcement message"></textarea>
-        <div class="draft-meta"><span>Ctrl + Enter to publish</span><span class="counter">0/180</span></div>
-        <div class="duration-label">Keep banner visible</div>
-        <div class="durations" role="group" aria-label="Announcement duration">
-          <button type="button" class="duration active" data-duration="cleared">Until cleared</button>
-          <button type="button" class="duration" data-duration="2h">2 hours</button>
-          <button type="button" class="duration" data-duration="tonight">Tonight</button>
-          <button type="button" class="duration" data-duration="custom">Custom</button>
-        </div>
-        <div class="custom-time"><input type="datetime-local" aria-label="Announcement end time"></div>
-        <div class="composer-actions">
-          <div class="delivery">The signed-in account is shown as the sender.</div>
-          <button type="button" class="publish"><ha-icon icon="mdi:send"></ha-icon>Publish</button>
-        </div>
-        <div class="error" role="alert"></div>
+        <div class="content"></div>
       </ha-card>
+      <dialog aria-labelledby="announcement-dialog-title">
+        <div class="dialog-shell">
+          <div class="dialog-header">
+            <div class="dialog-title">
+              <h2 id="announcement-dialog-title">New announcement</h2>
+              <p>Everyone will see it here and receive it on their phone.</p>
+            </div>
+            <button type="button" class="dialog-close" aria-label="Close"><ha-icon icon="mdi:close"></ha-icon></button>
+          </div>
+          <label class="field-label" for="announcement-message">Message</label>
+          <textarea id="announcement-message" maxlength="180" placeholder="Dinner will be ready at 8…"></textarea>
+          <div class="field-meta"><span>Ctrl + Enter to publish</span><span class="counter">0/180</span></div>
+          <div class="field-label">Keep visible</div>
+          <div class="durations" role="group" aria-label="Announcement duration">
+            <button type="button" class="duration active" data-duration="cleared">Until removed</button>
+            <button type="button" class="duration" data-duration="2h">2 hours</button>
+            <button type="button" class="duration" data-duration="tonight">Tonight</button>
+            <button type="button" class="duration" data-duration="custom">Custom</button>
+          </div>
+          <div class="custom-time"><input type="datetime-local" aria-label="Announcement end time"></div>
+          <div class="error" role="alert"></div>
+          <div class="dialog-actions">
+            <button type="button" class="dialog-action cancel">Cancel</button>
+            <button type="button" class="dialog-action publish"><ha-icon icon="mdi:send"></ha-icon>Publish</button>
+          </div>
+        </div>
+      </dialog>
     `;
-    const textarea = root.querySelector("textarea");
+
+    this.shadowRoot.querySelector(".add").addEventListener("click", (event) => this._openDialog(event.currentTarget));
+    this.shadowRoot.querySelector(".dialog-close").addEventListener("click", () => this._closeDialog());
+    this.shadowRoot.querySelector(".cancel").addEventListener("click", () => this._closeDialog());
+    const dialog = this.shadowRoot.querySelector("dialog");
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) this._closeDialog();
+    });
+    dialog.addEventListener("cancel", (event) => {
+      if (this._busy) event.preventDefault();
+    });
+    dialog.addEventListener("close", () => {
+      this._resetDraft();
+      this._returnFocus?.focus();
+      this._returnFocus = null;
+    });
+    const textarea = this.shadowRoot.querySelector("textarea");
     textarea.addEventListener("input", (event) => {
       this._draft = event.target.value;
       this._error = "";
-      this._updateComposer();
+      this._updateDialog();
     });
     textarea.addEventListener("keydown", (event) => {
       if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
@@ -260,18 +368,19 @@ class FamilyAnnouncementsCard extends HTMLElement {
         this._publish();
       }
     });
-    root.querySelectorAll(".duration").forEach((button) => button.addEventListener("click", () => {
+    this.shadowRoot.querySelectorAll(".duration").forEach((button) => button.addEventListener("click", () => {
       this._duration = button.dataset.duration;
       if (this._duration === "custom" && !this._customUntil) this._customUntil = this._defaultUntil();
       this._error = "";
-      this._updateComposer();
+      this._updateDialog();
     }));
-    root.querySelector("input[type='datetime-local']").addEventListener("input", (event) => {
+    this.shadowRoot.querySelector("input[type='datetime-local']").addEventListener("input", (event) => {
       this._customUntil = event.target.value;
       this._error = "";
-      this._updateComposer();
+      this._updateDialog();
     });
-    root.querySelector(".publish").addEventListener("click", () => this._publish());
+    this.shadowRoot.querySelector(".publish").addEventListener("click", () => this._publish());
+    this._update();
   }
 
   _announcements() {
@@ -280,78 +389,93 @@ class FamilyAnnouncementsCard extends HTMLElement {
   }
 
   _update() {
-    if (!this._config || !this.shadowRoot.querySelector(".root")) return;
-    if (this._config.mode === "composer") this._updateComposer();
-    else this._updateBanners();
+    if (!this._config || !this.shadowRoot.querySelector(".content")) return;
+    this._updateBulletin();
+    this._updateDialog();
   }
 
-  _updateBanners() {
+  _updateBulletin() {
     const announcements = this._announcements();
-    this.hidden = announcements.length === 0;
-    const root = this.shadowRoot.querySelector(".root");
-    root.replaceChildren();
-    if (!announcements.length) return;
+    const summary = this.shadowRoot.querySelector(".summary");
+    summary.textContent = announcements.length ? `· ${announcements.length}` : "";
+    const content = this.shadowRoot.querySelector(".content");
+    content.replaceChildren();
+
+    if (!announcements.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "Nothing shared right now.";
+      content.append(empty);
+      return;
+    }
 
     const list = document.createElement("div");
-    list.className = "banner-list";
+    list.className = "announcement-list";
     list.setAttribute("role", "region");
     list.setAttribute("aria-label", "Family announcements");
-    announcements.forEach((announcement) => {
-      const banner = document.createElement("ha-card");
-      banner.className = "banner";
-
-      const icon = document.createElement("div");
-      icon.className = "banner-icon";
-      icon.innerHTML = '<ha-icon icon="mdi:bullhorn-outline"></ha-icon>';
-
-      const content = document.createElement("div");
-      content.className = "banner-content";
-      const message = document.createElement("div");
-      message.className = "banner-message";
-      message.textContent = announcement.message || "";
-      const meta = document.createElement("div");
-      meta.className = "banner-meta";
-      meta.textContent = this._meta(announcement);
-      content.append(message, meta);
-
-      const dismiss = document.createElement("button");
-      dismiss.type = "button";
-      dismiss.className = "dismiss";
-      dismiss.title = "Dismiss announcement";
-      dismiss.setAttribute("aria-label", `Dismiss announcement from ${announcement.sender_name || announcement.sender_username}`);
-      dismiss.disabled = this._dismissing.has(announcement.id);
-      dismiss.innerHTML = '<ha-icon icon="mdi:close"></ha-icon>';
-      dismiss.addEventListener("click", () => this._dismiss(announcement.id));
-
-      banner.append(icon, content, dismiss);
-      list.append(banner);
-    });
-    root.append(list);
+    announcements.forEach((announcement) => list.append(this._announcementRow(announcement)));
+    content.append(list);
   }
 
-  _updateComposer() {
-    const root = this.shadowRoot.querySelector(".root");
-    const textarea = root.querySelector("textarea");
-    if (!textarea) return;
-    if (textarea.value !== this._draft) textarea.value = this._draft;
-    root.querySelector(".counter").textContent = `${this._draft.length}/180`;
-    const count = this._announcements().length;
-    root.querySelector(".count").textContent = count ? `${count} active` : "None active";
-    root.querySelectorAll(".duration").forEach((button) => button.classList.toggle("active", button.dataset.duration === this._duration));
-    const custom = root.querySelector(".custom-time");
-    custom.classList.toggle("visible", this._duration === "custom");
-    const input = custom.querySelector("input");
-    if (input.value !== this._customUntil) input.value = this._customUntil;
-    root.querySelector(".publish").disabled = this._busy || !this._draft.trim();
-    const error = root.querySelector(".error");
-    error.textContent = this._error;
-    error.classList.toggle("visible", Boolean(this._error));
+  _announcementRow(announcement) {
+    const row = document.createElement("div");
+    row.className = "announcement";
+
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    avatar.style.setProperty("--avatar-color", this._senderColor(announcement.sender_user_id));
+    avatar.textContent = this._initials(announcement.sender_name || announcement.sender_username);
+    avatar.title = announcement.sender_name || announcement.sender_username || "Home Assistant";
+
+    const content = document.createElement("div");
+    content.className = "announcement-content";
+    const message = document.createElement("div");
+    message.className = "message";
+    message.textContent = announcement.message || "";
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    meta.textContent = this._meta(announcement);
+    content.append(message, meta);
+
+    if (this._canDismiss(announcement)) {
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "remove";
+      remove.title = "Remove announcement";
+      remove.setAttribute("aria-label", `Remove announcement from ${announcement.sender_name || announcement.sender_username}`);
+      remove.disabled = this._dismissing.has(announcement.id);
+      remove.innerHTML = '<ha-icon icon="mdi:close"></ha-icon>';
+      remove.addEventListener("click", () => this._dismiss(announcement.id));
+      row.append(avatar, content, remove);
+    } else {
+      const spacer = document.createElement("div");
+      spacer.className = "remove-spacer";
+      spacer.setAttribute("aria-hidden", "true");
+      row.append(avatar, content, spacer);
+    }
+    return row;
+  }
+
+  _canDismiss(announcement) {
+    const user = this._hass?.user;
+    return Boolean(user?.is_admin || (user?.id && user.id === announcement.sender_user_id));
+  }
+
+  _initials(value) {
+    const parts = String(value || "HA").trim().split(/\s+/).filter(Boolean);
+    return parts.slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "HA";
+  }
+
+  _senderColor(value) {
+    const palette = ["var(--pink)", "var(--blue)", "var(--teal)", "var(--yellow)", "var(--purple)"];
+    const hash = [...String(value || "home-assistant")].reduce((total, char) => total + char.charCodeAt(0), 0);
+    return palette[hash % palette.length];
   }
 
   _meta(announcement) {
     const sender = announcement.sender_name || `@${announcement.sender_username}` || "Home Assistant";
     const created = this._relativeTime(announcement.created_at);
-    const expiry = announcement.expires_at ? ` · until ${this._formatTime(announcement.expires_at)}` : "";
+    const expiry = announcement.expires_at ? ` · Until ${this._formatExpiry(announcement.expires_at)}` : " · Until removed";
     return `${sender} · ${created}${expiry}`;
   }
 
@@ -366,10 +490,58 @@ class FamilyAnnouncementsCard extends HTMLElement {
     return date.toLocaleDateString([], { day: "numeric", month: "short" });
   }
 
-  _formatTime(value) {
+  _formatExpiry(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "later";
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const sameDay = (left, right) => left.getFullYear() === right.getFullYear()
+      && left.getMonth() === right.getMonth() && left.getDate() === right.getDate();
+    const time = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    if (sameDay(date, today)) return `today, ${time}`;
+    if (sameDay(date, tomorrow)) return `tomorrow, ${time}`;
     return date.toLocaleString([], { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  }
+
+  _openDialog(trigger) {
+    const dialog = this.shadowRoot.querySelector("dialog");
+    if (dialog.open) return;
+    this._returnFocus = trigger;
+    this._resetDraft();
+    dialog.showModal();
+    requestAnimationFrame(() => this.shadowRoot.querySelector("textarea").focus());
+  }
+
+  _closeDialog() {
+    const dialog = this.shadowRoot.querySelector("dialog");
+    if (dialog.open && !this._busy) dialog.close("cancel");
+  }
+
+  _resetDraft() {
+    this._draft = "";
+    this._duration = "cleared";
+    this._customUntil = "";
+    this._error = "";
+    this._updateDialog();
+  }
+
+  _updateDialog() {
+    const textarea = this.shadowRoot.querySelector("textarea");
+    if (!textarea) return;
+    if (textarea.value !== this._draft) textarea.value = this._draft;
+    this.shadowRoot.querySelector(".counter").textContent = `${this._draft.length}/180`;
+    this.shadowRoot.querySelectorAll(".duration").forEach((button) => button.classList.toggle("active", button.dataset.duration === this._duration));
+    const custom = this.shadowRoot.querySelector(".custom-time");
+    custom.classList.toggle("visible", this._duration === "custom");
+    const input = custom.querySelector("input");
+    if (input.value !== this._customUntil) input.value = this._customUntil;
+    this.shadowRoot.querySelector(".publish").disabled = this._busy || !this._draft.trim();
+    this.shadowRoot.querySelector(".dialog-close").disabled = this._busy;
+    this.shadowRoot.querySelector(".cancel").disabled = this._busy;
+    const error = this.shadowRoot.querySelector(".error");
+    error.textContent = this._error;
+    error.classList.toggle("visible", Boolean(this._error));
   }
 
   _defaultUntil() {
@@ -397,36 +569,34 @@ class FamilyAnnouncementsCard extends HTMLElement {
     const expiry = this._expiry();
     if (this._duration === "custom" && (!expiry || Number.isNaN(expiry.getTime()) || expiry.getTime() <= Date.now())) {
       this._error = "Choose an end time in the future.";
-      this._updateComposer();
+      this._updateDialog();
       return;
     }
     this._busy = true;
     this._error = "";
-    this._updateComposer();
+    this._updateDialog();
     try {
       const data = { message };
       if (expiry) data.expires_at = expiry.toISOString();
       await this._hass.callService("family_announcements", "publish", data);
-      this._draft = "";
-      this._duration = "cleared";
-      this._customUntil = "";
+      this.shadowRoot.querySelector("dialog").close("published");
     } catch (_error) {
-      this._error = "Could not publish. Check the connection and try again.";
+      this._error = "The announcement could not be published. Check the connection and try again.";
     } finally {
       this._busy = false;
-      this._updateComposer();
+      this._updateDialog();
     }
   }
 
   async _dismiss(announcementId) {
     if (!announcementId || this._dismissing.has(announcementId)) return;
     this._dismissing.add(announcementId);
-    this._updateBanners();
+    this._updateBulletin();
     try {
       await this._hass.callService("family_announcements", "dismiss", { announcement_id: announcementId });
     } catch (_error) {
       this._dismissing.delete(announcementId);
-      this._updateBanners();
+      this._updateBulletin();
     }
   }
 }
@@ -436,5 +606,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "family-announcements-card",
   name: "Family Announcements",
-  description: "Account-attributed family banners with a compact publisher.",
+  description: "A quiet family bulletin with account-attributed messages.",
 });

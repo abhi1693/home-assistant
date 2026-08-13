@@ -52,3 +52,13 @@ def active_announcements(
         active.append(dict(record))
     active.sort(key=lambda item: item.get("created_at", ""), reverse=True)
     return active[:MAX_ANNOUNCEMENTS]
+
+
+def can_dismiss(
+    record: dict[str, Any], actor_user_id: str | None, actor_is_admin: bool
+) -> bool:
+    """Return whether one authenticated user may remove a household message."""
+    return bool(
+        actor_user_id
+        and (actor_is_admin or record.get("sender_user_id") == actor_user_id)
+    )

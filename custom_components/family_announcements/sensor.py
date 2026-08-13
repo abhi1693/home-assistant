@@ -28,6 +28,7 @@ from .model import (
     MAX_ANNOUNCEMENTS,
     MAX_MESSAGE_LENGTH,
     active_announcements,
+    can_dismiss,
     normalize_message,
     parse_timestamp,
 )
@@ -139,18 +140,36 @@ class FamilyAnnouncementManager:
         await self._async_notify(record, call)
 
     async def async_dismiss(self, call: ServiceCall) -> None:
-        """Dismiss one announcement for the household."""
-        await self._async_sender(call)
+        """Dismiss one announcement when requested by its sender or an admin."""
+        actor_user_id = call.context.user_id
+        actor = (
+            await self.hass.auth.async_get_user(actor_user_id)
+            if actor_user_id is not None
+            else None
+        )
+        if actor is None or not actor.is_active:
+            raise HomeAssistantError(
+                "An authenticated account is required to remove an announcement"
+            )
         announcement_id = call.data[ATTR_ANNOUNCEMENT_ID]
         async with self._lock:
-            remaining = [
-                record
-                for record in self._records
-                if record["id"] != announcement_id
-            ]
-            if len(remaining) == len(self._records):
+            record = next(
+                (
+                    item
+                    for item in self._records
+                    if item["id"] == announcement_id
+                ),
+                None,
+            )
+            if record is None:
                 raise HomeAssistantError("Announcement no longer exists")
-            self._records = remaining
+            if not can_dismiss(record, actor_user_id, actor.is_admin):
+                raise HomeAssistantError(
+                    "Only the sender or an administrator can remove this announcement"
+                )
+            self._records = [
+                item for item in self._records if item["id"] != announcement_id
+            ]
             await self._async_save()
             self._state_changed()
             self._schedule_next_expiry()

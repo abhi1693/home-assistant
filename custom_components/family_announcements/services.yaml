@@ -19,7 +19,7 @@ publish:
         datetime:
 dismiss:
   name: Dismiss announcement
-  description: Remove one active announcement from the family dashboard.
+  description: Remove one active announcement as its sender or an administrator.
   fields:
     announcement_id:
       name: Announcement ID
