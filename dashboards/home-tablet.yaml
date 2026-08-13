@@ -600,6 +600,9 @@ views:
                 border-radius: 30px;
                 box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
               }
+              .navbar-popup {
+                z-index: 1000 !important;
+              }
           - type: grid
             square: false
             columns: 6
