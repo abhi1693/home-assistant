@@ -12,7 +12,7 @@ import voluptuous as vol
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA, SensorEntity
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -182,7 +182,7 @@ async def _async_require_admin(hass: HomeAssistant, call: ServiceCall) -> None:
     user_id = call.context.user_id
     user = await hass.auth.async_get_user(user_id) if user_id else None
     if user is None or not user.is_active or not user.is_admin:
-        raise HomeAssistantError(
+        raise ServiceValidationError(
             "An active Home Assistant administrator is required to manage requests"
         )
 
@@ -220,7 +220,7 @@ async def async_setup_platform(
                     item.get("id") for item in (coordinator.data or [])
                 }
             if request_id not in pending_ids:
-                raise HomeAssistantError("This request is no longer pending")
+                raise ServiceValidationError("This request is no longer pending")
             await client.async_set_status(request_id, status)
             await coordinator.async_refresh()
 
