@@ -831,11 +831,11 @@ views:
                         display_order: none
                         icon: mdi:cart-outline
                     show_pagination: false
-                    show_icons: true
+                    show_icons: false
                     show_addbutton: true
                     show_create: true
                     show_completed: true
-                    show_completed_menu: true
+                    show_completed_menu: false
                     enable_search: false
                     delete_confirmation: true
                     card_spacing: 0
