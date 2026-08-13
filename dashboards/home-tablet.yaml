@@ -329,9 +329,11 @@ button_card_templates:
           };
           const phoneBatteryEntity = user?.id === '8117b77542614a06b4672a8ae1a979b5'
             ? 'sensor.pixel_10_pro_battery_level'
+            : user?.id === '734722ec932a41a68d47553b6c2f7f5d'
+              ? 'sensor.iphone_battery_level'
             : user?.id === '9302d11f48c64fe796a3c9e5cb563650'
-              ? 'sensor.pixel_8_battery_level'
-              : null;
+                ? 'sensor.pixel_8_battery_level'
+                : null;
           const battery = Number(states[phoneBatteryEntity]?.state);
           if (phoneBatteryEntity && Number.isFinite(battery) && battery < 25) return {
             name: 'Phone battery', label: `${Math.round(battery)}%`,

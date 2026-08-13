@@ -80,11 +80,12 @@ Home Assistant starts. It then generates the Lovelace user include files and
 reconciles non-owner permission groups and frontend defaults from the same
 document without overwriting personal theme or locale preferences.
 
-The managed family profiles are Abhimanyu and Krishna. Krishna's person is
-GitOps-linked to both the UniFi and Home Assistant Companion App trackers for
-her Pixel 10 Pro; Abhimanyu's person retains only his own PC and Pixel 8
-trackers. The Master Bedroom camera is rendered for Krishna but omitted from
-Abhimanyu and the browser-review profile. Because Abhimanyu is the Home
+The managed family profiles are Abhimanyu, Manisha and Krishna. Krishna's person
+is GitOps-linked to both the UniFi and Home Assistant Companion App trackers for
+her Pixel 10 Pro; Manisha's person is linked to her iPhone Companion App tracker;
+Abhimanyu's person retains only his own PC and Pixel 8 trackers. The Master
+Bedroom camera is rendered for Krishna but omitted from Manisha, Abhimanyu and
+the browser-review profile. Because Abhimanyu is the Home
 Assistant owner, hiding a camera from that profile can only be a presentation
 rule: owners always retain administrative entity access.
 Non-owner family profiles receive both Lovelace filtering and backend camera

@@ -98,6 +98,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("camera.g5_turret_ultra_high_resolution_channel", home_view)
         self.assertIn("user?.id === '9302d11f48c64fe796a3c9e5cb563650'", home)
         self.assertIn("user?.id === '8117b77542614a06b4672a8ae1a979b5'", home)
+        self.assertIn("user?.id === '734722ec932a41a68d47553b6c2f7f5d'", home)
+        self.assertIn("sensor.iphone_battery_level", home)
         self.assertNotIn("name: Living Fan 1", home_view)
         self.assertNotIn("name: Living Fan 2", home_view)
 

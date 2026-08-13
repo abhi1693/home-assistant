@@ -541,6 +541,13 @@ class BootstrapTests(unittest.TestCase):
             profiles["krishna"]["device_trackers"],
             ["device_tracker.pixel_10_pro", "device_tracker.pixel_10_pro_2"],
         )
+        self.assertEqual(profiles["manisha"]["username"], "manisha")
+        self.assertEqual(profiles["manisha"]["person_entity_id"], "person.manisha")
+        self.assertEqual(
+            profiles["manisha"]["device_trackers"], ["device_tracker.iphone"]
+        )
+        self.assertEqual(profiles["manisha"]["cameras"], ["hallway", "outside"])
+        self.assertTrue(profiles["manisha"]["enforce_camera_policy"])
         self.assertEqual(
             [
                 profile_key

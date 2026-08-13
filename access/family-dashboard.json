@@ -44,6 +44,23 @@
       ],
       "notes": "Mother profile. Master Bedroom camera access is exclusive to Krishna among non-owner family accounts."
     },
+    "manisha": {
+      "user_id": "734722ec932a41a68d47553b6c2f7f5d",
+      "username": "manisha",
+      "person_entity_id": "person.manisha",
+      "person_name": "Manisha",
+      "device_trackers": [
+        "device_tracker.iphone"
+      ],
+      "is_owner": false,
+      "default_dashboard": "home-tablet",
+      "enforce_camera_policy": true,
+      "cameras": [
+        "hallway",
+        "outside"
+      ],
+      "notes": "Wife profile. Master Bedroom camera remains exclusive to Krishna among non-owner family accounts."
+    },
     "codex-dashboard-reviewer": {
       "user_id": "2d1be8070c364e6a9ba70103c007d4d0",
       "username": "codex-dashboard-review",
