@@ -336,6 +336,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("dialog.showModal()", card)
         self.assertNotIn("<select", card)
         self.assertIn("await this._cancelTimer(unit);", card)
+        self.assertIn("await this._afterTimerCancellation(", card)
+        self.assertIn("The timer was cancelled, but the fan did not accept", card)
         self.assertIn("this._busy.has(index)", card)
         self.assertIn("fingerprint !== this._lastFingerprint", card)
         self.assertIn("min-height:56px", card)

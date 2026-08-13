@@ -412,8 +412,11 @@ class FamilyFanCard extends HTMLElement {
     if (action === "power") {
       const running = this._running(unit);
       await this._runUnit(index, async () => {
-        await this._cancelTimer(unit);
-        await this._callService("fan", running ? "turn_off" : "turn_on", {}, unit.fan);
+        await this._afterTimerCancellation(
+          unit,
+          "The timer was cancelled, but the fan did not accept the power command.",
+          () => this._callService("fan", running ? "turn_off" : "turn_on", {}, unit.fan),
+        );
       });
     } else if (action === "speed-up" || action === "speed-down") {
       const current = this._speed(this._state(unit.fan)) || 1;
@@ -422,8 +425,16 @@ class FamilyFanCard extends HTMLElement {
       const percentage = FAMILY_FAN_SPEEDS[next - 1].percentage;
       const running = this._running(unit);
       await this._runUnit(index, async () => {
-        if (!running) await this._cancelTimer(unit);
-        await this._callService("fan", running ? "set_percentage" : "turn_on", { percentage }, unit.fan);
+        const setSpeed = () => this._callService("fan", running ? "set_percentage" : "turn_on", { percentage }, unit.fan);
+        if (running) {
+          await setSpeed();
+        } else {
+          await this._afterTimerCancellation(
+            unit,
+            "The timer was cancelled, but the fan did not accept the new speed.",
+            setSpeed,
+          );
+        }
       });
     } else if (action === "led" && this._running(unit)) {
       const service = this._state(unit.led)?.state === "on" ? "turn_off" : "turn_on";
@@ -440,11 +451,22 @@ class FamilyFanCard extends HTMLElement {
   }
 
   async _cancelTimer(unit) {
-    if (!this._timerActive(unit)) return;
+    if (!this._timerActive(unit)) return false;
     try {
       await this._callService("select", "select_option", { option: "Off" }, unit.timer);
+      return true;
     } catch (_error) {
       throw new Error("The timer could not be cancelled, so the fan was not changed.");
+    }
+  }
+
+  async _afterTimerCancellation(unit, failureMessage, task) {
+    const timerCancelled = await this._cancelTimer(unit);
+    try {
+      await task();
+    } catch (error) {
+      if (timerCancelled) throw new Error(failureMessage);
+      throw error;
     }
   }
 
@@ -453,8 +475,11 @@ class FamilyFanCard extends HTMLElement {
       .map((unit, index) => ({ unit, index }))
       .filter(({ unit, index }) => this._running(unit) && !this._busy.has(index));
     await Promise.all(actions.map(({ unit, index }) => this._runUnit(index, async () => {
-      await this._cancelTimer(unit);
-      await this._callService("fan", "turn_off", {}, unit.fan);
+      await this._afterTimerCancellation(
+        unit,
+        "The timer was cancelled, but the fan did not turn off.",
+        () => this._callService("fan", "turn_off", {}, unit.fan),
+      );
     })));
   }
 
