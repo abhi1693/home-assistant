@@ -13,6 +13,12 @@ without drilling through menus. Mobile-specific design is intentionally deferred
 The native Home Assistant sidebar is hidden on these kiosk views so it does not
 compete with the family navigation rail.
 
+Home's status strip is one quiet visual sentence rather than a row of competing
+cards: borderless weather, comfort, humidity, fan, camera and shopping signals
+share the same typography and spacing. Icon color is semantic—normal inactive
+states stay muted, while activity, degraded availability and items needing
+attention receive color.
+
 ## Dashboards
 
 - **Home** is family-facing and desktop-first. Its four views cover the household
