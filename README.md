@@ -59,8 +59,9 @@ Living Room; Krishna sees Master
 Bedroom, Kitchen, Living Room and Dining Room; Manisha sees Bedroom, Kitchen,
 Living Room and Guest Room. The browser-review profile sees no favourites.
 The Living Room summary combines both fans. The full Rooms view uses a
-source-owned, quota-conscious component with direct Power and LED controls, six
-real speed choices including Boost, Sleep mode, 1/2/3/6-hour timers,
+source-owned, quota-conscious component with a prominent labelled Power action,
+six large speed choices including Boost, a clearly identified LED light, Sleep
+mode that lowers speed one step every two hours, and 1/2/3/6-hour Auto-off,
 active-state animation and an honest wall-power-or-network unavailable state.
 Living Room keeps both fans in one double-width card with an All off action;
 the other rooms form a consistent three-column desktop grid. Choosing a speed
@@ -235,7 +236,7 @@ unregisters the built-in `/home/overview` panel on every startup, leaving the
 custom `Home` and `Rack` dashboards as the intentional dashboard surfaces.
 
 The Atomberg fork publishes successful command state immediately, polls all fan
-states once per hour, and persists hard limits of 100 total cloud calls and 24
+states once per hour, and persists hard limits of 1000 total cloud calls and 24
 poll calls per rolling 24 hours. Calls are spaced below five per second. Local
 UDP broadcasts remain the preferred zero-quota low-latency update path when
 they can reach Home Assistant. Atomberg's HTTP 403 explicit-deny quota response

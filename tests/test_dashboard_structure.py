@@ -293,7 +293,7 @@ class DashboardStructureTests(unittest.TestCase):
         )[0]
         card = (ROOT / "www/family-fan-card.js").read_text()
 
-        self.assertIn("/local/family-fan-card.js?v=1.0.1", configuration)
+        self.assertIn("/local/family-fan-card.js?v=1.1.0", configuration)
         self.assertEqual(rooms.count("type: custom:family-fan-card"), 7)
         self.assertEqual(rooms.count("type: custom:family-fan-summary-card"), 1)
         self.assertIn("max_columns: 3", rooms)
@@ -313,7 +313,13 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('"select", "select_option"', card)
         self.assertIn('service = this._state(unit.fan)?.state === "on"', card)
         self.assertIn('"fan", service, { percentage }, unit.fan', card)
-        self.assertIn("Check wall power or Wi-Fi", card)
+        self.assertIn("check wall power or Wi-Fi", card)
+        self.assertIn("Sleep mode", card)
+        self.assertIn("Auto-off", card)
+        self.assertIn("one speed every 2 hours", card)
+        self.assertIn("fingerprint !== this._lastFingerprint", card)
+        self.assertIn("this._timerRenderPending", card)
+        self.assertIn("min-height:46px", card)
 
 
 if __name__ == "__main__":

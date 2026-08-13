@@ -1488,7 +1488,7 @@ views:
             text_only: true
             content: |-
               # Rooms
-              Direct controls for every room. Choose one of six real fan speeds; LED, Sleep and Timer stay close at hand.
+              Simple controls for every room. Choose a speed, use the LED light, let Sleep mode lower speed one step every 2 hours, or set Auto-off.
             card_mod:
               style: |
                 ha-card { background: transparent; padding: 8px 0 4px; }

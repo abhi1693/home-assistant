@@ -22,6 +22,8 @@ class FamilyFanCard extends HTMLElement {
     this._hass = null;
     this._busy = new Set();
     this._error = "";
+    this._lastFingerprint = null;
+    this._timerRenderPending = false;
   }
 
   setConfig(config) {
@@ -34,12 +36,25 @@ class FamilyFanCard extends HTMLElement {
       }
     });
     this._config = config;
+    this._lastFingerprint = null;
     this._render();
   }
 
   set hass(hass) {
     this._hass = hass;
-    this._render();
+    const fingerprint = this._fingerprint();
+    if (fingerprint !== this._lastFingerprint) {
+      this._lastFingerprint = fingerprint;
+      const active = this.shadowRoot?.activeElement;
+      if (active?.matches?.('select[data-action="timer"]')) {
+        if (!this._timerRenderPending) {
+          this._timerRenderPending = true;
+          active.addEventListener("blur", () => this._render(), { once: true });
+        }
+        return;
+      }
+      this._render();
+    }
   }
 
   getCardSize() {
@@ -55,6 +70,23 @@ class FamilyFanCard extends HTMLElement {
     return Boolean(state && !["unknown", "unavailable"].includes(state.state));
   }
 
+  _fingerprint() {
+    if (!this._config || !this._hass) return "";
+    return JSON.stringify(this._config.fans.flatMap((unit) =>
+      [unit.fan, unit.led, unit.sleep, unit.timer, unit.timer_elapsed]
+        .filter(Boolean)
+        .map((entityId) => {
+          const entity = this._state(entityId);
+          return [
+            entityId,
+            entity?.state,
+            entity?.attributes?.percentage,
+            entity?.attributes?.options,
+            entity?.last_updated,
+          ];
+        })));
+  }
+
   _speed(state) {
     const percentage = Number(state?.attributes?.percentage);
     if (!Number.isFinite(percentage)) return null;
@@ -64,18 +96,18 @@ class FamilyFanCard extends HTMLElement {
   _status(unit) {
     const state = this._state(unit.fan);
     if (!state || ["unknown", "unavailable"].includes(state.state)) {
-      return "Unavailable · Check wall power or Wi-Fi";
+      return "Unavailable";
     }
     if (state.state !== "on") return "Off";
     const speed = this._speed(state);
     if (speed === 6) return "Boost";
-    return speed ? `On · Speed ${speed}` : "Running";
+    return speed ? `Speed ${speed}` : "Running";
   }
 
   _timerLabel(unit) {
     const timer = this._state(unit.timer);
     if (!timer || ["unknown", "unavailable", "Off"].includes(timer.state)) {
-      return "Timer";
+      return "Off";
     }
     const total = FAMILY_FAN_TIMER_MINUTES[timer.state];
     const elapsed = this._state(unit.timer_elapsed);
@@ -95,9 +127,15 @@ class FamilyFanCard extends HTMLElement {
     const units = this._config.fans;
     const available = units.filter((unit) => this._available(unit));
     const running = available.filter((unit) => this._state(unit.fan)?.state === "on");
-    if (!available.length) return "No fans reachable";
-    if (!running.length) return available.length === units.length ? "Quiet and ready" : `${available.length} ready`;
-    if (running.length === 1) return this._status(running[0]);
+    if (!available.length) return `${units.length === 1 ? "Fan" : "Fans"} unavailable · check wall power or Wi-Fi`;
+    if (!running.length) {
+      if (units.length === 1) return "Fan is off";
+      return available.length === units.length ? "Both fans are off" : `${available.length} of ${units.length} fans ready`;
+    }
+    if (running.length === 1) {
+      const status = this._status(running[0]);
+      return units.length === 1 ? `Running · ${status}` : `${running[0].name || "One fan"} · ${status}`;
+    }
     return `${running.length} fans running`;
   }
 
@@ -127,16 +165,22 @@ class FamilyFanCard extends HTMLElement {
     const timerOn = timerState && !["Off", "unknown", "unavailable"].includes(timerState);
     const disabled = available ? "" : " disabled";
     const fanName = unit.name || (this._config.fans.length > 1 ? `Fan ${index + 1}` : "Fan");
+    const multiple = this._config.fans.length > 1;
+    const powerBusy = this._busy.has(`${index}:power`);
+    const ledBusy = this._busy.has(`${index}:led`);
+    const sleepBusy = this._busy.has(`${index}:sleep`);
+    const timerBusy = this._busy.has(`${index}:timer`);
+    const speedBusy = this._busy.has(`${index}:speed`);
     const spin = speed ? Math.max(0.55, 2.2 - speed * 0.25) : 1.4;
     const speeds = FAMILY_FAN_SPEEDS.map((item) => {
       const active = running && speed === item.speed ? " active" : "";
-      const busy = this._busy.has(`${index}:speed`) ? " busy" : "";
-      return `<button class="speed${active}${busy}" data-action="speed" data-index="${index}" data-percentage="${item.percentage}"${disabled} aria-label="Set ${this._escape(fanName)} to ${item.label === "Boost" ? "boost" : `speed ${item.label}`}" aria-pressed="${active ? "true" : "false"}">${item.label}</button>`;
+      const busy = speedBusy ? " busy" : "";
+      return `<button class="speed${active}${busy}" data-action="speed" data-index="${index}" data-percentage="${item.percentage}"${disabled || (speedBusy ? " disabled" : "")} aria-label="Set ${this._escape(fanName)} to ${item.label === "Boost" ? "boost" : `speed ${item.label}`}" aria-pressed="${active ? "true" : "false"}">${item.label}</button>`;
     }).join("");
 
     return `
-      <section class="fan-unit${running ? " running" : ""}${available ? "" : " unavailable"}" style="--fan-spin:${spin}s">
-        <div class="fan-heading">
+      <section class="fan-unit${multiple ? "" : " single"}${running ? " running" : ""}${available ? "" : " unavailable"}" style="--fan-spin:${spin}s">
+        ${multiple ? `<div class="fan-heading">
           <button class="fan-identity" data-action="more-info" data-index="${index}" aria-label="Open ${this._escape(fanName)} details">
             <span class="fan-icon"><ha-icon icon="mdi:fan"></ha-icon></span>
             <span class="fan-copy">
@@ -144,30 +188,39 @@ class FamilyFanCard extends HTMLElement {
               <span class="fan-status">${this._escape(this._status(unit))}</span>
             </span>
           </button>
-          <button class="power${running ? " active" : ""}" data-action="power" data-index="${index}"${disabled} aria-label="Turn ${this._escape(fanName)} ${running ? "off" : "on"}" aria-pressed="${running ? "true" : "false"}">
-            <ha-icon icon="mdi:power"></ha-icon>
-          </button>
-        </div>
+          ${this._powerButton(unit, index, fanName, running, available, powerBusy)}
+        </div>` : ""}
+        <div class="speed-heading"><span>Fan speed</span><span>${running ? (speed === 6 ? "Boost" : `Speed ${speed || "on"}`) : "Fan off"}</span></div>
         <div class="speed-row" aria-label="${this._escape(fanName)} speed">${speeds}</div>
         <div class="feature-row">
-          <button class="feature${ledOn ? " active led" : ""}" data-action="led" data-index="${index}"${disabled} aria-pressed="${ledOn ? "true" : "false"}">
-            <ha-icon icon="${ledOn ? "mdi:lightbulb-on-outline" : "mdi:lightbulb-outline"}"></ha-icon><span>LED</span>
+          <button class="feature${ledOn ? " active led" : ""}${ledBusy ? " busy" : ""}" data-action="led" data-index="${index}"${disabled || (ledBusy ? " disabled" : "")} aria-label="Turn ${this._escape(fanName)} LED light ${ledOn ? "off" : "on"}" aria-pressed="${ledOn ? "true" : "false"}" title="Fan light">
+            <span class="feature-icon"><ha-icon icon="${ledBusy ? "mdi:loading" : ledOn ? "mdi:lightbulb-on-outline" : "mdi:lightbulb-outline"}"></ha-icon></span>
+            <span class="feature-copy"><strong>LED light</strong><small>${ledBusy ? "Working…" : ledOn ? "On" : "Off"}</small></span>
           </button>
-          <button class="feature${sleepOn ? " active sleep" : ""}" data-action="sleep" data-index="${index}"${disabled} aria-pressed="${sleepOn ? "true" : "false"}">
-            <ha-icon icon="${sleepOn ? "mdi:power-sleep" : "mdi:sleep-off"}"></ha-icon><span>Sleep</span>
+          <button class="feature${sleepOn ? " active sleep" : ""}${sleepBusy ? " busy" : ""}" data-action="sleep" data-index="${index}"${disabled || (sleepBusy ? " disabled" : "")} aria-label="Turn ${this._escape(fanName)} sleep mode ${sleepOn ? "off" : "on"}" aria-pressed="${sleepOn ? "true" : "false"}" title="Lowers the fan by one speed every 2 hours">
+            <span class="feature-icon"><ha-icon icon="${sleepBusy ? "mdi:loading" : "mdi:weather-night"}"></ha-icon></span>
+            <span class="feature-copy"><strong>Sleep mode</strong><small>${sleepBusy ? "Working…" : sleepOn ? "On · 1 step / 2h" : "Off · 1 step / 2h"}</small></span>
           </button>
-          <label class="feature timer${timerOn ? " active" : ""}${available ? "" : " disabled"}">
-            <ha-icon icon="mdi:timer-outline"></ha-icon>
-            <span>${this._escape(this._timerLabel(unit))}</span>
+          <label class="feature timer${timerOn ? " active" : ""}${timerBusy ? " busy" : ""}${available ? "" : " disabled"}" title="Turn the fan off automatically">
+            <span class="feature-icon"><ha-icon icon="${timerBusy ? "mdi:loading" : "mdi:timer-outline"}"></ha-icon></span>
+            <span class="feature-copy"><strong>Auto-off</strong><small>${timerBusy ? "Working…" : this._escape(this._timerLabel(unit))}</small></span>
             <ha-icon class="chevron" icon="mdi:chevron-down"></ha-icon>
-            <select data-action="timer" data-index="${index}"${disabled} aria-label="Set ${this._escape(fanName)} timer">${this._timerOptions(unit)}</select>
+            <select data-action="timer" data-index="${index}"${disabled || (timerBusy ? " disabled" : "")} aria-label="Set ${this._escape(fanName)} auto-off timer">${this._timerOptions(unit)}</select>
           </label>
         </div>
       </section>`;
   }
 
+  _powerButton(unit, index, fanName, running, available, busy) {
+    const label = !available ? "Unavailable" : busy ? "Working…" : running ? "Turn off" : "Turn on";
+    return `<button class="power${running ? " active" : ""}${busy ? " busy" : ""}" data-action="power" data-index="${index}"${!available || busy ? " disabled" : ""} aria-label="${this._escape(label)} ${this._escape(fanName)}" aria-pressed="${running ? "true" : "false"}">
+      <ha-icon icon="${busy ? "mdi:loading" : "mdi:power"}"></ha-icon><span>${this._escape(label)}</span>
+    </button>`;
+  }
+
   _render() {
     if (!this._config) return;
+    this._timerRenderPending = false;
     const running = this._config.fans.some((unit) => this._state(unit.fan)?.state === "on");
     const multiple = this._config.fans.length > 1;
     const canAllOff = this._config.fans.some((unit) => this._available(unit) && this._state(unit.fan)?.state === "on");
@@ -178,18 +231,19 @@ class FamilyFanCard extends HTMLElement {
         button, select { font:inherit; -webkit-tap-highlight-color:transparent; }
         button:focus-visible, select:focus-visible { outline:2px solid var(--fan-accent, var(--pink)); outline-offset:2px; }
         ha-card { min-height:270px; overflow:hidden; border:1px solid ${running ? "color-mix(in srgb, var(--fan-accent, var(--pink)) 30%, transparent)" : "rgba(var(--rgb-primary-text-color), .055)"}; border-radius:26px; padding:18px; background:${running ? "color-mix(in srgb, var(--fan-accent, var(--pink)) 7%, var(--contrast2))" : "var(--contrast2, var(--ha-card-background))"}; box-shadow:none; transition:background 180ms ease,border-color 180ms ease; }
-        .room-heading { display:flex; min-height:44px; align-items:center; gap:12px; margin-bottom:14px; }
+        .room-heading { display:flex; min-height:48px; align-items:center; gap:12px; margin-bottom:16px; }
         .room-icon { display:grid; width:40px; height:40px; flex:0 0 40px; place-items:center; border-radius:14px; background:color-mix(in srgb, var(--fan-accent, var(--pink)) 13%, var(--contrast3)); color:var(--fan-accent, var(--pink)); }
         .room-icon ha-icon { width:21px; }
         .room-copy { display:grid; min-width:0; flex:1; gap:3px; }
         .room-name { display:block; color:var(--contrast20); font-family:var(--primary-font-family, Inter, system-ui, sans-serif); font-size:18px; font-weight:720; letter-spacing:-.025em; }
-        .room-status { display:block; color:var(--contrast9); font-size:11px; font-weight:540; }
-        .all-off { display:inline-flex; min-height:36px; align-items:center; gap:6px; border:0; border-radius:12px; padding:0 11px; background:var(--contrast4); color:var(--contrast13); font-size:11px; font-weight:680; cursor:pointer; }
+        .room-status { display:block; color:var(--contrast9); font-size:11px; font-weight:540; line-height:1.3; }
+        .all-off { display:inline-flex; min-height:46px; align-items:center; gap:7px; border:0; border-radius:14px; padding:0 14px; background:var(--contrast4); color:var(--contrast13); font-size:11px; font-weight:680; cursor:pointer; }
         .all-off:hover:not(:disabled) { background:var(--contrast5); color:var(--contrast20); }
         .all-off:disabled { cursor:default; opacity:.34; }
         .all-off ha-icon { width:16px; }
         .fan-list { display:grid; grid-template-columns:${multiple ? "repeat(2, minmax(0, 1fr))" : "1fr"}; gap:12px; }
-        .fan-unit { min-width:0; border:1px solid var(--contrast4); border-radius:20px; padding:13px; background:color-mix(in srgb, var(--contrast1) 55%, transparent); }
+        .fan-unit { min-width:0; border:1px solid var(--contrast4); border-radius:20px; padding:14px; background:color-mix(in srgb, var(--contrast1) 55%, transparent); }
+        .fan-unit.single { border:0; border-radius:0; padding:0; background:transparent; }
         .fan-unit.running { border-color:color-mix(in srgb, var(--fan-accent, var(--pink)) 24%, var(--contrast4)); }
         .fan-unit.unavailable { background:color-mix(in srgb, var(--contrast1) 28%, transparent); }
         .fan-heading { display:flex; align-items:center; gap:10px; }
@@ -203,29 +257,38 @@ class FamilyFanCard extends HTMLElement {
         .fan-name { overflow:hidden; color:var(--contrast19); font-size:14px; font-weight:690; text-overflow:ellipsis; white-space:nowrap; }
         .fan-status { overflow:hidden; color:var(--contrast9); font-size:10px; font-weight:540; text-overflow:ellipsis; white-space:nowrap; }
         .unavailable .fan-status { color:var(--contrast8); }
-        .power { display:grid; width:38px; height:38px; flex:0 0 38px; place-items:center; border:0; border-radius:13px; background:var(--contrast4); color:var(--contrast11); cursor:pointer; transition:transform 120ms ease,background 140ms ease,color 140ms ease; }
+        .power { display:flex; min-width:98px; min-height:48px; flex:0 0 auto; align-items:center; justify-content:center; gap:7px; border:0; border-radius:15px; padding:0 13px; background:var(--contrast4); color:var(--contrast13); font-size:11px; font-weight:720; cursor:pointer; transition:transform 120ms ease,background 140ms ease,color 140ms ease; }
         .power:hover:not(:disabled) { color:var(--contrast20); }
         .power.active { background:var(--fan-accent, var(--pink)); color:var(--black, #08090b); }
         .power:active:not(:disabled), .speed:active:not(:disabled), .feature:active:not(:disabled) { transform:scale(.96); }
         button:disabled, select:disabled, .feature.disabled { cursor:default; opacity:.32; }
-        .power ha-icon { width:19px; }
-        .speed-row { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:5px; margin-top:13px; }
-        .speed { min-width:0; height:36px; border:1px solid transparent; border-radius:11px; padding:0 3px; background:var(--contrast3); color:var(--contrast10); font-size:11px; font-weight:700; cursor:pointer; transition:transform 120ms ease,background 140ms ease,color 140ms ease; }
+        .power ha-icon { width:19px; height:19px; flex:0 0 19px; }
+        .busy ha-icon { animation:busy-spin .8s linear infinite; }
+        .speed-heading { display:flex; align-items:center; justify-content:space-between; margin:2px 2px 8px; color:var(--contrast9); font-size:10px; font-weight:620; }
+        .speed-heading span:first-child { color:var(--contrast13); font-size:11px; font-weight:690; }
+        .speed-row { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:8px; }
+        .speed { min-width:0; min-height:46px; border:1px solid transparent; border-radius:13px; padding:0 4px; background:var(--contrast3); color:var(--contrast11); font-size:12px; font-weight:720; cursor:pointer; transition:transform 120ms ease,background 140ms ease,color 140ms ease; }
         .speed:last-child { font-size:9px; letter-spacing:-.015em; }
         .speed:hover:not(:disabled) { background:var(--contrast5); color:var(--contrast19); }
         .speed.active { border-color:color-mix(in srgb, var(--fan-accent, var(--pink)) 35%, transparent); background:color-mix(in srgb, var(--fan-accent, var(--pink)) 18%, var(--contrast3)); color:var(--fan-accent, var(--pink)); }
         .speed.busy { pointer-events:none; }
-        .feature-row { display:grid; grid-template-columns:82px 92px minmax(112px, 1fr); gap:6px; margin-top:7px; }
-        .feature { position:relative; display:flex; min-width:0; height:38px; align-items:center; justify-content:center; gap:6px; overflow:hidden; border:1px solid transparent; border-radius:12px; padding:0 9px; background:var(--contrast3); color:var(--contrast10); font-size:10px; font-weight:660; cursor:pointer; transition:transform 120ms ease,background 140ms ease,color 140ms ease; }
+        .feature-row { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; margin-top:9px; }
+        .feature { position:relative; display:flex; min-width:0; min-height:54px; align-items:center; justify-content:flex-start; gap:9px; overflow:hidden; border:1px solid transparent; border-radius:14px; padding:7px 10px; background:var(--contrast3); color:var(--contrast11); text-align:left; cursor:pointer; transition:transform 120ms ease,background 140ms ease,color 140ms ease; }
         .feature:hover:not(:disabled):not(.disabled) { background:var(--contrast5); color:var(--contrast18); }
         .feature.active { border-color:color-mix(in srgb, var(--fan-accent, var(--pink)) 28%, transparent); background:color-mix(in srgb, var(--fan-accent, var(--pink)) 14%, var(--contrast3)); color:var(--fan-accent, var(--pink)); }
         .feature.led.active { color:var(--yellow, #ffd76a); border-color:color-mix(in srgb, var(--yellow, #ffd76a) 28%, transparent); background:color-mix(in srgb, var(--yellow, #ffd76a) 12%, var(--contrast3)); }
         .feature.sleep.active { color:var(--purple, #c8a7ff); border-color:color-mix(in srgb, var(--purple, #c8a7ff) 28%, transparent); background:color-mix(in srgb, var(--purple, #c8a7ff) 12%, var(--contrast3)); }
-        .feature ha-icon { width:16px; flex:0 0 16px; }
-        .feature .chevron { width:13px; flex:0 0 13px; margin-left:auto; }
+        .feature-icon { display:grid; width:24px; height:24px; flex:0 0 24px; place-items:center; }
+        .feature-icon ha-icon { display:block; width:20px; height:20px; }
+        .feature-copy { display:grid; min-width:0; gap:2px; line-height:1.1; }
+        .feature-copy strong { overflow:hidden; color:var(--contrast17); font-size:10px; font-weight:720; text-overflow:ellipsis; white-space:nowrap; }
+        .feature-copy small { overflow:hidden; color:var(--contrast9); font-size:8.5px; font-weight:560; text-overflow:ellipsis; white-space:nowrap; }
+        .feature.active .feature-copy strong, .feature.active .feature-copy small { color:currentColor; }
+        .feature .chevron { width:14px; height:14px; flex:0 0 14px; margin-left:auto; }
         .timer select { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
         .error { margin:10px 2px -2px; color:var(--red, var(--error-color)); font-size:10px; }
         @keyframes fan-spin { to { transform:rotate(360deg); } }
+        @keyframes busy-spin { to { transform:rotate(360deg); } }
         @media (max-width:760px) { .fan-list { grid-template-columns:1fr; } .feature-row { grid-template-columns:repeat(3, 1fr); } }
         @media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
       </style>
@@ -233,7 +296,7 @@ class FamilyFanCard extends HTMLElement {
         <header class="room-heading">
           <span class="room-icon"><ha-icon icon="${this._escape(this._config.icon || "mdi:fan")}"></ha-icon></span>
           <span class="room-copy"><span class="room-name">${this._escape(this._config.name)}</span><span class="room-status">${this._escape(this._roomSummary())}</span></span>
-          ${multiple ? `<button class="all-off" data-action="all-off"${canAllOff ? "" : " disabled"}><ha-icon icon="mdi:fan-off"></ha-icon>All off</button>` : ""}
+          ${multiple ? `<button class="all-off" data-action="all-off"${canAllOff ? "" : " disabled"}><ha-icon icon="mdi:fan-off"></ha-icon>All off</button>` : this._powerButton(this._config.fans[0], 0, this._config.fans[0].name || `${this._config.name} fan`, this._state(this._config.fans[0].fan)?.state === "on", this._available(this._config.fans[0]), this._busy.has("0:power"))}
         </header>
         <div class="fan-list">${this._config.fans.map((unit, index) => this._unit(unit, index)).join("")}</div>
         ${this._error ? `<div class="error" role="alert">${this._escape(this._error)}</div>` : ""}
@@ -302,17 +365,26 @@ class FamilyFanSummaryCard extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._config = null;
     this._hass = null;
+    this._lastFingerprint = null;
   }
 
   setConfig(config) {
     if (!Array.isArray(config.fans) || !config.fans.length) throw new Error("Fan summary requires fans");
     this._config = config;
+    this._lastFingerprint = null;
     this._render();
   }
 
   set hass(hass) {
     this._hass = hass;
-    this._render();
+    const fingerprint = JSON.stringify(this._config.fans.map((item) => {
+      const state = this._hass?.states?.[item.entity];
+      return [item.entity, state?.state, state?.attributes?.percentage, state?.last_updated];
+    }));
+    if (fingerprint !== this._lastFingerprint) {
+      this._lastFingerprint = fingerprint;
+      this._render();
+    }
   }
 
   getCardSize() { return 1; }
