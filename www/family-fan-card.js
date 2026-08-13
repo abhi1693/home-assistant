@@ -196,6 +196,19 @@ class FamilyFanCard extends HTMLElement {
     }).join("");
   }
 
+  _rotor(busy) {
+    if (busy) return '<ha-icon class="busy-spinner" icon="mdi:loading"></ha-icon>';
+    return `
+      <svg class="fan-graphic" viewBox="0 0 48 48" focusable="false" aria-hidden="true">
+        <g class="fan-blades">
+          <path d="M24 22C19.8 19.8 17.8 16.1 18.7 12.4C19.5 8.8 22.5 6.2 26.2 6C28.1 11.2 27.9 16.4 25.5 20.6C25.1 21.3 24.6 21.7 24 22Z"></path>
+          <path d="M24 22C19.8 19.8 17.8 16.1 18.7 12.4C19.5 8.8 22.5 6.2 26.2 6C28.1 11.2 27.9 16.4 25.5 20.6C25.1 21.3 24.6 21.7 24 22Z" transform="rotate(120 24 24)"></path>
+          <path d="M24 22C19.8 19.8 17.8 16.1 18.7 12.4C19.5 8.8 22.5 6.2 26.2 6C28.1 11.2 27.9 16.4 25.5 20.6C25.1 21.3 24.6 21.7 24 22Z" transform="rotate(240 24 24)"></path>
+        </g>
+        <circle class="fan-hub" cx="24" cy="24" r="3.4"></circle>
+      </svg>`;
+  }
+
   _unit(unit, index) {
     if (!this._available(unit)) return this._unavailableUnit(unit, index);
 
@@ -226,7 +239,7 @@ class FamilyFanCard extends HTMLElement {
           <div class="dial-ring" aria-hidden="true"></div>
           ${this._speedRing(unit, index, speed, running, busy, fanName)}
           <button class="power-core" data-action="power" data-index="${index}"${this._disabled(busy)} aria-label="${running ? "Turn off" : "Turn on"} ${this._escape(fanName)} at ${speed === 6 ? "Boost" : `speed ${speed}`}" aria-pressed="${running ? "true" : "false"}">
-            <span class="core-fan" aria-hidden="true"><span class="fan-rotor"><ha-icon icon="${busy ? "mdi:loading" : "mdi:fan"}"></ha-icon></span></span>
+            <span class="core-fan" aria-hidden="true"><span class="fan-rotor">${this._rotor(busy)}</span></span>
             <strong>${busy ? "Working…" : running ? "On" : "Off"}</strong>
             <small>${busy ? "Please wait" : running ? "Tap to turn off" : "Tap to turn on"}</small>
           </button>
@@ -308,11 +321,14 @@ class FamilyFanCard extends HTMLElement {
         .power-core:active:not(:disabled) { transform:translate(-50%,-48%) scale(.97); }
         .running .power-core { border-color:color-mix(in srgb,var(--fan-accent,var(--pink)) 52%,var(--contrast5)); background:color-mix(in srgb,var(--fan-accent,var(--pink)) 10%,var(--contrast2)); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--fan-accent,var(--pink)) 12%,transparent),0 12px 38px color-mix(in srgb,var(--fan-accent,var(--pink)) 8%,transparent); }
         .core-fan { position:relative; display:grid; width:54px; height:54px; place-items:center; color:var(--contrast11); }
-        .fan-rotor { display:grid; width:46px; height:46px; place-items:center; transform-origin:50% 50%; will-change:transform; }
-        .fan-rotor ha-icon { display:block; width:46px; height:46px; --mdc-icon-size:42px; }
+        .fan-rotor { position:relative; display:grid; width:48px; height:48px; place-items:center; }
+        .fan-graphic { display:block; width:48px; height:48px; overflow:visible; }
+        .fan-blades { fill:currentColor; transform-box:view-box; transform-origin:24px 24px; will-change:transform; }
+        .fan-hub { fill:currentColor; }
+        .busy-spinner { display:block; width:44px; height:44px; --mdc-icon-size:40px; transform-origin:50% 50%; will-change:transform; }
         .running .core-fan { color:var(--fan-accent,var(--pink)); }
-        .running .fan-rotor { animation:fan-spin var(--fan-spin) linear infinite; }
-        .busy .fan-rotor { animation:busy-spin .8s linear infinite; }
+        .running .fan-blades { animation:fan-spin var(--fan-spin) linear infinite; }
+        .busy .busy-spinner { animation:busy-spin .8s linear infinite; }
         .power-core strong { color:var(--contrast20); font-size:17px; font-weight:760; }
         .power-core small { max-width:122px; color:var(--contrast9); font-size:10px; font-weight:570; line-height:1.25; text-align:center; }
         .speed { position:absolute; z-index:3; display:grid; width:56px; height:56px; place-items:center; border:1px solid transparent; border-radius:50%; background:var(--contrast3); color:var(--contrast12); font-size:14px; font-weight:750; cursor:pointer; transition:transform 120ms ease,background 160ms ease,color 160ms ease,border-color 160ms ease; }

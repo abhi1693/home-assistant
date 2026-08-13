@@ -221,7 +221,8 @@ stream quality configuration reproducible without committing Protect secrets.
   queue and exposes admin-checked approve/decline actions without sending the
   Seerr API key to the browser
 - `www/family-fan-card.js`: renders senior-friendly, quota-conscious
-  multi-entity Atomberg room controls
+  fan controls with a fixed-axis SVG rotor that spins cleanly without moving
+  the centre hub, plus multi-entity Atomberg room controls
 - `themes/`: source-owned themes
 - `packages/`: source-owned helpers for normalized temperature presentation
 - `migrations/`: guarded, one-time area/device migration inputs

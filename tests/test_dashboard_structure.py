@@ -302,7 +302,7 @@ class DashboardStructureTests(unittest.TestCase):
         )[0]
         card = (ROOT / "www/family-fan-card.js").read_text()
 
-        self.assertIn("/local/family-fan-card.js?v=3.1.1", configuration)
+        self.assertIn("/local/family-fan-card.js?v=3.1.2", configuration)
         self.assertEqual(rooms.count("type: custom:family-fan-card"), 7)
         self.assertNotIn("type: custom:family-fan-summary-card", rooms)
         self.assertIn("max_columns: 3", rooms)
@@ -361,8 +361,12 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn(".speed-4 { right:24px", card)
         self.assertIn("min-height:64px", card)
         self.assertIn("prefers-reduced-motion:reduce", card)
-        self.assertIn(".running .fan-rotor", card)
-        self.assertIn("transform-origin:50% 50%", card)
+        self.assertIn('class="fan-graphic" viewBox="0 0 48 48"', card)
+        self.assertEqual(card.count('transform="rotate(120 24 24)"'), 1)
+        self.assertEqual(card.count('transform="rotate(240 24 24)"'), 1)
+        self.assertIn('class="fan-hub" cx="24" cy="24"', card)
+        self.assertIn(".running .fan-blades", card)
+        self.assertIn("transform-origin:24px 24px", card)
         self.assertIn(
             'grid-template-columns:${multiple ? "repeat(2,minmax(0,1fr))"',
             card,
