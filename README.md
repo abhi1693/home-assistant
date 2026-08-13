@@ -44,10 +44,11 @@ temperature cards render an explicit `°C`, and package-owned template sensors
 convert the two UniFi readings that publish Fahrenheit into Celsius before they
 reach the Rack dashboard.
 
-Protect camera cards use snapshot-first rendering. Live RTSPS can be restored
-after the Protect console's port `7441` is reachable from Home Assistant; cards
-will automatically recover as cameras reconnect in Protect. The connected
-camera is presented as `Master Bedroom`, matching its current Protect entity.
+Protect camera cards explicitly request live rendering through Home Assistant's
+LL-HLS stream proxy. The UniFi policy from the K8s network to the Protect console
+must allow TCP `443` for the API and TCP `7441` for RTSPS. Cards automatically
+recover as cameras reconnect in Protect. The connected camera is presented as
+`Master Bedroom`, matching its current Protect entity.
 
 ## Repository layout
 

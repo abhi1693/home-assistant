@@ -395,7 +395,7 @@ views:
               - type: picture-entity
                 entity: camera.living_room_high_resolution_channel
                 name: Master Bedroom
-                camera_view: auto
+                camera_view: live
                 fit_mode: cover
                 aspect_ratio: "16:9"
                 show_state: false
@@ -407,7 +407,7 @@ views:
               - type: picture-entity
                 entity: camera.hallway_high_resolution_channel
                 name: Hallway
-                camera_view: auto
+                camera_view: live
                 fit_mode: cover
                 aspect_ratio: "16:9"
                 show_state: false
@@ -419,7 +419,7 @@ views:
               - type: picture-entity
                 entity: camera.g5_turret_ultra_high_resolution_channel
                 name: Outside
-                camera_view: auto
+                camera_view: live
                 fit_mode: cover
                 aspect_ratio: "16:9"
                 show_state: false
@@ -713,7 +713,7 @@ views:
               - type: picture-entity
                 entity: camera.living_room_high_resolution_channel
                 name: Master Bedroom
-                camera_view: auto
+                camera_view: live
                 fit_mode: cover
                 aspect_ratio: "16:9"
                 show_state: false
@@ -725,7 +725,7 @@ views:
               - type: picture-entity
                 entity: camera.hallway_high_resolution_channel
                 name: Hallway
-                camera_view: auto
+                camera_view: live
                 fit_mode: cover
                 aspect_ratio: "16:9"
                 show_state: false
@@ -737,7 +737,7 @@ views:
               - type: picture-entity
                 entity: camera.g5_turret_ultra_high_resolution_channel
                 name: Outside
-                camera_view: auto
+                camera_view: live
                 fit_mode: cover
                 aspect_ratio: "16:9"
                 show_state: false

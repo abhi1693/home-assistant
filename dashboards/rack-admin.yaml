@@ -254,7 +254,7 @@ views:
           - type: picture-entity
             entity: camera.g5_turret_ultra_high_resolution_channel
             name: Outside context
-            camera_view: auto
+            camera_view: live
             fit_mode: cover
             aspect_ratio: "4:3"
             show_state: false
@@ -266,7 +266,7 @@ views:
           - type: picture-entity
             entity: camera.hallway_high_resolution_channel
             name: Hallway context
-            camera_view: auto
+            camera_view: live
             fit_mode: cover
             aspect_ratio: "16:9"
             show_state: false
