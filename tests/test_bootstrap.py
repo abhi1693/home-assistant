@@ -182,6 +182,26 @@ class BootstrapTests(unittest.TestCase):
                 }
             ),
         )
+        self.write(
+            "access/protect-streams.json",
+            json.dumps(
+                {
+                    "version": 1,
+                    "cameras": {
+                        "master-bedroom": {
+                            "high_entity_id": "camera.master_bedroom",
+                            "medium_entity_id": "camera.master_bedroom_medium",
+                            "qualities": ["high", "medium"],
+                        },
+                        "hallway": {
+                            "high_entity_id": "camera.hallway",
+                            "medium_entity_id": "camera.hallway_medium",
+                            "qualities": ["high", "medium"],
+                        },
+                    },
+                }
+            ),
+        )
         storage = self.config / ".storage"
         storage.mkdir()
         auth = {
@@ -271,7 +291,10 @@ class BootstrapTests(unittest.TestCase):
         )
         self.assertEqual(
             group["policy"]["entities"]["entity_ids"],
-            {"camera.master_bedroom": True},
+            {
+                "camera.master_bedroom": True,
+                "camera.master_bedroom_medium": True,
+            },
         )
         self.assertEqual(
             group["policy"]["entities"]["domains"],
@@ -321,6 +344,21 @@ class BootstrapTests(unittest.TestCase):
                             "is_owner": True,
                             "enforce_camera_policy": True,
                             "cameras": ["inside"],
+                        }
+                    },
+                }
+            ),
+        )
+        self.write(
+            "access/protect-streams.json",
+            json.dumps(
+                {
+                    "version": 1,
+                    "cameras": {
+                        "inside": {
+                            "high_entity_id": "camera.inside",
+                            "medium_entity_id": "camera.inside_medium",
+                            "qualities": ["high", "medium"],
                         }
                     },
                 }
@@ -377,6 +415,53 @@ class BootstrapTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "Cannot enforce camera policy"):
             bootstrap.reconcile_family_access(self.source, self.config)
+
+    def test_protect_streams_validate_high_entities_and_qualities(self):
+        self.write(
+            "access/protect-streams.json",
+            json.dumps(
+                {
+                    "version": 1,
+                    "cameras": {
+                        "inside": {
+                            "high_entity_id": "camera.inside_high_resolution_channel",
+                            "medium_entity_id": "camera.inside_medium_resolution_channel",
+                            "qualities": ["high", "medium"],
+                        }
+                    },
+                }
+            ),
+        )
+        storage = self.config / ".storage"
+        storage.mkdir()
+        (storage / "core.entity_registry").write_text(
+            json.dumps(
+                {
+                    "data": {
+                        "entities": [
+                            {
+                                "entity_id": "camera.inside_high_resolution_channel",
+                                "platform": "unifiprotect",
+                                "disabled_by": None,
+                                "unique_id": "AABBCCDDEEFF_0",
+                            }
+                        ]
+                    }
+                }
+            )
+        )
+
+        bootstrap.validate_protect_streams(self.source, self.config)
+
+        desired = json.loads(
+            (self.source / "access/protect-streams.json").read_text()
+        )
+        desired["cameras"]["inside"]["qualities"].append("ultra")
+        (self.source / "access/protect-streams.json").write_text(
+            json.dumps(desired)
+        )
+        with self.assertRaisesRegex(RuntimeError, "invalid qualities"):
+            bootstrap.validate_protect_streams(self.source, self.config)
 
 
 if __name__ == "__main__":

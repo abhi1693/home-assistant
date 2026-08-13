@@ -674,10 +674,12 @@ views:
             card_param: cards
             filter:
               include:
-                - entity_id: camera.living_room_high_resolution_channel
+                - entity_id: camera.living_room_medium_resolution_channel
                   state: idle
                   options:
                     type: picture-entity
+                    entity: camera.living_room_high_resolution_channel
+                    camera_image: camera.living_room_medium_resolution_channel
                     name: Master Bedroom
                     camera_view: live
                     fit_mode: cover
@@ -688,16 +690,18 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.living_room_high_resolution_channel
+                - entity_id: camera.living_room_medium_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
                     template: family_camera_offline
                     name: Master Bedroom · Offline
-                - entity_id: camera.hallway_high_resolution_channel
+                - entity_id: camera.hallway_medium_resolution_channel
                   state: idle
                   options:
                     type: picture-entity
+                    entity: camera.hallway_high_resolution_channel
+                    camera_image: camera.hallway_medium_resolution_channel
                     name: Hallway
                     camera_view: live
                     fit_mode: cover
@@ -708,16 +712,18 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.hallway_high_resolution_channel
+                - entity_id: camera.hallway_medium_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
                     template: family_camera_offline
                     name: Hallway · Offline
-                - entity_id: camera.g5_turret_ultra_high_resolution_channel
+                - entity_id: camera.g5_turret_ultra_medium_resolution_channel
                   state: idle
                   options:
                     type: picture-entity
+                    entity: camera.g5_turret_ultra_high_resolution_channel
+                    camera_image: camera.g5_turret_ultra_medium_resolution_channel
                     name: Outside
                     camera_view: live
                     fit_mode: cover
@@ -728,7 +734,7 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.g5_turret_ultra_high_resolution_channel
+                - entity_id: camera.g5_turret_ultra_medium_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
@@ -1067,7 +1073,7 @@ views:
             text_only: true
             content: |-
               # Camera wall
-              Live UniFi Protect views assigned to your account.
+              Medium-resolution live views assigned to your account. Select a camera for high-resolution playback.
             card_mod:
               style: |
                 ha-card { background: transparent; padding: 8px 0 4px; }
@@ -1091,10 +1097,12 @@ views:
             card_param: cards
             filter:
               include:
-                - entity_id: camera.living_room_high_resolution_channel
+                - entity_id: camera.living_room_medium_resolution_channel
                   state: idle
                   options:
                     type: picture-entity
+                    entity: camera.living_room_high_resolution_channel
+                    camera_image: camera.living_room_medium_resolution_channel
                     name: Master Bedroom
                     camera_view: live
                     fit_mode: cover
@@ -1105,16 +1113,18 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.living_room_high_resolution_channel
+                - entity_id: camera.living_room_medium_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
                     template: family_camera_offline
                     name: Master Bedroom · Offline
-                - entity_id: camera.hallway_high_resolution_channel
+                - entity_id: camera.hallway_medium_resolution_channel
                   state: idle
                   options:
                     type: picture-entity
+                    entity: camera.hallway_high_resolution_channel
+                    camera_image: camera.hallway_medium_resolution_channel
                     name: Hallway
                     camera_view: live
                     fit_mode: cover
@@ -1125,16 +1135,18 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.hallway_high_resolution_channel
+                - entity_id: camera.hallway_medium_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
                     template: family_camera_offline
                     name: Hallway · Offline
-                - entity_id: camera.g5_turret_ultra_high_resolution_channel
+                - entity_id: camera.g5_turret_ultra_medium_resolution_channel
                   state: idle
                   options:
                     type: picture-entity
+                    entity: camera.g5_turret_ultra_high_resolution_channel
+                    camera_image: camera.g5_turret_ultra_medium_resolution_channel
                     name: Outside
                     camera_view: live
                     fit_mode: cover
@@ -1145,7 +1157,7 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.g5_turret_ultra_high_resolution_channel
+                - entity_id: camera.g5_turret_ultra_medium_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card

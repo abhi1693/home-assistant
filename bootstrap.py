@@ -18,6 +18,7 @@ from pathlib import Path, PurePosixPath
 MANAGED_STATE = ".home-assistant-source-files.json"
 CUSTOM_INTEGRATION_STATE = ".home-assistant-custom-integrations.json"
 FAMILY_ACCESS_STATE = ".home-assistant-family-access.json"
+PROTECT_STREAM_QUALITIES = {"high", "medium", "low"}
 
 
 def sha256(path: Path) -> str:
@@ -352,6 +353,7 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     """Validate and reconcile Git-owned dashboard users and camera access."""
     access_path = source / "access/family-dashboard.json"
     access = json.loads(access_path.read_text())
+    streams = json.loads((source / "access/protect-streams.json").read_text())
     if access.get("version") != 1:
         raise RuntimeError("Unsupported family dashboard access schema")
 
@@ -382,6 +384,11 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     if len(camera_entities) != len(cameras):
         raise RuntimeError("Family dashboard camera entities must be unique")
     for camera_key, entity_id in cameras.items():
+        stream = streams.get("cameras", {}).get(camera_key)
+        if stream is None or stream.get("high_entity_id") != entity_id:
+            raise RuntimeError(
+                f"Camera {camera_key} does not match its Protect stream mapping"
+            )
         entity = entities.get(entity_id)
         if (
             entity is None
@@ -424,7 +431,14 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                 f"Family profile {profile_key} has unknown cameras: "
                 f"{sorted(unknown_keys)}"
             )
-        allowed_entities = [cameras[key] for key in allowed_keys]
+        allowed_entities = [
+            entity_id
+            for key in allowed_keys
+            for entity_id in (
+                streams["cameras"][key]["medium_entity_id"],
+                streams["cameras"][key]["high_entity_id"],
+            )
+        ]
         for camera_key in allowed_keys:
             users_by_camera[camera_key].append(user_id)
 
@@ -477,7 +491,9 @@ def reconcile_family_access(source: Path, config: Path) -> None:
         else:
             groups.append(desired)
 
-    desired_hash = sha256(access_path)
+    desired_hash = hashlib.sha256(
+        f"{sha256(access_path)}:{sha256(source / 'access/protect-streams.json')}".encode()
+    ).hexdigest()
     current_state = (
         json.loads((config / FAMILY_ACCESS_STATE).read_text())
         if (config / FAMILY_ACCESS_STATE).exists()
@@ -501,6 +517,53 @@ def reconcile_family_access(source: Path, config: Path) -> None:
         {"version": 1, "sha256": desired_hash},
         mode=0o644,
     )
+
+
+def validate_protect_streams(source: Path, config: Path) -> None:
+    """Validate Git-owned Protect stream tiers against enabled high entities."""
+    desired = json.loads((source / "access/protect-streams.json").read_text())
+    if desired.get("version") != 1 or not desired.get("cameras"):
+        raise RuntimeError("Unsupported or empty Protect stream configuration")
+
+    registry_path = config / ".storage/core.entity_registry"
+    if not registry_path.exists():
+        raise RuntimeError("Home Assistant entity registry is missing")
+    entities = {
+        item["entity_id"]: item
+        for item in json.loads(registry_path.read_text())["data"]["entities"]
+    }
+    seen_entities: set[str] = set()
+    for camera_name, camera in desired["cameras"].items():
+        entity_id = camera["high_entity_id"]
+        if entity_id in seen_entities:
+            raise RuntimeError(f"Protect stream entity is duplicated: {entity_id}")
+        seen_entities.add(entity_id)
+        entity = entities.get(entity_id)
+        if (
+            entity is None
+            or entity.get("platform") != "unifiprotect"
+            or entity.get("disabled_by") is not None
+            or not entity.get("unique_id", "").endswith("_0")
+        ):
+            raise RuntimeError(
+                f"Protect stream {camera_name} does not match an enabled high entity"
+            )
+        medium_entity_id = camera.get("medium_entity_id")
+        if not medium_entity_id or not medium_entity_id.startswith("camera."):
+            raise RuntimeError(f"Protect stream {camera_name} has no medium entity")
+        medium = entities.get(medium_entity_id)
+        if medium is not None and (
+            medium.get("platform") != "unifiprotect"
+            or not medium.get("unique_id", "").endswith("_1")
+            or medium.get("unique_id", "").removesuffix("_1")
+            != entity["unique_id"].removesuffix("_0")
+        ):
+            raise RuntimeError(
+                f"Protect stream {camera_name} has an invalid medium entity"
+            )
+        qualities = set(camera.get("qualities", []))
+        if "high" not in qualities or not qualities <= PROTECT_STREAM_QUALITIES:
+            raise RuntimeError(f"Protect stream {camera_name} has invalid qualities")
 
 
 def remove_storage_dashboards(config: Path) -> None:
@@ -548,6 +611,7 @@ def main() -> None:
     install_assets(manifest, config)
     install_custom_integrations(manifest, config)
     migrate_areas(source, config)
+    validate_protect_streams(source, config)
     reconcile_family_access(source, config)
     remove_storage_dashboards(config)
 

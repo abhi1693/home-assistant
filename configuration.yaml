@@ -10,6 +10,8 @@ frontend:
 
 family_dashboard_guard:
 
+family_camera_streams:
+
 lovelace:
   resource_mode: yaml
   resources:

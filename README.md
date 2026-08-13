@@ -79,6 +79,12 @@ must allow TCP `443` for the API and TCP `7441` for RTSPS. Cards automatically
 recover as cameras reconnect in Protect. The connected camera is presented as
 `Master Bedroom`, matching its current Protect entity.
 
+`access/protect-streams.json` declares the active Protect RTSPS tiers. The
+source-owned `family_camera_streams` integration reconciles those tiers through
+the configured UniFi Protect public API, enables their native Home Assistant
+entities, and retries when an electrically-off camera reconnects. This keeps
+stream quality configuration reproducible without committing Protect secrets.
+
 ## Repository layout
 
 - `access/`: Git-owned account mappings and camera access policy
@@ -86,6 +92,8 @@ recover as cameras reconnect in Protect. The connected camera is presented as
 - `dashboards/`: the family and admin Lovelace dashboards
 - `custom_components/family_dashboard_guard/`: removes the superseded built-in
   Home panel after the frontend integration starts
+- `custom_components/family_camera_streams/`: reconciles Git-owned Protect
+  stream tiers and their native Home Assistant entities
 - `themes/`: source-owned themes
 - `packages/`: future source-owned automations and helpers
 - `migrations/`: guarded, one-time area/device migration inputs

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "cameras": {
+    "master-bedroom": {
+      "high_entity_id": "camera.living_room_high_resolution_channel",
+      "medium_entity_id": "camera.living_room_medium_resolution_channel",
+      "qualities": [
+        "high",
+        "medium"
+      ]
+    },
+    "hallway": {
+      "high_entity_id": "camera.hallway_high_resolution_channel",
+      "medium_entity_id": "camera.hallway_medium_resolution_channel",
+      "qualities": [
+        "high",
+        "medium"
+      ]
+    },
+    "outside": {
+      "high_entity_id": "camera.g5_turret_ultra_high_resolution_channel",
+      "medium_entity_id": "camera.g5_turret_ultra_medium_resolution_channel",
+      "qualities": [
+        "high",
+        "medium"
+      ]
+    }
+  }
+}
