@@ -856,12 +856,14 @@ button_card_templates:
     icon: mdi:message-text-outline
     name: |
       [[[
-        const message = entity?.state?.trim();
+        const message = !entity || ['unknown', 'unavailable'].includes(entity.state)
+          ? '' : entity.state.trim();
         return message ? 'For everyone' : 'Leave a note';
       ]]]
     state_display: |
       [[[
-        const message = entity?.state?.trim();
+        const message = !entity || ['unknown', 'unavailable'].includes(entity.state)
+          ? '' : entity.state.trim();
         const expires = states['input_boolean.family_household_notice_expires']?.state === 'on';
         const until = states['input_datetime.family_household_notice_until'];
         const deadline = until && !['unknown', 'unavailable'].includes(until.state)
@@ -1003,7 +1005,8 @@ views:
           {% set washer = states('sensor.front_load_washer_current_status') | lower %}
           {% set event = state_attr('calendar.family', 'message') %}
           {% set shopping = states('todo.shopping_list') | int(0) %}
-          {% set notice = states('input_text.family_household_notice') | trim %}
+          {% set notice_state = states('input_text.family_household_notice') %}
+          {% set notice = '' if notice_state in ['unknown', 'unavailable'] else notice_state | trim %}
           {% set notice_expires = is_state('input_boolean.family_household_notice_expires', 'on') %}
           {% set notice_until = as_timestamp(states('input_datetime.family_household_notice_until'), 0) %}
           **{{ now().strftime('%A') }}** · {{ condition }} at **{{ temperature }} °C** · {% if home | count == 0 %}Nobody home{% elif home | count == 1 %}{{ home[0] }} is home{% else %}{{ home | count }} people home{% endif %}
@@ -1129,7 +1132,7 @@ views:
                       style: |
                         :host { grid-column: span 2; }
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.g5_turret_ultra_medium_resolution_channel
+                - entity_id: camera.g5_turret_ultra_high_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
@@ -1153,7 +1156,7 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.living_room_medium_resolution_channel
+                - entity_id: camera.living_room_high_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
@@ -1174,7 +1177,7 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.hallway_medium_resolution_channel
+                - entity_id: camera.hallway_high_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
@@ -1564,7 +1567,7 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.g5_turret_ultra_medium_resolution_channel
+                - entity_id: camera.g5_turret_ultra_high_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
@@ -1586,7 +1589,7 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.living_room_medium_resolution_channel
+                - entity_id: camera.living_room_high_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card
@@ -1608,7 +1611,7 @@ views:
                     card_mod:
                       style: |
                         ha-card { overflow: hidden; border-radius: 28px; }
-                - entity_id: camera.hallway_medium_resolution_channel
+                - entity_id: camera.hallway_high_resolution_channel
                   state: unavailable
                   options:
                     type: custom:button-card

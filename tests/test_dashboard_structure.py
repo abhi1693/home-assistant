@@ -61,6 +61,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("todo.shopping_list", header)
         self.assertIn("input_text.family_household_notice", header)
         self.assertIn("input_boolean.family_household_notice_expires", header)
+        self.assertIn("notice_state in ['unknown', 'unavailable']", header)
         self.assertNotIn("All available fans are off", header)
 
     def test_home_is_composed_as_a_family_console(self):
@@ -82,6 +83,7 @@ class DashboardStructureTests(unittest.TestCase):
             home_view,
         )
         self.assertIn(":host { grid-column: span 2; }", home_view)
+        self.assertIn("camera.g5_turret_ultra_high_resolution_channel", home_view)
         self.assertNotIn("name: Living Fan 1", home_view)
         self.assertNotIn("name: Living Fan 2", home_view)
 
