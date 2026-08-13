@@ -1094,6 +1094,68 @@ button_card_templates:
                 : 'var(--contrast20)';
             ]]]
 
+  family_air_quality:
+    template: family_status
+    entity: sensor.home_naqi_in_aqi
+    name: Air quality
+    icon: mdi:air-filter
+    show_state: true
+    show_label: true
+    state_display: |
+      [[[
+        const value = Number(entity?.state);
+        return Number.isFinite(value) ? `AQI ${Math.round(value)}` : 'Unavailable';
+      ]]]
+    label: |
+      [[[
+        const categoryState = states['sensor.home_naqi_in_category']?.state;
+        const pollutantState = states['sensor.home_naqi_in_dominant_pollutant']?.state;
+        const categories = {
+          good_air_quality: 'Good',
+          satisfactory_air_quality: 'Satisfactory',
+          moderate_air_quality: 'Moderate',
+          poor_air_quality: 'Poor',
+          very_poor_air_quality: 'Very poor',
+          severe_air_quality: 'Severe'
+        };
+        const category = categories[categoryState]
+          || (categoryState && !['unknown', 'unavailable'].includes(categoryState)
+            ? categoryState.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+            : 'Waiting for an update');
+        if (!pollutantState || ['unknown', 'unavailable'].includes(pollutantState)) {
+          return category;
+        }
+        const pollutants = {
+          co: 'CO', no2: 'NO₂', o3: 'O₃', pm10: 'PM10',
+          pm2_5: 'PM2.5', so2: 'SO₂', nh3: 'NH₃'
+        };
+        return `${category} · ${pollutants[pollutantState] || pollutantState.toUpperCase()}`;
+      ]]]
+    styles:
+      grid:
+        - grid-template-areas: '"i n" "i s" "i l"'
+        - grid-template-rows: min-content min-content min-content
+      card:
+        - height: 82px
+        - --status-accent: |
+            [[[
+              const value = Number(entity?.state);
+              if (!Number.isFinite(value)) return 'var(--contrast10)';
+              if (value <= 50) return 'var(--green)';
+              if (value <= 100) return 'var(--teal)';
+              if (value <= 200) return 'var(--yellow)';
+              if (value <= 300) return 'var(--orange)';
+              return 'var(--red)';
+            ]]]
+      state:
+        - color: var(--status-accent)
+      label:
+        - align-self: start
+        - justify-self: start
+        - color: var(--contrast10)
+        - font-size: 11px
+        - line-height: 14px
+
 views:
   - title: Home
     path: home
@@ -1118,6 +1180,9 @@ views:
               {% set apparent_state = states('sensor.home_apparent_temperature') %}
               {% set apparent = apparent_state | float(0) %}
               {% set storm = states('sensor.home_thunderstorm_probability') | int(0) %}
+              {% set air_known = has_value('sensor.home_naqi_in_aqi') and has_value('sensor.home_naqi_in_category') %}
+              {% set aqi = states('sensor.home_naqi_in_aqi') | int(0) %}
+              {% set air_category = state_translated('sensor.home_naqi_in_category') | lower | replace(' air quality', '') if air_known else none %}
               {% set home = states.person | selectattr('state', 'eq', 'home') | map(attribute='name') | list %}
               {% set known_people = states.person | rejectattr('state', 'eq', 'unknown') | rejectattr('state', 'eq', 'unavailable') | list %}
               {% set washer = states('sensor.front_load_washer_current_status') | lower %}
@@ -1127,9 +1192,9 @@ views:
               {% set event_days = (event_start.date() - now().date()).days if event_start else none %}
               {% set event_all_day = state_attr('calendar.birthdays', 'all_day') %}
               {% set shopping = states('todo.shopping_list') | int(0) %}
-              **{{ now().strftime('%A') }} {{ daypart }} · {{ now().strftime('%-I:%M %p') }}**{% if condition not in ['unknown', 'unavailable'] %} · {{ condition }}{% endif %}{% if temperature_known %} · **{{ temperature }} °C** outside{% endif %}{% if home | count == 0 and known_people | count > 0 %} · Home is empty{% elif home | count == 1 %} · {{ home[0] }} is home{% elif home | count == 2 %} · {{ home[0] }} and {{ home[1] }} are home{% elif home | count > 2 %} · {{ home | count }} people are home{% endif %}
+              **{{ now().strftime('%A') }} {{ daypart }} · {{ now().strftime('%-I:%M %p') }}**{% if condition not in ['unknown', 'unavailable'] %} · {{ condition }}{% endif %}{% if temperature_known %} · **{{ temperature }} °C** outside{% endif %}{% if air_known %} · Air is {{ air_category }}{% endif %}{% if home | count == 0 and known_people | count > 0 %} · Home is empty{% elif home | count == 1 %} · {{ home[0] }} is home{% elif home | count == 2 %} · {{ home[0] }} and {{ home[1] }} are home{% elif home | count > 2 %} · {{ home | count }} people are home{% endif %}
 
-              {% if washer in ['complete', 'completed', 'finished', 'end'] %}The laundry is ready to be collected.{% elif is_state('calendar.birthdays', 'on') and event %}**{{ event }}** is happening today.{% elif event and event_days == 0 %}{% if event_all_day %}**{{ event }}** is today.{% else %}Next: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif event and event_days == 1 %}{% if event_all_day %}Tomorrow: **{{ event }}**.{% else %}Tomorrow: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif apparent >= 38 and storm >= 30 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside, and storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—take water and an umbrella if you are heading out.{% elif apparent >= 38 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside—{% if hour < 12 %}take water if you are heading out later{% elif hour < 17 %}keep outdoor plans short and stay hydrated{% elif hour < 22 %}take water if you are heading out{% else %}keep the house cool overnight{% endif %}.{% elif storm >= 30 %}Storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—keep an umbrella handy.{% elif shopping > 0 %}There {% if shopping == 1 %}is **1 item**{% else %}are **{{ shopping }} items**{% endif %} on the shopping list.{% elif hour < 5 %}Everything at home is settled for the night.{% elif hour < 12 %}Nothing at home needs attention this morning.{% elif hour < 17 %}Nothing at home needs attention right now.{% elif hour < 22 %}Nothing at home needs attention this evening.{% else %}Everything at home is settled for the night.{% endif %}
+              {% if air_known and aqi > 300 %}The air is **{{ air_category }}** at **AQI {{ aqi }}**—avoid outdoor activity and keep the windows closed.{% elif air_known and aqi > 200 %}Air quality is **{{ air_category }}** at **AQI {{ aqi }}**—limit time outdoors and keep the windows closed.{% elif washer in ['complete', 'completed', 'finished', 'end'] %}The laundry is ready to be collected.{% elif is_state('calendar.birthdays', 'on') and event %}**{{ event }}** is happening today.{% elif event and event_days == 0 %}{% if event_all_day %}**{{ event }}** is today.{% else %}Next: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif event and event_days == 1 %}{% if event_all_day %}Tomorrow: **{{ event }}**.{% else %}Tomorrow: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif apparent >= 38 and storm >= 30 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside, and storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—take water and an umbrella if you are heading out.{% elif apparent >= 38 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside—{% if hour < 12 %}take water if you are heading out later{% elif hour < 17 %}keep outdoor plans short and stay hydrated{% elif hour < 22 %}take water if you are heading out{% else %}keep the house cool overnight{% endif %}.{% elif storm >= 30 %}Storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—keep an umbrella handy.{% elif shopping > 0 %}There {% if shopping == 1 %}is **1 item**{% else %}are **{{ shopping }} items**{% endif %} on the shopping list.{% elif air_known and aqi > 100 %}The air is **{{ air_category }}** at **AQI {{ aqi }}**—anyone sensitive should take it easy outdoors.{% elif hour < 5 %}Everything at home is settled for the night.{% elif hour < 12 %}Nothing at home needs attention this morning.{% elif hour < 17 %}Nothing at home needs attention right now.{% elif hour < 22 %}Nothing at home needs attention this evening.{% else %}Everything at home is settled for the night.{% endif %}
             card_mod:
               style: |
                 ha-card { background: transparent; padding: 2px 0 0; }
@@ -1581,6 +1646,8 @@ views:
             visibility:
               - condition: user
                 users: !include ../access/generated/calendar-household-users.json
+          - type: custom:button-card
+            template: family_air_quality
           - type: heading
             heading: Coming home
             heading_style: subtitle

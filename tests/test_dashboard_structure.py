@@ -60,6 +60,10 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("state_attr('calendar.family',", header)
         self.assertIn("sensor.home_apparent_temperature", header)
         self.assertIn("sensor.home_thunderstorm_probability", header)
+        self.assertIn("sensor.home_naqi_in_aqi", header)
+        self.assertIn("sensor.home_naqi_in_category", header)
+        self.assertIn("Air is {{ air_category }}", header)
+        self.assertIn("anyone sensitive should take it easy outdoors", header)
         self.assertIn("todo.shopping_list", header)
         self.assertNotIn("input_text.family_household_notice", header)
         self.assertNotIn("input_boolean.family_household_notice_expires", header)
@@ -86,6 +90,16 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("max_events: 4", home_view)
         self.assertIn("calendar-owner-users.json", home_view)
         self.assertIn("calendar-household-users.json", home_view)
+        self.assertEqual(home_view.count("template: family_air_quality"), 1)
+        self.assertIn("entity: sensor.home_naqi_in_aqi", home)
+        air_quality = home.split("  family_air_quality:", 1)[1].split(
+            "\nviews:", 1
+        )[0]
+        self.assertIn("sensor.home_naqi_in_category", air_quality)
+        self.assertIn("sensor.home_naqi_in_dominant_pollutant", air_quality)
+        self.assertIn("AQI ${Math.round(value)}", air_quality)
+        self.assertIn("pm10: 'PM10'", air_quality)
+        self.assertIn("value <= 100", air_quality)
         self.assertEqual(
             home_view.count("type: custom:family-announcements-card"), 1
         )

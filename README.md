@@ -87,7 +87,8 @@ playback controls remain extension points for later phases.
 
 The shared overview favors household decisions over system telemetry. Its
 single-screen desktop composition has a personalized greeting, compact weather
-and household ribbon, account-filtered camera wall, adaptive Music
+and household ribbon, a single family-wide India NAQI card, account-filtered
+camera wall, adaptive Music
 Assistant/Jellyfin activity, a narrow Coming up rail, and account-specific area
 summaries ordered for each person's routine. Abhimanyu sees Office, Bedroom and
 Living Room; Krishna sees Master
@@ -111,7 +112,9 @@ Atomberg command. An immediate action first cancels an active conflicting timer
 so it cannot unexpectedly reverse the fan later.
 The greeting ends with one prioritized
 household message: laundry completion, a current or next-day family event,
-significant heat or storms, shopping needs, or a time-appropriate all-clear.
+unsafe air, significant heat or storms, shopping needs, or a time-appropriate
+all-clear. The context line always gives the current translated air-quality
+category when available; the card adds only the AQI and dominant pollutant.
 Its context line includes the weekday, day part and current time, and its weather
 advice changes between morning, afternoon, evening and night. A Git-owned family
 bulletin in the household rail groups independent, account-attributed household
