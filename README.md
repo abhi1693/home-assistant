@@ -32,8 +32,11 @@ approval cards remain extension points for later phases.
 The shared overview favors household decisions over system telemetry. Its
 single-screen desktop composition has a personalized greeting, compact weather
 and household ribbon, account-filtered camera wall, adaptive Music
-Assistant/Jellyfin activity, a compact family board, and a persistent room/fan
-matrix. Rack health remains confined to the admin-only dashboard.
+Assistant/Jellyfin activity, an interactive family board, and a persistent
+room/fan matrix. The Shopping card supports adding, editing, completing and
+removing list items directly from Home; list contents remain normal mutable
+Home Assistant data while the card and its access policy stay Git-owned. Rack
+health remains confined to the admin-only dashboard.
 
 ## Family access
 
@@ -63,10 +66,11 @@ of silently widening access. The guarded reconciler backs up `.storage/auth`
 before a policy change and is idempotent on later Fleet rollouts.
 
 The built-in Moon, Uptime, Shopping List and Local Calendar integrations are
-configured without external accounts. Home presents compact Shopping List and
-`Family` calendar summaries, while Rack shows the Home Assistant start time.
-These config entries are UI-owned on the persistent volume; the dashboard
-references remain Git-owned here.
+configured without external accounts. Home presents a full-width interactive
+Shopping List beside the `Family` calendar summary, while Rack shows the Home
+Assistant start time. These config entries and shopping-list contents are
+UI-owned on the persistent volume; the dashboard presentation and access rules
+remain Git-owned here.
 
 The source configuration fixes Home Assistant to the metric unit system. All
 temperature cards render an explicit `°C`, and package-owned template sensors
