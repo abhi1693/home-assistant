@@ -367,6 +367,43 @@ button_card_templates:
       icon:
         - color: var(--yellow)
 
+  family_ribbon_alarm:
+    template: family_ribbon
+    name: Alarm
+    icon: mdi:alarm
+    label: |
+      [[[
+        const alarmEntityId = user?.id === '9302d11f48c64fe796a3c9e5cb563650'
+          ? 'sensor.pixel_8_next_alarm'
+          : user?.id === '8117b77542614a06b4672a8ae1a979b5'
+            ? 'sensor.pixel_10_pro_next_alarm'
+            : null;
+        const alarmEntity = alarmEntityId ? states[alarmEntityId] : null;
+        if (!alarmEntity || ['unknown', 'unavailable', 'none', ''].includes(alarmEntity.state)) {
+          return 'No alarm';
+        }
+        const alarm = new Date(alarmEntity.state);
+        if (Number.isNaN(alarm.getTime()) || alarm <= new Date()) return 'No alarm';
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const alarmDay = new Date(alarm.getFullYear(), alarm.getMonth(), alarm.getDate());
+        const days = Math.round((alarmDay - today) / 86400000);
+        const time = alarm.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        if (days === 0) return `Today · ${time}`;
+        if (days === 1) return `Tomorrow · ${time}`;
+        if (days > 1 && days < 7) {
+          return `${alarm.toLocaleDateString([], { weekday: 'short' })} · ${time}`;
+        }
+        return `${alarm.toLocaleDateString([], { day: 'numeric', month: 'short' })} · ${time}`;
+      ]]]
+    tap_action:
+      action: none
+    hold_action:
+      action: none
+    styles:
+      icon:
+        - color: var(--purple)
+
   family_media:
     template: family_status
     state_display: |
@@ -971,8 +1008,20 @@ views:
             show_state: false
             styles:
               grid:
-                - grid-template-areas: '"weather presence today activity attention"'
-                - grid-template-columns: repeat(5, minmax(0, 1fr))
+                - grid-template-areas: |
+                    [[[
+                      return ['9302d11f48c64fe796a3c9e5cb563650',
+                        '8117b77542614a06b4672a8ae1a979b5'].includes(user?.id)
+                        ? '"weather presence today activity attention alarm"'
+                        : '"weather presence today activity attention"';
+                    ]]]
+                - grid-template-columns: |
+                    [[[
+                      return ['9302d11f48c64fe796a3c9e5cb563650',
+                        '8117b77542614a06b4672a8ae1a979b5'].includes(user?.id)
+                        ? 'repeat(6, minmax(0, 1fr))'
+                        : 'repeat(5, minmax(0, 1fr))';
+                    ]]]
               card:
                 - width: 100%
                 - padding: 3px 4px
@@ -986,6 +1035,15 @@ views:
                 today: [{ width: 100% }]
                 activity: [{ width: 100% }]
                 attention: [{ width: 100% }]
+                alarm:
+                  - width: 100%
+                  - display: |
+                      [[[
+                        return ['9302d11f48c64fe796a3c9e5cb563650',
+                          '8117b77542614a06b4672a8ae1a979b5'].includes(user?.id)
+                          ? 'block'
+                          : 'none';
+                      ]]]
             custom_fields:
               weather:
                 card:
@@ -1008,6 +1066,10 @@ views:
                 card:
                   type: custom:button-card
                   template: family_ribbon_attention
+              alarm:
+                card:
+                  type: custom:button-card
+                  template: family_ribbon_alarm
             grid_options:
               columns: 36
               rows: auto

@@ -78,10 +78,8 @@ class DashboardStructureTests(unittest.TestCase):
             "  - title: Rooms", 1
         )[0]
 
-        self.assertIn(
-            'grid-template-areas: \'"weather presence today activity attention"\'',
-            home_view,
-        )
+        self.assertIn('"weather presence today activity attention alarm"', home_view)
+        self.assertIn('"weather presence today activity attention"', home_view)
         self.assertIn("heading: Coming up", home_view)
         self.assertIn("type: custom:family-agenda-card", home_view)
         self.assertIn("days: 14", home_view)
@@ -283,6 +281,20 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('end_date_time: end.toISOString()', card)
         self.assertIn('customElements.define("family-agenda-card"', card)
         self.assertIn('window.history.pushState(null, "", "/calendar")', card)
+
+    def test_android_next_alarms_are_personalized_and_read_only(self):
+        access = (ROOT / "access/family-dashboard.json").read_text()
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+
+        self.assertIn('"next_alarm_entity_id": "sensor.pixel_8_next_alarm"', access)
+        self.assertIn('"next_alarm_entity_id": "sensor.pixel_10_pro_next_alarm"', access)
+        self.assertIn("family_ribbon_alarm:", home)
+        self.assertIn("? 'sensor.pixel_8_next_alarm'", home)
+        self.assertIn("? 'sensor.pixel_10_pro_next_alarm'", home)
+        self.assertIn("8117b77542614a06b4672a8ae1a979b5", home)
+        self.assertIn("return 'No alarm';", home)
+        self.assertIn('"weather presence today activity attention alarm"', home)
+        self.assertIn("template: family_ribbon_alarm", home)
 
     def test_camera_wall_applies_each_camera_user_gate(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()

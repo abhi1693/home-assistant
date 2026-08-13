@@ -13,12 +13,19 @@ visible without drilling through menus. Mobile-specific design is intentionally 
 The native Home Assistant sidebar is hidden on these kiosk views so it does not
 compete with the family navigation rail.
 
-Home's five-item status strip is one quiet visual sentence rather than a row of
+Home's status strip is one quiet visual sentence rather than a row of
 competing cards. Weather and presence are stable anchors; the other positions
 adapt to laundry, shopping, sunrise or sunset, active playback or fans, humidity
 and genuine attention states. Internet appears only when
 degraded, the owner's phone only when below 25 percent, and routine fan-off
-states are omitted. Icon color is semantic: normal states stay muted, while
+states are omitted. Abhimanyu and Krishna each see their own Android phone's
+next alarm beside the attention card, formatted as a local day and time or
+`No alarm`; each phone must have Companion App **Next alarm** enabled under
+Manage sensors. Manisha's iPhone view retains the five-item strip because iOS
+does not expose the corresponding sensor. Android exposes
+the next scheduled alarm but does not reliably identify and replace the first
+Clock alarm, so this household surface intentionally remains read-only rather
+than risking duplicate alarms. Icon color is semantic: normal states stay muted, while
 activity and conditions needing attention receive color.
 
 ## Dashboards
@@ -114,6 +121,7 @@ when a useful cycle status exists.
 `access/family-dashboard.json` is the desired-state access matrix for the family
 dashboard. It binds immutable Home Assistant user IDs to their local login
 username and person entity, lists the Protect cameras each account may see,
+records each supported Android phone's next-alarm entity,
 separates shared and owner-only Google calendars, and records each profile's
 default dashboard and whether a non-owner private-entity policy must be
 enforced. The same document sets `home-tablet` as the system fallback,
