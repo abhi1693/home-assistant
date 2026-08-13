@@ -81,7 +81,7 @@ def sync_source_files(source: Path, config: Path) -> None:
         if not source_directory.exists():
             continue
         for path in sorted(source_directory.rglob("*")):
-            if path.is_file() and path.suffix in {".json", ".yaml"}:
+            if path.is_file() and path.suffix in {".js", ".json", ".yaml"}:
                 managed[str(path.relative_to(source))] = sha256(path)
 
     source_components = source / "custom_components"

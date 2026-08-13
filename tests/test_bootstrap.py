@@ -30,6 +30,7 @@ class BootstrapTests(unittest.TestCase):
         self.write("dashboards/home.yaml", "views: []\n")
         self.write("location/home.json", '{"version": 1}\n')
         self.write("www/bubble/bubble-modules.yaml", "modules: {}\n")
+        self.write("www/family-announcement-card.js", "export default {};\n")
         self.write(
             "custom_components/family_dashboard_guard/__init__.py",
             "VALUE = 1\n",
@@ -74,6 +75,10 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(
             (self.config / "www/bubble/bubble-modules.yaml").read_text(),
             "modules: {}\n",
+        )
+        self.assertEqual(
+            (self.config / "www/family-announcement-card.js").read_text(),
+            "export default {};\n",
         )
 
     def test_automation_reset_is_one_time_and_backed_up(self):

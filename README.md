@@ -53,9 +53,10 @@ Assistant/Jellyfin activity, a narrow Today rail, and four relevant area
 summaries. The Living Room summary combines both fans; the full Rooms view owns
 individual controls for every area. The greeting ends with one prioritized
 household message: laundry completion, a current family event, significant heat
-or storms, shopping needs, or a quiet all-clear. A Git-owned household notice
-helper can override that message, remain until changed, or expire at an optional
-family-selected time.
+or storms, shopping needs, or a quiet all-clear. A Git-owned Announcements
+composer lets family members publish or clear that override inline, keep it
+until cleared, or choose an end time without opening Home Assistant's raw entity
+dialog.
 Routine fan-off state is omitted; running fans are called out because they are
 useful household context. The compact Todo Swipe Shopping
 card supports adding, editing, completing and removing list items directly from
@@ -101,8 +102,8 @@ idempotent on later Fleet rollouts.
 
 The built-in Moon, Uptime, Shopping List and Local Calendar integrations are
 configured without external accounts. Home presents an interactive Shopping
-List with the `Family` calendar, washer and household notice in its Today rail,
-while Rack shows the Home Assistant start time. These config entries and
+List with the `Family` calendar, washer and Announcements composer in its Today
+rail, while Rack shows the Home Assistant start time. These config entries and
 shopping-list contents are
 UI-owned on the persistent volume; the dashboard presentation and access rules
 remain Git-owned here.
@@ -157,7 +158,7 @@ stream quality configuration reproducible without committing Protect secrets.
   Assistant players that deliberately opt out of native Home Assistant entities,
   reusing the integration's existing event stream without polling
 - `themes/`: source-owned themes
-- `packages/`: source-owned helpers, including the household notice and expiry
+- `packages/`: source-owned helpers, including the family announcement and expiry
 - `migrations/`: guarded, one-time area/device migration inputs
 - `bootstrap.py`: idempotent installer used by the Kubernetes init container
 - `bootstrap/manifest.json`: pinned and SHA-verified external assets and custom

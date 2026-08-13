@@ -854,91 +854,6 @@ button_card_templates:
               - background: transparent
               - --launcher-accent: var(--blue)
 
-  family_household_notice:
-    entity: input_text.family_household_notice
-    show_icon: true
-    show_name: true
-    show_state: true
-    show_label: true
-    icon: mdi:message-text-outline
-    name: |
-      [[[
-        const message = !entity || ['unknown', 'unavailable'].includes(entity.state)
-          ? '' : entity.state.trim();
-        return message ? 'For everyone' : 'Leave a note';
-      ]]]
-    state_display: |
-      [[[
-        const message = !entity || ['unknown', 'unavailable'].includes(entity.state)
-          ? '' : entity.state.trim();
-        const expires = states['input_boolean.family_household_notice_expires']?.state === 'on';
-        const until = states['input_datetime.family_household_notice_until'];
-        const deadline = until && !['unknown', 'unavailable'].includes(until.state)
-          ? new Date(until.state.replace(' ', 'T')) : null;
-        if (message && (!expires || !deadline || deadline.getTime() > Date.now())) return message;
-        if (message && expires && deadline && deadline.getTime() <= Date.now()) {
-          return 'This note has expired — tap to replace it';
-        }
-        return 'Tap to write something the family should see';
-      ]]]
-    label: |
-      [[[
-        const expires = states['input_boolean.family_household_notice_expires']?.state === 'on';
-        const until = states['input_datetime.family_household_notice_until'];
-        if (!expires) return 'No expiry';
-        if (!until || ['unknown', 'unavailable'].includes(until.state)) return 'Set an expiry';
-        const deadline = new Date(until.state.replace(' ', 'T'));
-        if (Number.isNaN(deadline.getTime())) return 'Set an expiry';
-        return deadline.getTime() <= Date.now()
-          ? 'Expired'
-          : `Until ${deadline.toLocaleString([], {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'})}`;
-      ]]]
-    tap_action:
-      action: more-info
-    hold_action:
-      action: more-info
-      entity: input_datetime.family_household_notice_until
-    styles:
-      grid:
-        - grid-template-areas: '"i n" "i s" "i l"'
-        - grid-template-columns: 40px 1fr
-        - grid-template-rows: min-content min-content min-content
-        - column-gap: 11px
-      card:
-        - min-height: 112px
-        - padding: 16px
-        - border-radius: 24px
-        - background: var(--contrast2)
-        - box-shadow: none
-      img_cell:
-        - align-self: start
-        - width: 38px
-        - height: 38px
-        - border-radius: 14px
-        - background: var(--contrast4)
-      icon:
-        - width: 20px
-        - color: var(--pink)
-      name:
-        - justify-self: start
-        - color: var(--contrast11)
-        - font-size: 11px
-        - font-weight: 600
-      state:
-        - justify-self: start
-        - color: var(--contrast20)
-        - font-size: 14px
-        - font-weight: 620
-        - white-space: normal
-        - text-align: left
-        - line-height: 19px
-      label:
-        - justify-self: start
-        - color: var(--contrast9)
-        - font-size: 11px
-        - font-weight: 500
-        - padding-top: 5px
-
   family_board_item:
     template: family_status
     styles:
@@ -1302,29 +1217,11 @@ views:
             heading: Today
             heading_style: title
             icon: mdi:calendar-heart
-          - type: custom:button-card
-            template: family_household_notice
-          - type: custom:button-card
-            template: family_board_item
-            entity: input_boolean.family_household_notice_expires
-            name: Notice expiry
-            icon: mdi:timer-outline
-            state_display: |
-              [[[
-                if (entity?.state !== 'on') return 'Keep until someone changes it';
-                const until = states['input_datetime.family_household_notice_until'];
-                if (!until || ['unknown', 'unavailable'].includes(until.state)) return 'Long-press to choose a time';
-                const deadline = new Date(until.state.replace(' ', 'T'));
-                return Number.isNaN(deadline.getTime()) ? 'Long-press to choose a time'
-                  : `Until ${deadline.toLocaleString([], {day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'})}`;
-              ]]]
-            tap_action: { action: toggle }
-            hold_action:
-              action: more-info
-              entity: input_datetime.family_household_notice_until
-            styles:
-              card:
-                - --status-accent: var(--pink)
+          - type: custom:family-announcement-card
+            entity: input_text.family_household_notice
+            expires_entity: input_boolean.family_household_notice_expires
+            until_entity: input_datetime.family_household_notice_until
+            title: Announcements
           - type: custom:button-card
             template: family_board_item
             entity: calendar.family

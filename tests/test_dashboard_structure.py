@@ -77,7 +77,9 @@ class DashboardStructureTests(unittest.TestCase):
             home_view,
         )
         self.assertIn("heading: Today", home_view)
-        self.assertIn("template: family_household_notice", home_view)
+        self.assertIn("type: custom:family-announcement-card", home_view)
+        self.assertIn("title: Announcements", home_view)
+        self.assertNotIn("name: Notice expiry", home_view)
         self.assertIn("template: family_media_hub", home_view)
         self.assertIn("sensor.music_assistant_session_*", home_view)
         self.assertIn("heading: Favourite rooms", home_view)
@@ -98,12 +100,18 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("heading: Now playing", music_view)
         self.assertIn("sensor.music_assistant_session_*", music_view)
 
-    def test_family_notice_helpers_are_git_owned(self):
+    def test_family_announcement_helpers_and_composer_are_git_owned(self):
         package = (ROOT / "packages/family_console.yaml").read_text()
+        composer = (ROOT / "www/family-announcement-card.js").read_text()
 
         self.assertIn("family_household_notice:", package)
         self.assertIn("family_household_notice_expires:", package)
         self.assertIn("family_household_notice_until:", package)
+        self.assertIn("name: Announcements", package)
+        self.assertIn('customElements.define("family-announcement-card"', composer)
+        self.assertIn('callService("input_text", "set_value"', composer)
+        self.assertIn('callService("input_datetime", "set_datetime"', composer)
+        self.assertIn('callService("input_boolean", "turn_on"', composer)
 
     def test_camera_wall_applies_each_camera_user_gate(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
