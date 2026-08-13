@@ -1140,6 +1140,30 @@ views:
                   - type: heading
                     heading: Media
                     icon: mdi:play-circle-outline
+                  - type: grid
+                    columns: 2
+                    square: false
+                    cards:
+                      - type: custom:button-card
+                        template: family_launcher
+                        name: Music
+                        icon: mdi:music-circle
+                        tap_action:
+                          action: url
+                          url_path: https://music.media.home
+                        styles:
+                          card:
+                            - --launcher-accent: var(--purple)
+                      - type: custom:button-card
+                        template: family_launcher
+                        name: Jellyfin
+                        icon: mdi:jellyfish
+                        tap_action:
+                          action: url
+                          url_path: http://watch.media.home
+                        styles:
+                          card:
+                            - --launcher-accent: var(--blue)
                   - type: custom:auto-entities
                     card:
                       type: grid
@@ -1179,31 +1203,6 @@ views:
                       method: last_updated
                       reverse: true
                     show_empty: false
-                    else:
-                      type: grid
-                      columns: 2
-                      square: false
-                      cards:
-                        - type: custom:button-card
-                          template: family_launcher
-                          name: Music
-                          icon: mdi:music-circle
-                          tap_action:
-                            action: url
-                            url_path: https://music.media.home
-                          styles:
-                            card:
-                              - --launcher-accent: var(--purple)
-                        - type: custom:button-card
-                          template: family_launcher
-                          name: Jellyfin
-                          icon: mdi:jellyfish
-                          tap_action:
-                            action: url
-                            url_path: http://watch.media.home
-                          styles:
-                            card:
-                              - --launcher-accent: var(--blue)
               - type: vertical-stack
                 cards:
                   - type: heading
