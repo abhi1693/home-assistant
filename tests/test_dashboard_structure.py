@@ -302,7 +302,7 @@ class DashboardStructureTests(unittest.TestCase):
         )[0]
         card = (ROOT / "www/family-fan-card.js").read_text()
 
-        self.assertIn("/local/family-fan-card.js?v=2.0.0", configuration)
+        self.assertIn("/local/family-fan-card.js?v=2.0.1", configuration)
         self.assertEqual(rooms.count("type: custom:family-fan-card"), 7)
         self.assertNotIn("type: custom:family-fan-summary-card", rooms)
         self.assertIn("max_columns: 3", rooms)
