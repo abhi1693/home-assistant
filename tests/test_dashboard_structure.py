@@ -49,6 +49,19 @@ class DashboardStructureTests(unittest.TestCase):
         )[0]
         self.assertEqual(washer_template.count("action: none"), 3)
 
+    def test_header_prioritizes_a_useful_family_note(self):
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        header = home.split("    header:", 1)[1].split("    badges:", 1)[0]
+
+        self.assertIn("**Family note:**", header)
+        self.assertIn("sensor.front_load_washer_current_status", header)
+        self.assertIn("calendar.family", header)
+        self.assertIn("sensor.home_apparent_temperature", header)
+        self.assertIn("sensor.home_thunderstorm_probability", header)
+        self.assertIn("todo.shopping_list", header)
+        self.assertIn("states.fan | selectattr('state', 'eq', 'on')", header)
+        self.assertNotIn("All available fans are off", header)
+
 
 if __name__ == "__main__":
     unittest.main()
