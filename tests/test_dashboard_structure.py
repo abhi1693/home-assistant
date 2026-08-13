@@ -88,7 +88,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("aspect_ratio: 32 / 9", home_view)
         self.assertIn("camera-outside-users.json", home_view)
         self.assertIn("camera.g5_turret_ultra_high_resolution_channel", home_view)
-        self.assertIn("user?.name === 'Abhimanyu'", home)
+        self.assertIn("user?.id === '9302d11f48c64fe796a3c9e5cb563650'", home)
+        self.assertIn("user?.id === '8117b77542614a06b4672a8ae1a979b5'", home)
         self.assertNotIn("name: Living Fan 1", home_view)
         self.assertNotIn("name: Living Fan 2", home_view)
 
@@ -98,6 +99,18 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("family_household_notice:", package)
         self.assertIn("family_household_notice_expires:", package)
         self.assertIn("family_household_notice_until:", package)
+
+    def test_camera_wall_applies_each_camera_user_gate(self):
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        camera_view = home.split("  - title: Cameras", 1)[1].split(
+            "  - title: Music", 1
+        )[0]
+
+        self.assertEqual(camera_view.count("type: custom:auto-entities"), 3)
+        for camera_key in ("outside", "master-bedroom", "hallway"):
+            self.assertEqual(
+                camera_view.count(f"camera-{camera_key}-users.json"), 1
+            )
 
 
 if __name__ == "__main__":

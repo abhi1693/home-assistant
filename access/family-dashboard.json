@@ -9,27 +9,49 @@
   "profiles": {
     "abhimanyu-saharan": {
       "user_id": "9302d11f48c64fe796a3c9e5cb563650",
-      "user_name": "Abhimanyu",
+      "username": "asaharan",
       "person_entity_id": "person.abhimanyu_saharan",
+      "person_name": "Abhimanyu",
+      "device_trackers": [
+        "device_tracker.abhi_pc",
+        "device_tracker.abhimanyu_pixel_8",
+        "device_tracker.abhimanyu_pixel_8_2"
+      ],
       "is_owner": true,
       "default_dashboard": "home-tablet",
+      "cameras": [
+        "hallway",
+        "outside"
+      ],
+      "notes": "Master Bedroom is hidden from this dashboard profile. As the Home Assistant owner, Abhimanyu retains administrative entity access."
+    },
+    "krishna": {
+      "user_id": "8117b77542614a06b4672a8ae1a979b5",
+      "username": "krishna",
+      "person_entity_id": "person.krishna",
+      "person_name": "Krishna",
+      "device_trackers": [
+        "device_tracker.pixel_10_pro",
+        "device_tracker.pixel_10_pro_2"
+      ],
+      "is_owner": false,
+      "default_dashboard": "home-tablet",
+      "enforce_camera_policy": true,
       "cameras": [
         "master-bedroom",
         "hallway",
         "outside"
       ],
-      "notes": "Master Bedroom access is temporary until the mother profile exists."
+      "notes": "Mother profile. Master Bedroom camera access is exclusive to Krishna among non-owner family accounts."
     },
     "codex-dashboard-reviewer": {
       "user_id": "2d1be8070c364e6a9ba70103c007d4d0",
-      "user_name": "Codex Dashboard Reviewer",
+      "username": "codex-dashboard-review",
       "person_entity_id": null,
       "is_owner": false,
       "default_dashboard": "home-tablet",
       "enforce_camera_policy": true,
-      "cameras": [
-        "master-bedroom"
-      ],
+      "cameras": [],
       "notes": "Temporary browser-validation profile; remove after dashboard acceptance."
     }
   }

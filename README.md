@@ -66,8 +66,8 @@ Rack health remains confined to the admin-only dashboard.
 ## Family access
 
 `access/family-dashboard.json` is the desired-state access matrix for the family
-dashboard. It binds immutable Home Assistant user IDs to their expected account
-name and person entity, lists the Protect cameras each account may see, and
+dashboard. It binds immutable Home Assistant user IDs to their local login
+username and person entity, lists the Protect cameras each account may see, and
 records each profile's default dashboard and whether a non-owner camera policy
 must be enforced. The same document sets `home-tablet` as the system fallback,
 so opening the bare Home Assistant address lands on `/home-tablet/home` instead
@@ -77,10 +77,13 @@ Home Assistant starts. It then generates the Lovelace user include files and
 reconciles non-owner permission groups and frontend defaults from the same
 document without overwriting personal theme or locale preferences.
 
-The initial profile is Abhimanyu. The connected Master Bedroom camera remains a
-temporary dashboard-testing grant until the mother's account is added. Because
-Abhimanyu is the Home Assistant owner, hiding a camera from that profile can
-only be a presentation rule: owners always retain administrative entity access.
+The managed family profiles are Abhimanyu and Krishna. Krishna's person is
+GitOps-linked to both the UniFi and Home Assistant Companion App trackers for
+her Pixel 10 Pro; Abhimanyu's person retains only his own PC and Pixel 8
+trackers. The Master Bedroom camera is rendered for Krishna but omitted from
+Abhimanyu and the browser-review profile. Because Abhimanyu is the Home
+Assistant owner, hiding a camera from that profile can only be a presentation
+rule: owners always retain administrative entity access.
 Non-owner family profiles receive both Lovelace filtering and backend camera
 permissions. Their generated policy explicitly allows every registered
 non-camera domain and only the camera entities granted in the access matrix;
@@ -89,10 +92,12 @@ Restricted camera cards are omitted and the remaining cards reflow. Unknown
 users receive no cameras by default.
 
 Family credentials are never Git-owned. Create each account privately in Home
-Assistant, then add its immutable user ID, expected name, person entity and
-camera grants to the access matrix. A profile mismatch stops bootstrap instead
-of silently widening access. The guarded reconciler backs up `.storage/auth`
-before a policy change and is idempotent on later Fleet rollouts.
+Assistant, then add its immutable user ID, login username, person entity, device
+trackers and camera grants to the access matrix. Person records and tracker
+ownership are created or repaired during bootstrap, while a user or entity
+mismatch stops startup instead of silently widening access. The guarded
+reconciler backs up `.storage/auth` and `.storage/person` before changes and is
+idempotent on later Fleet rollouts.
 
 The built-in Moon, Uptime, Shopping List and Local Calendar integrations are
 configured without external accounts. Home presents an interactive Shopping

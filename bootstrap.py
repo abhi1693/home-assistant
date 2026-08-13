@@ -374,7 +374,20 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     person = json.loads(person_path.read_text())
     entity_registry = json.loads(entity_path.read_text())
     users = {item["id"]: item for item in auth["data"]["users"]}
-    people = {item["id"]: item for item in person["data"]["items"]}
+    usernames = {}
+    for credential in auth["data"].get("credentials", []):
+        if credential.get("auth_provider_type") != "homeassistant":
+            continue
+        username = credential.get("data", {}).get("username")
+        user_id = credential.get("user_id")
+        if username and user_id:
+            if user_id in usernames:
+                raise RuntimeError(
+                    f"Home Assistant user {user_id} has multiple local usernames"
+                )
+            usernames[user_id] = username
+    people_items = person["data"]["items"]
+    people = {item["id"]: item for item in people_items}
     entities = {
         item["entity_id"]: item for item in entity_registry["data"]["entities"]
     }
@@ -411,25 +424,84 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     generated.mkdir(parents=True, exist_ok=True)
     desired_generated = set()
     users_by_camera = {key: [] for key in cameras}
+    desired_people = {}
+    desired_tracker_owners = {}
 
     for profile_key, profile in access.get("profiles", {}).items():
         user_id = profile["user_id"]
         user = users.get(user_id)
         if user is None:
             raise RuntimeError(f"Family profile {profile_key} user is missing")
-        if user.get("name") != profile["user_name"]:
-            raise RuntimeError(f"Family profile {profile_key} user name changed")
+        if usernames.get(user_id) != profile["username"]:
+            raise RuntimeError(f"Family profile {profile_key} username changed")
         if bool(user.get("is_owner")) != bool(profile.get("is_owner", False)):
             raise RuntimeError(f"Family profile {profile_key} owner status changed")
 
         person_entity_id = profile.get("person_entity_id")
         if person_entity_id:
+            if not person_entity_id.startswith("person."):
+                raise RuntimeError(
+                    f"Family profile {profile_key} has an invalid person entity"
+                )
             person_id = person_entity_id.removeprefix("person.")
             person_entry = people.get(person_id)
-            if person_entry is None or person_entry.get("user_id") != user_id:
+            if person_entry is not None and person_entry.get("user_id") not in (
+                None,
+                user_id,
+            ):
                 raise RuntimeError(
-                    f"Family profile {profile_key} is not linked to {person_entity_id}"
+                    f"Family profile {profile_key} person belongs to another user"
                 )
+            duplicate_person = next(
+                (
+                    item["id"]
+                    for item in people_items
+                    if item.get("user_id") == user_id and item["id"] != person_id
+                ),
+                None,
+            )
+            if duplicate_person:
+                raise RuntimeError(
+                    f"Family profile {profile_key} is already linked to "
+                    f"person.{duplicate_person}"
+                )
+
+            device_trackers = profile.get(
+                "device_trackers",
+                person_entry.get("device_trackers", []) if person_entry else [],
+            )
+            if not isinstance(device_trackers, list) or len(device_trackers) != len(
+                set(device_trackers)
+            ):
+                raise RuntimeError(
+                    f"Family profile {profile_key} has invalid device trackers"
+                )
+            for entity_id in device_trackers:
+                entity = entities.get(entity_id)
+                if (
+                    not isinstance(entity_id, str)
+                    or not entity_id.startswith("device_tracker.")
+                    or entity is None
+                    or entity.get("disabled_by") is not None
+                ):
+                    raise RuntimeError(
+                        f"Family profile {profile_key} has an unavailable device "
+                        f"tracker: {entity_id}"
+                    )
+                previous_owner = desired_tracker_owners.setdefault(
+                    entity_id, person_id
+                )
+                if previous_owner != person_id:
+                    raise RuntimeError(
+                        f"Device tracker {entity_id} is assigned to multiple people"
+                    )
+            desired_people[person_id] = {
+                "id": person_id,
+                "name": profile.get("person_name", profile["username"]),
+                "user_id": user_id,
+                "device_trackers": device_trackers,
+                "picture": person_entry.get("picture") if person_entry else None,
+            }
 
         allowed_keys = profile.get("cameras", [])
         unknown_keys = set(allowed_keys) - set(cameras)
@@ -461,12 +533,27 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             group_id = f"family-access-{profile_key}"
             desired_groups[group_id] = {
                 "id": group_id,
-                "name": f"Family access: {profile['user_name']}",
+                "name": f"Family access: {profile.get('person_name', profile['username'])}",
                 "policy": _family_camera_policy(
                     allowed_entities, non_camera_domains
                 ),
             }
             user["group_ids"] = [group_id]
+
+    for item in people_items:
+        if item["id"] in desired_people:
+            continue
+        item["device_trackers"] = [
+            tracker
+            for tracker in item.get("device_trackers", [])
+            if desired_tracker_owners.get(tracker) in (None, item["id"])
+        ]
+    for person_id, desired in desired_people.items():
+        if person_id in people:
+            people[person_id].update(desired)
+        else:
+            people_items.append(desired)
+            people[person_id] = desired
 
     for camera_key, user_ids in users_by_camera.items():
         include = generated / f"camera-{camera_key}-users.json"
@@ -507,6 +594,7 @@ def reconcile_family_access(source: Path, config: Path) -> None:
         else {}
     )
     auth_changed = json.loads(auth_path.read_text()) != auth
+    person_changed = json.loads(person_path.read_text()) != person
     if auth_changed:
         backup = config / f"backups/auth.pre-family-access-{desired_hash[:12]}"
         backup.parent.mkdir(parents=True, exist_ok=True)
@@ -514,9 +602,18 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             shutil.copy2(auth_path, backup)
         atomic_json(auth_path, auth)
         print("Reconciled Git-owned family account permissions")
-    elif current_state.get("sha256") == desired_hash:
+    if person_changed:
+        backup = config / f"backups/person.pre-family-access-{desired_hash[:12]}"
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        if not backup.exists():
+            shutil.copy2(person_path, backup)
+        atomic_json(person_path, person)
+        print("Reconciled Git-owned family people and device trackers")
+    if not auth_changed and not person_changed and current_state.get(
+        "sha256"
+    ) == desired_hash:
         print("Family account mappings and permissions are already current")
-    else:
+    elif not auth_changed and not person_changed:
         print("Validated Git-owned family account mappings")
 
     atomic_json(

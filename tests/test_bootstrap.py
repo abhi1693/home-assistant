@@ -169,14 +169,14 @@ class BootstrapTests(unittest.TestCase):
                     "profiles": {
                         "owner": {
                             "user_id": owner_id,
-                            "user_name": "Owner",
+                            "username": "owner",
                             "person_entity_id": "person.owner",
                             "is_owner": True,
                             "cameras": ["master-bedroom", "hallway"],
                         },
                         "reviewer": {
                             "user_id": reviewer_id,
-                            "user_name": "Reviewer",
+                            "username": "reviewer",
                             "person_entity_id": None,
                             "is_owner": False,
                             "enforce_camera_policy": True,
@@ -229,6 +229,18 @@ class BootstrapTests(unittest.TestCase):
                         "name": "Reviewer",
                         "is_owner": False,
                         "group_ids": ["system-users"],
+                    },
+                ],
+                "credentials": [
+                    {
+                        "user_id": owner_id,
+                        "auth_provider_type": "homeassistant",
+                        "data": {"username": "owner"},
+                    },
+                    {
+                        "user_id": reviewer_id,
+                        "auth_provider_type": "homeassistant",
+                        "data": {"username": "reviewer"},
                     },
                 ],
             },
@@ -333,6 +345,206 @@ class BootstrapTests(unittest.TestCase):
         bootstrap.reconcile_family_access(self.source, self.config)
         self.assertEqual(json.loads((storage / "auth").read_text()), reconciled)
 
+    def test_family_access_creates_person_and_reassigns_device_trackers(self):
+        owner_id = "owner-user-id"
+        krishna_id = "krishna-user-id"
+        self.write(
+            "access/family-dashboard.json",
+            json.dumps(
+                {
+                    "version": 1,
+                    "cameras": {"master-bedroom": "camera.master_bedroom"},
+                    "profiles": {
+                        "owner": {
+                            "user_id": owner_id,
+                            "username": "owner",
+                            "person_entity_id": "person.owner",
+                            "person_name": "Owner",
+                            "device_trackers": ["device_tracker.owner_phone"],
+                            "is_owner": True,
+                            "cameras": [],
+                        },
+                        "krishna": {
+                            "user_id": krishna_id,
+                            "username": "krishna",
+                            "person_entity_id": "person.krishna",
+                            "person_name": "Krishna",
+                            "device_trackers": [
+                                "device_tracker.pixel_10_pro",
+                                "device_tracker.pixel_10_pro_2",
+                            ],
+                            "is_owner": False,
+                            "enforce_camera_policy": True,
+                            "cameras": ["master-bedroom"],
+                        },
+                    },
+                }
+            ),
+        )
+        self.write(
+            "access/protect-streams.json",
+            json.dumps(
+                {
+                    "version": 1,
+                    "cameras": {
+                        "master-bedroom": {
+                            "high_entity_id": "camera.master_bedroom",
+                            "medium_entity_id": "camera.master_bedroom_medium",
+                            "qualities": ["high", "medium"],
+                        }
+                    },
+                }
+            ),
+        )
+        storage = self.config / ".storage"
+        storage.mkdir()
+        (storage / "auth").write_text(
+            json.dumps(
+                {
+                    "data": {
+                        "groups": [
+                            {"id": "system-admin", "name": "Administrators"},
+                            {"id": "system-users", "name": "Users"},
+                        ],
+                        "users": [
+                            {
+                                "id": owner_id,
+                                "name": "Owner",
+                                "is_owner": True,
+                                "group_ids": ["system-admin"],
+                            },
+                            {
+                                "id": krishna_id,
+                                "name": "Krishna",
+                                "is_owner": False,
+                                "group_ids": ["system-users"],
+                            },
+                        ],
+                        "credentials": [
+                            {
+                                "user_id": owner_id,
+                                "auth_provider_type": "homeassistant",
+                                "data": {"username": "owner"},
+                            },
+                            {
+                                "user_id": krishna_id,
+                                "auth_provider_type": "homeassistant",
+                                "data": {"username": "krishna"},
+                            },
+                        ],
+                    }
+                }
+            )
+        )
+        (storage / "person").write_text(
+            json.dumps(
+                {
+                    "data": {
+                        "items": [
+                            {
+                                "id": "owner",
+                                "name": "Owner",
+                                "user_id": owner_id,
+                                "device_trackers": [
+                                    "device_tracker.owner_phone",
+                                    "device_tracker.pixel_10_pro",
+                                    "device_tracker.pixel_10_pro_2",
+                                ],
+                            }
+                        ]
+                    }
+                }
+            )
+        )
+        (storage / "core.entity_registry").write_text(
+            json.dumps(
+                {
+                    "data": {
+                        "entities": [
+                            {
+                                "entity_id": "camera.master_bedroom",
+                                "platform": "unifiprotect",
+                                "disabled_by": None,
+                            },
+                            *[
+                                {
+                                    "entity_id": entity_id,
+                                    "platform": "mobile_app",
+                                    "disabled_by": None,
+                                }
+                                for entity_id in (
+                                    "device_tracker.owner_phone",
+                                    "device_tracker.pixel_10_pro",
+                                    "device_tracker.pixel_10_pro_2",
+                                )
+                            ],
+                        ]
+                    }
+                }
+            )
+        )
+
+        bootstrap.reconcile_family_access(self.source, self.config)
+
+        people = {
+            item["id"]: item
+            for item in json.loads((storage / "person").read_text())["data"][
+                "items"
+            ]
+        }
+        self.assertEqual(
+            people["owner"]["device_trackers"], ["device_tracker.owner_phone"]
+        )
+        self.assertEqual(
+            people["krishna"],
+            {
+                "id": "krishna",
+                "name": "Krishna",
+                "user_id": krishna_id,
+                "device_trackers": [
+                    "device_tracker.pixel_10_pro",
+                    "device_tracker.pixel_10_pro_2",
+                ],
+                "picture": None,
+            },
+        )
+        self.assertEqual(
+            json.loads(
+                (
+                    self.config
+                    / "access/generated/camera-master-bedroom-users.json"
+                ).read_text()
+            ),
+            [krishna_id],
+        )
+        self.assertTrue(
+            next((self.config / "backups").glob("person.pre-family-access-*"))
+        )
+
+        bootstrap.reconcile_family_access(self.source, self.config)
+        self.assertEqual(
+            json.loads((storage / "person").read_text())["data"]["items"],
+            list(people.values()),
+        )
+
+    def test_repository_family_access_keeps_master_bedroom_for_krishna(self):
+        access = json.loads(
+            (Path(bootstrap.__file__).parent / "access/family-dashboard.json").read_text()
+        )
+        profiles = access["profiles"]
+        self.assertEqual(
+            profiles["krishna"]["device_trackers"],
+            ["device_tracker.pixel_10_pro", "device_tracker.pixel_10_pro_2"],
+        )
+        self.assertEqual(
+            [
+                profile_key
+                for profile_key, profile in profiles.items()
+                if "master-bedroom" in profile["cameras"]
+            ],
+            ["krishna"],
+        )
+
     def test_family_access_rejects_owner_policy_enforcement(self):
         self.write(
             "access/family-dashboard.json",
@@ -343,7 +555,7 @@ class BootstrapTests(unittest.TestCase):
                     "profiles": {
                         "owner": {
                             "user_id": "owner-user-id",
-                            "user_name": "Owner",
+                            "username": "owner",
                             "person_entity_id": "person.owner",
                             "is_owner": True,
                             "enforce_camera_policy": True,
@@ -381,6 +593,13 @@ class BootstrapTests(unittest.TestCase):
                                 "name": "Owner",
                                 "is_owner": True,
                                 "group_ids": ["system-admin"],
+                            }
+                        ],
+                        "credentials": [
+                            {
+                                "user_id": "owner-user-id",
+                                "auth_provider_type": "homeassistant",
+                                "data": {"username": "owner"},
                             }
                         ],
                     }
