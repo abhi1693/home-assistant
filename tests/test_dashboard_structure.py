@@ -285,6 +285,36 @@ class DashboardStructureTests(unittest.TestCase):
                 camera_view.count(f"camera-{camera_key}-users.json"), 1
             )
 
+    def test_rooms_use_quota_conscious_full_fan_controls(self):
+        configuration = (ROOT / "configuration.yaml").read_text()
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        rooms = home.split("  - title: Rooms", 1)[1].split(
+            "  - title: Cameras", 1
+        )[0]
+        card = (ROOT / "www/family-fan-card.js").read_text()
+
+        self.assertIn("/local/family-fan-card.js?v=1.0.0", configuration)
+        self.assertEqual(rooms.count("type: custom:family-fan-card"), 7)
+        self.assertEqual(rooms.count("type: custom:family-fan-summary-card"), 1)
+        self.assertIn("max_columns: 3", rooms)
+        self.assertIn("grid_options: { columns: 24, rows: auto }", rooms)
+        self.assertIn("light.office_fan_led", rooms)
+        self.assertIn("switch.office_fan_sleep_mode", rooms)
+        self.assertIn("select.office_fan_set_timer", rooms)
+        self.assertIn("sensor.office_fan_timer_elapsed_time", rooms)
+        self.assertNotIn("button_type: slider", rooms)
+        self.assertNotIn("type: custom:bubble-card", rooms)
+
+        self.assertIn('customElements.define("family-fan-card"', card)
+        self.assertIn('customElements.define("family-fan-summary-card"', card)
+        self.assertIn('{ speed: 6, percentage: 100, label: "Boost" }', card)
+        self.assertIn('"light", service', card)
+        self.assertIn('"switch", service', card)
+        self.assertIn('"select", "select_option"', card)
+        self.assertIn('service = this._state(unit.fan)?.state === "on"', card)
+        self.assertIn('"fan", service, { percentage }, unit.fan', card)
+        self.assertIn("Check wall power or Wi-Fi", card)
+
 
 if __name__ == "__main__":
     unittest.main()

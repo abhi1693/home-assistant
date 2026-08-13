@@ -58,8 +58,14 @@ summaries ordered for each person's routine. Abhimanyu sees Office, Bedroom and
 Living Room; Krishna sees Master
 Bedroom, Kitchen, Living Room and Dining Room; Manisha sees Bedroom, Kitchen,
 Living Room and Guest Room. The browser-review profile sees no favourites.
-The Living Room summary combines both fans; the full Rooms view owns individual
-controls for every area. The greeting ends with one prioritized
+The Living Room summary combines both fans. The full Rooms view uses a
+source-owned, quota-conscious component with direct Power and LED controls, six
+real speed choices including Boost, Sleep mode, 1/2/3/6-hour timers,
+active-state animation and an honest wall-power-or-network unavailable state.
+Living Room keeps both fans in one double-width card with an All off action;
+the other rooms form a consistent three-column desktop grid. Choosing a speed
+while a fan is off turns it on at that speed with one combined Atomberg
+command. The greeting ends with one prioritized
 household message: laundry completion, a current or next-day family event,
 significant heat or storms, shopping needs, or a time-appropriate all-clear.
 Its context line includes the weekday, day part and current time, and its weather
@@ -197,6 +203,8 @@ stream quality configuration reproducible without committing Protect secrets.
 - `custom_components/family_seerr_requests/`: polls the local pending-request
   queue and exposes admin-checked approve/decline actions without sending the
   Seerr API key to the browser
+- `www/family-fan-card.js`: renders quota-conscious multi-entity Atomberg room
+  controls and the glanceable Rooms summary
 - `themes/`: source-owned themes
 - `packages/`: source-owned helpers for normalized temperature presentation
 - `migrations/`: guarded, one-time area/device migration inputs
