@@ -260,6 +260,10 @@ opens a persisted 24-hour circuit breaker instead of triggering repeated
 authentication retries. During that circuit break, HA starts the integration
 from its device cache and uses matching network trackers for zero-quota local
 UDP command fallback instead of leaving the fans unavailable.
+Sleep and Timer are mutually exclusive in both the fan card and the
+integration's acknowledged state. Enabling either mode clears the other from
+the same native command, so the UI updates without another quota-consuming
+request.
 
 ## Validation
 

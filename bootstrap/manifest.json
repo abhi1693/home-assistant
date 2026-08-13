@@ -7,9 +7,9 @@
   "custom_integrations": [
     {
       "name": "Atomberg",
-      "version": "2.2.11",
-      "url": "https://codeload.github.com/abhi1693/ha-atomberg-integration/tar.gz/e0164ce50573b541a79c7caaf4206834bc2c043c",
-      "sha256": "5a93d290eec6c4d3c0b6e3626913f075220ff3f72579929461f94a4df4e5e3e9",
+      "version": "2.2.12",
+      "url": "https://codeload.github.com/abhi1693/ha-atomberg-integration/tar.gz/e4e4a680c3e815062251133320a95fd2e21a9c82",
+      "sha256": "73cfef6cf5a2e030505e7f16cd95e40fa7e55ae9c03b810471700947ddf058e4",
       "source_subdirectory": "custom_components/atomberg",
       "destination": "custom_components/atomberg"
     }
