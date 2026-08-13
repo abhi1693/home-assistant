@@ -51,7 +51,9 @@ class DashboardStructureTests(unittest.TestCase):
 
     def test_header_prioritizes_a_useful_family_note(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
-        header = home.split("    header:", 1)[1].split("    badges:", 1)[0]
+        header = home.split("  - title: Home", 1)[1].split(
+            "  - title: Rooms", 1
+        )[0]
 
         self.assertNotIn("Family note:", header)
         self.assertIn("sensor.front_load_washer_current_status", header)
@@ -83,7 +85,9 @@ class DashboardStructureTests(unittest.TestCase):
             home_view,
         )
         self.assertIn(":host { grid-column: span 2; }", home_view)
+        self.assertIn("#root > *:first-child { grid-column: span 2; }", home_view)
         self.assertIn("camera.g5_turret_ultra_high_resolution_channel", home_view)
+        self.assertIn("user?.name === 'Abhimanyu'", home)
         self.assertNotIn("name: Living Fan 1", home_view)
         self.assertNotIn("name: Living Fan 2", home_view)
 

@@ -326,7 +326,7 @@ button_card_templates:
             icon: 'mdi:weather-lightning-rainy', color: storm >= 60 ? 'var(--red)' : 'var(--yellow)'
           };
           const battery = Number(states['sensor.pixel_8_battery_level']?.state);
-          if (Number.isFinite(battery) && battery < 25) return {
+          if (user?.name === 'Abhimanyu' && Number.isFinite(battery) && battery < 25) return {
             name: 'Phone battery', label: `${Math.round(battery)}%`,
             icon: 'mdi:battery-alert-variant-outline', color: 'var(--red)'
           };
@@ -989,61 +989,36 @@ views:
     theme: Family Dark
     max_columns: 4
     dense_section_placement: true
-    header:
-      layout: responsive
-      badges_position: top
-      card:
-        type: markdown
-        text_only: true
-        content: |-
-          # {{ 'Good morning' if now().hour < 12 else 'Good afternoon' if now().hour < 17 else 'Good evening' }}, {{ user }}
-          {% set condition = state_translated('weather.home') | replace('Partlycloudy', 'Partly cloudy') | replace('partlycloudy', 'partly cloudy') %}
-          {% set temperature = states('sensor.home_temperature') %}
-          {% set apparent = states('sensor.home_apparent_temperature') | float(0) %}
-          {% set storm = states('sensor.home_thunderstorm_probability') | int(0) %}
-          {% set home = states.person | selectattr('state', 'eq', 'home') | map(attribute='name') | list %}
-          {% set washer = states('sensor.front_load_washer_current_status') | lower %}
-          {% set event = state_attr('calendar.family', 'message') %}
-          {% set shopping = states('todo.shopping_list') | int(0) %}
-          {% set notice_state = states('input_text.family_household_notice') %}
-          {% set notice = '' if notice_state in ['unknown', 'unavailable'] else notice_state | trim %}
-          {% set notice_expires = is_state('input_boolean.family_household_notice_expires', 'on') %}
-          {% set notice_until = as_timestamp(states('input_datetime.family_household_notice_until'), 0) %}
-          **{{ now().strftime('%A') }}** · {{ condition }} at **{{ temperature }} °C** · {% if home | count == 0 %}Nobody home{% elif home | count == 1 %}{{ home[0] }} is home{% else %}{{ home | count }} people home{% endif %}
-
-          {% if notice and (not notice_expires or notice_until == 0 or notice_until > as_timestamp(now())) %}{{ notice }}{% elif washer in ['complete', 'completed', 'finished', 'end'] %}The laundry is ready to be collected.{% elif is_state('calendar.family', 'on') and event %}**{{ event }}** is happening now.{% elif apparent >= 38 and storm >= 30 %}It feels like **{{ apparent | round(0) | int }} °C** outside and storms are possible—please stay hydrated and take an umbrella.{% elif apparent >= 38 %}It feels like **{{ apparent | round(0) | int }} °C** outside—please stay hydrated and avoid the afternoon heat.{% elif storm >= 30 %}There is a **{{ storm }}%** chance of storms today—keep an umbrella handy.{% elif shopping > 0 %}There {% if shopping == 1 %}is **1 item**{% else %}are **{{ shopping }} items**{% endif %} on the shopping list.{% else %}Everything at home looks settled.{% endif %}
-        card_mod:
-          style: |
-            ha-card { background: transparent; padding: 4px 0 2px; }
-            h1 { font-size: 38px; letter-spacing: -1.3px; margin-bottom: 5px; }
-            p { color: var(--contrast11); font-size: 15px; line-height: 1.4; margin: 4px 0; }
-    badges:
-      - type: entity
-        entity: person.abhimanyu_saharan
-        name: Abhimanyu
-        show_name: true
-        show_state: true
-        color: green
-        visibility:
-          - condition: user
-            users: !include ../access/generated/profile-abhimanyu-saharan-users.json
-      - type: entity
-        entity: sensor.pixel_8_battery_level
-        name: Phone low
-        show_name: true
-        show_state: true
-        color: red
-        visibility:
-          - condition: user
-            users: !include ../access/generated/profile-abhimanyu-saharan-users.json
-          - condition: numeric_state
-            entity: sensor.pixel_8_battery_level
-            below: 25
     sections:
       - type: grid
         column_span: 3
         cards:
           - &family_navigation !include includes/family-navigation.yaml
+          - type: markdown
+            text_only: true
+            content: |-
+              # {{ 'Good morning' if now().hour < 12 else 'Good afternoon' if now().hour < 17 else 'Good evening' }}, {{ user }}
+              {% set condition = state_translated('weather.home') | replace('Partlycloudy', 'Partly cloudy') | replace('partlycloudy', 'partly cloudy') %}
+              {% set temperature = states('sensor.home_temperature') %}
+              {% set apparent = states('sensor.home_apparent_temperature') | float(0) %}
+              {% set storm = states('sensor.home_thunderstorm_probability') | int(0) %}
+              {% set home = states.person | selectattr('state', 'eq', 'home') | map(attribute='name') | list %}
+              {% set washer = states('sensor.front_load_washer_current_status') | lower %}
+              {% set event = state_attr('calendar.family', 'message') %}
+              {% set shopping = states('todo.shopping_list') | int(0) %}
+              {% set notice_state = states('input_text.family_household_notice') %}
+              {% set notice = '' if notice_state in ['unknown', 'unavailable'] else notice_state | trim %}
+              {% set notice_expires = is_state('input_boolean.family_household_notice_expires', 'on') %}
+              {% set notice_until = as_timestamp(states('input_datetime.family_household_notice_until'), 0) %}
+              **{{ now().strftime('%A') }}** · {{ condition }} at **{{ temperature }} °C** · {% if home | count == 0 %}Nobody home{% elif home | count == 1 %}{{ home[0] }} is home{% else %}{{ home | count }} people home{% endif %}
+
+              {% if notice and (not notice_expires or notice_until == 0 or notice_until > as_timestamp(now())) %}{{ notice }}{% elif washer in ['complete', 'completed', 'finished', 'end'] %}The laundry is ready to be collected.{% elif is_state('calendar.family', 'on') and event %}**{{ event }}** is happening now.{% elif apparent >= 38 and storm >= 30 %}It feels like **{{ apparent | round(0) | int }} °C** outside and storms are possible—please stay hydrated and take an umbrella.{% elif apparent >= 38 %}It feels like **{{ apparent | round(0) | int }} °C** outside—please stay hydrated and avoid the afternoon heat.{% elif storm >= 30 %}There is a **{{ storm }}%** chance of storms today—keep an umbrella handy.{% elif shopping > 0 %}There {% if shopping == 1 %}is **1 item**{% else %}are **{{ shopping }} items**{% endif %} on the shopping list.{% else %}Everything at home looks settled.{% endif %}
+            card_mod:
+              style: |
+                ha-card { background: transparent; padding: 2px 0 0; }
+                h1 { font-size: 38px; letter-spacing: -1.3px; margin: 0 0 5px; }
+                p { color: var(--contrast11); font-size: 15px; line-height: 1.4; margin: 4px 0; }
+            grid_options: { columns: 36, rows: auto }
           - type: custom:button-card
             show_icon: false
             show_name: false
@@ -1113,6 +1088,10 @@ views:
               type: grid
               square: false
               columns: 4
+              card_mod:
+                style: |
+                  #root { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+                  #root > *:first-child { grid-column: span 2; }
             card_param: cards
             filter:
               include:
