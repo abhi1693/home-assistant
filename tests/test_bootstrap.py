@@ -28,6 +28,7 @@ class BootstrapTests(unittest.TestCase):
     def test_sync_replaces_owned_files_and_removes_only_stale_owned_files(self):
         self.write("configuration.yaml", "default_config:\n")
         self.write("dashboards/home.yaml", "views: []\n")
+        self.write("location/home.json", '{"version": 1}\n')
         self.write("www/bubble/bubble-modules.yaml", "modules: {}\n")
         self.write(
             "custom_components/family_dashboard_guard/__init__.py",
@@ -57,6 +58,9 @@ class BootstrapTests(unittest.TestCase):
         )
         self.assertEqual(
             (self.config / "dashboards/home.yaml").read_text(), "views: []\n"
+        )
+        self.assertEqual(
+            (self.config / "location/home.json").read_text(), '{"version": 1}\n'
         )
         self.assertFalse((self.config / "dashboards/stale.yaml").exists())
         self.assertTrue((self.config / "dashboards/user.yaml").exists())
@@ -462,6 +466,117 @@ class BootstrapTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(RuntimeError, "invalid qualities"):
             bootstrap.validate_protect_streams(self.source, self.config)
+
+    def test_home_location_reconciles_weather_and_preserves_credentials(self):
+        self.write(
+            "location/home.json",
+            json.dumps(
+                {
+                    "version": 1,
+                    "name": "Home",
+                    "address": "G3-012, Indiabulls Centrum Park",
+                    "latitude": 28.4978819,
+                    "longitude": 76.9830822,
+                    "integration_locations": [
+                        {
+                            "domain": "google_weather",
+                            "subentry_type": "location",
+                            "title": "Home",
+                        }
+                    ],
+                }
+            ),
+        )
+        storage = self.config / ".storage"
+        storage.mkdir()
+        entries = {
+            "version": 1,
+            "minor_version": 1,
+            "key": "core.config_entries",
+            "data": {
+                "entries": [
+                    {
+                        "entry_id": "weather-entry",
+                        "domain": "google_weather",
+                        "data": {"api_key": "keep-secret", "referrer": "keep"},
+                        "subentries": [
+                            {
+                                "subentry_id": "home-location",
+                                "subentry_type": "location",
+                                "title": "Home",
+                                "data": {
+                                    "latitude": 28.5788649,
+                                    "longitude": 77.0656272,
+                                },
+                            }
+                        ],
+                    }
+                ]
+            },
+        }
+        entries_path = storage / "core.config_entries"
+        entries_path.write_text(json.dumps(entries))
+
+        bootstrap.reconcile_home_location(self.source, self.config)
+
+        reconciled = json.loads(entries_path.read_text())
+        entry = reconciled["data"]["entries"][0]
+        self.assertEqual(
+            entry["data"], {"api_key": "keep-secret", "referrer": "keep"}
+        )
+        self.assertEqual(
+            entry["subentries"][0]["data"],
+            {"latitude": 28.4978819, "longitude": 76.9830822},
+        )
+        backup = next(
+            (self.config / "backups").glob(
+                "core.config_entries.pre-home-location-*"
+            )
+        )
+        self.assertEqual(json.loads(backup.read_text()), entries)
+
+        bootstrap.reconcile_home_location(self.source, self.config)
+        self.assertEqual(json.loads(entries_path.read_text()), reconciled)
+
+    def test_home_location_rejects_ambiguous_weather_locations(self):
+        self.write(
+            "location/home.json",
+            json.dumps(
+                {
+                    "version": 1,
+                    "name": "Home",
+                    "address": "G3-012, Indiabulls Centrum Park",
+                    "latitude": 28.4978819,
+                    "longitude": 76.9830822,
+                    "integration_locations": [
+                        {
+                            "domain": "google_weather",
+                            "subentry_type": "location",
+                            "title": "Home",
+                        }
+                    ],
+                }
+            ),
+        )
+        storage = self.config / ".storage"
+        storage.mkdir()
+        (storage / "core.config_entries").write_text(
+            json.dumps(
+                {
+                    "data": {
+                        "entries": [
+                            {
+                                "domain": "google_weather",
+                                "subentries": [],
+                            }
+                        ]
+                    }
+                }
+            )
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "found 0"):
+            bootstrap.reconcile_home_location(self.source, self.config)
 
 
 if __name__ == "__main__":

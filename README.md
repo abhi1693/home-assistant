@@ -90,6 +90,13 @@ temperature cards render an explicit `°C`, and package-owned template sensors
 convert the two UniFi readings that publish Fahrenheit into Celsius before they
 reach the Rack dashboard.
 
+Home's canonical location is G3-012, Indiabulls Centrum Park, Sector 103,
+Gurugram, Haryana 122006 at `28.4978819, 76.9830822`, approximately 211 metres
+above sea level. The Home zone uses a 100 metre radius and `Asia/Kolkata`.
+Home Assistant's core location is fixed in `configuration.yaml`; bootstrap also
+reconciles Google Weather's location subentry because that integration snapshots
+the coordinates present when it is configured. API credentials remain untouched.
+
 Protect camera cards explicitly request live rendering through Home Assistant's
 LL-HLS stream proxy. The UniFi policy from the K8s network to the Protect console
 must allow TCP `443` for the API and TCP `7441` for RTSPS. Cards automatically
@@ -105,6 +112,7 @@ stream quality configuration reproducible without committing Protect secrets.
 ## Repository layout
 
 - `access/`: Git-owned account mappings and camera access policy
+- `location/`: canonical home address and integration location targets
 - `configuration.yaml`: authoritative top-level Home Assistant YAML
 - `dashboards/`: the family and admin Lovelace dashboards
 - `custom_components/family_dashboard_guard/`: removes the superseded built-in

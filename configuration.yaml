@@ -2,8 +2,17 @@
 default_config:
 
 homeassistant:
+  # G3-012, Indiabulls Centrum Park, Sector 103, Gurugram, Haryana, India - 122006
+  name: Home
+  latitude: 28.4978819
+  longitude: 76.9830822
+  elevation: 211
+  radius: 100
   packages: !include_dir_named packages
   unit_system: metric
+  currency: INR
+  country: IN
+  time_zone: Asia/Kolkata
 
 frontend:
   themes: !include_dir_merge_named themes

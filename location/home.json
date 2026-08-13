@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "name": "Home",
+  "address": "G3-012, Indiabulls Centrum Park, Sector 103, Gurugram, Haryana, India - 122006",
+  "latitude": 28.4978819,
+  "longitude": 76.9830822,
+  "elevation": 211,
+  "radius": 100,
+  "time_zone": "Asia/Kolkata",
+  "country": "IN",
+  "currency": "INR",
+  "integration_locations": [
+    {
+      "domain": "google_weather",
+      "subentry_type": "location",
+      "title": "Home"
+    }
+  ]
+}

@@ -69,7 +69,14 @@ def sync_source_files(source: Path, config: Path) -> None:
     managed: dict[str, str] = {
         "configuration.yaml": sha256(source / "configuration.yaml")
     }
-    for directory in ("access", "dashboards", "packages", "themes", "www"):
+    for directory in (
+        "access",
+        "dashboards",
+        "location",
+        "packages",
+        "themes",
+        "www",
+    ):
         source_directory = source / directory
         if not source_directory.exists():
             continue
@@ -566,6 +573,75 @@ def validate_protect_streams(source: Path, config: Path) -> None:
             raise RuntimeError(f"Protect stream {camera_name} has invalid qualities")
 
 
+def reconcile_home_location(source: Path, config: Path) -> None:
+    """Keep integrations that snapshot the home pin aligned with Git."""
+    location_path = source / "location/home.json"
+    desired = json.loads(location_path.read_text())
+    if desired.get("version") != 1:
+        raise RuntimeError("Unsupported home location configuration")
+
+    latitude = desired.get("latitude")
+    longitude = desired.get("longitude")
+    if (
+        isinstance(latitude, bool)
+        or not isinstance(latitude, (int, float))
+        or not -90 <= latitude <= 90
+        or isinstance(longitude, bool)
+        or not isinstance(longitude, (int, float))
+        or not -180 <= longitude <= 180
+    ):
+        raise RuntimeError("Home location has invalid coordinates")
+    if not desired.get("address") or not desired.get("name"):
+        raise RuntimeError("Home location requires a name and address")
+
+    integrations = desired.get("integration_locations")
+    if not isinstance(integrations, list) or not integrations:
+        raise RuntimeError("Home location has no integration targets")
+
+    entries_path = config / ".storage/core.config_entries"
+    if not entries_path.exists():
+        raise RuntimeError("Home Assistant config entry storage is missing")
+    document = json.loads(entries_path.read_text())
+    entries = document.get("data", {}).get("entries", [])
+
+    changed = False
+    for target in integrations:
+        matches = [
+            subentry
+            for entry in entries
+            if entry.get("domain") == target.get("domain")
+            for subentry in entry.get("subentries", [])
+            if subentry.get("subentry_type") == target.get("subentry_type")
+            and subentry.get("title") == target.get("title")
+        ]
+        if len(matches) != 1:
+            raise RuntimeError(
+                "Expected exactly one "
+                f"{target.get('domain')} location named {target.get('title')}; "
+                f"found {len(matches)}"
+            )
+        data = matches[0].setdefault("data", {})
+        if data.get("latitude") != latitude or data.get("longitude") != longitude:
+            data["latitude"] = latitude
+            data["longitude"] = longitude
+            changed = True
+
+    if not changed:
+        print("Home location and integration coordinates are already current")
+        return
+
+    desired_hash = sha256(location_path)
+    backup = (
+        config
+        / f"backups/core.config_entries.pre-home-location-{desired_hash[:12]}"
+    )
+    backup.parent.mkdir(parents=True, exist_ok=True)
+    if not backup.exists():
+        shutil.copy2(entries_path, backup)
+    atomic_json(entries_path, document)
+    print("Reconciled Git-owned Home and integration coordinates")
+
+
 def remove_storage_dashboards(config: Path) -> None:
     marker = config / ".dashboard-cleanup-2026-08-13"
     if marker.exists():
@@ -611,6 +687,7 @@ def main() -> None:
     install_assets(manifest, config)
     install_custom_integrations(manifest, config)
     migrate_areas(source, config)
+    reconcile_home_location(source, config)
     validate_protect_streams(source, config)
     reconcile_family_access(source, config)
     remove_storage_dashboards(config)
