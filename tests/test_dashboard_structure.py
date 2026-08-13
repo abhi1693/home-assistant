@@ -85,8 +85,16 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("type: custom:family-announcement-card", home_view)
         self.assertIn("title: Announcements", home_view)
         self.assertNotIn("name: Notice expiry", home_view)
-        self.assertIn("template: family_media_hub", home_view)
+        self.assertIn("template: family_media_launchers", home_view)
         self.assertIn("sensor.music_assistant_session_*", home_view)
+        self.assertIn("Music Assistant · ${player}", home)
+        self.assertIn("Jellyfin · ${viewer}", home)
+        self.assertIn("name: Open Music Assistant", home)
+        self.assertIn("name: Open Jellyfin", home)
+        self.assertLess(
+            home_view.index("sensor.music_assistant_session_*"),
+            home_view.index("template: family_media_launchers"),
+        )
         self.assertIn("heading: Favourite rooms", home_view)
         self.assertIn(
             "entities: [fan.living_room_fan_1, fan.living_room_fan_2]",
