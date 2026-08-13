@@ -1488,7 +1488,6 @@ views:
             text_only: true
             content: |-
               # Rooms
-              Simple controls for every room. Choose a speed, use the LED light, let Sleep mode lower speed one step every 2 hours, or set Auto-off.
             card_mod:
               style: |
                 ha-card { background: transparent; padding: 8px 0 4px; }
@@ -1496,7 +1495,7 @@ views:
                 p { color: var(--contrast11); font-size: 16px; line-height: 1.5; }
             grid_options:
               columns: 36
-              rows: 2
+              rows: 1
           - type: custom:family-fan-summary-card
             fans:
               - { entity: fan.office_fan, name: Office }

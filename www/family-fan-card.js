@@ -199,7 +199,7 @@ class FamilyFanCard extends HTMLElement {
           </button>
           <button class="feature${sleepOn ? " active sleep" : ""}${sleepBusy ? " busy" : ""}" data-action="sleep" data-index="${index}"${disabled || (sleepBusy ? " disabled" : "")} aria-label="Turn ${this._escape(fanName)} sleep mode ${sleepOn ? "off" : "on"}" aria-pressed="${sleepOn ? "true" : "false"}" title="Lowers the fan by one speed every 2 hours">
             <span class="feature-icon"><ha-icon icon="${sleepBusy ? "mdi:loading" : "mdi:weather-night"}"></ha-icon></span>
-            <span class="feature-copy"><strong>Sleep mode</strong><small>${sleepBusy ? "Working…" : sleepOn ? "On · 1 step / 2h" : "Off · 1 step / 2h"}</small></span>
+            <span class="feature-copy"><strong>Sleep mode</strong><small>${sleepBusy ? "Working…" : sleepOn ? "On · lowers speed" : "Off"}</small></span>
           </button>
           <label class="feature timer${timerOn ? " active" : ""}${timerBusy ? " busy" : ""}${available ? "" : " disabled"}" title="Turn the fan off automatically">
             <span class="feature-icon"><ha-icon icon="${timerBusy ? "mdi:loading" : "mdi:timer-outline"}"></ha-icon></span>
