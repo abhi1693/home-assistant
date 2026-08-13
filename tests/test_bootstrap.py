@@ -977,6 +977,148 @@ class BootstrapTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "found 0"):
             bootstrap.reconcile_home_location(self.source, self.config)
 
+    def test_commute_uses_mobile_gps_and_generates_private_work_zone(self):
+        self.write(
+            "location/commute.json",
+            json.dumps(
+                {
+                    "version": 1,
+                    "config_entry_id": "travel-entry",
+                    "tracker_entity_id": "device_tracker.owner_phone",
+                    "to_work_entity_id": "sensor.owner_to_work",
+                    "to_home_entity_id": "sensor.owner_to_home",
+                    "work_zone": {
+                        "id": "work",
+                        "name": "Work",
+                        "radius": 150,
+                        "icon": "mdi:briefcase",
+                    },
+                }
+            ),
+        )
+        storage = self.config / ".storage"
+        storage.mkdir()
+        entries = {
+            "data": {
+                "entries": [
+                    {
+                        "entry_id": "travel-entry",
+                        "domain": "google_travel_time",
+                        "data": {
+                            "api_key": "keep-secret",
+                            "origin": "28.5, 77.0",
+                            "destination": "28.4, 77.1",
+                        },
+                        "pref_disable_polling": False,
+                    }
+                ]
+            }
+        }
+        entries_path = storage / "core.config_entries"
+        entries_path.write_text(json.dumps(entries))
+        (storage / "core.entity_registry").write_text(
+            json.dumps(
+                {
+                    "data": {
+                        "entities": [
+                            {
+                                "entity_id": "device_tracker.owner_phone",
+                                "platform": "mobile_app",
+                                "disabled_by": None,
+                            },
+                            {
+                                "entity_id": "sensor.owner_to_work",
+                                "platform": "google_travel_time",
+                                "config_entry_id": "travel-entry",
+                                "disabled_by": None,
+                            },
+                        ]
+                    }
+                }
+            )
+        )
+
+        bootstrap.reconcile_commute(self.source, self.config)
+
+        reconciled = json.loads(entries_path.read_text())
+        entry = reconciled["data"]["entries"][0]
+        self.assertEqual(entry["data"]["api_key"], "keep-secret")
+        self.assertEqual(entry["data"]["origin"], "device_tracker.owner_phone")
+        self.assertEqual(entry["data"]["destination"], "28.4, 77.1")
+        self.assertTrue(entry["pref_disable_polling"])
+        private_package = json.loads(
+            (self.config / bootstrap.PRIVATE_COMMUTE_PACKAGE).read_text()
+        )
+        self.assertEqual(
+            private_package,
+            {
+                "zone": [
+                    {
+                        "name": "Work",
+                        "latitude": 28.4,
+                        "longitude": 77.1,
+                        "radius": 150.0,
+                        "passive": False,
+                        "icon": "mdi:briefcase",
+                    }
+                ]
+            },
+        )
+        backup = next(
+            (self.config / "backups").glob("core.config_entries.pre-commute-*")
+        )
+        self.assertEqual(json.loads(backup.read_text()), entries)
+
+        bootstrap.reconcile_commute(self.source, self.config)
+        self.assertEqual(json.loads(entries_path.read_text()), reconciled)
+
+    def test_commute_rejects_an_entity_destination_for_private_zone(self):
+        self.write(
+            "location/commute.json",
+            json.dumps(
+                {
+                    "version": 1,
+                    "config_entry_id": "travel-entry",
+                    "tracker_entity_id": "device_tracker.owner_phone",
+                    "to_work_entity_id": "sensor.owner_to_work",
+                    "to_home_entity_id": "sensor.owner_to_home",
+                    "work_zone": {
+                        "id": "work",
+                        "name": "Work",
+                        "radius": 150,
+                        "icon": "mdi:briefcase",
+                    },
+                }
+            ),
+        )
+        storage = self.config / ".storage"
+        storage.mkdir()
+        (storage / "core.config_entries").write_text(
+            json.dumps(
+                {
+                    "data": {
+                        "entries": [
+                            {
+                                "entry_id": "travel-entry",
+                                "domain": "google_travel_time",
+                                "data": {
+                                    "api_key": "keep-secret",
+                                    "origin": "device_tracker.owner_phone",
+                                    "destination": "zone.work",
+                                },
+                            }
+                        ]
+                    }
+                }
+            )
+        )
+        (storage / "core.entity_registry").write_text(
+            json.dumps({"data": {"entities": []}})
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "static coordinate pair"):
+            bootstrap.reconcile_commute(self.source, self.config)
+
 
 if __name__ == "__main__":
     unittest.main()

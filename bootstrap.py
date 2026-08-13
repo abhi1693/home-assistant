@@ -19,6 +19,7 @@ MANAGED_STATE = ".home-assistant-source-files.json"
 CUSTOM_INTEGRATION_STATE = ".home-assistant-custom-integrations.json"
 FAMILY_ACCESS_STATE = ".home-assistant-family-access.json"
 PROTECT_STREAM_QUALITIES = {"high", "medium", "low"}
+PRIVATE_COMMUTE_PACKAGE = "packages/private_commute.yaml"
 
 
 def sha256(path: Path) -> str:
@@ -880,6 +881,139 @@ def reconcile_home_location(source: Path, config: Path) -> None:
     print("Reconciled Git-owned Home and integration coordinates")
 
 
+def _coordinates(value: object) -> tuple[float, float]:
+    """Parse a private latitude/longitude pair stored by a config entry."""
+    if not isinstance(value, str):
+        raise RuntimeError("Commute destination is not a static coordinate pair")
+    parts = [part.strip() for part in value.split(",")]
+    if len(parts) != 2:
+        raise RuntimeError("Commute destination is not a static coordinate pair")
+    try:
+        latitude, longitude = (float(part) for part in parts)
+    except ValueError as error:
+        raise RuntimeError(
+            "Commute destination is not a static coordinate pair"
+        ) from error
+    if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
+        raise RuntimeError("Commute destination has invalid coordinates")
+    return latitude, longitude
+
+
+def reconcile_commute(source: Path, config: Path) -> None:
+    """Make the private commute entry follow the owner's GPS tracker."""
+    desired_path = source / "location/commute.json"
+    desired = json.loads(desired_path.read_text())
+    if desired.get("version") != 1:
+        raise RuntimeError("Unsupported commute configuration")
+
+    config_entry_id = desired.get("config_entry_id")
+    tracker_entity_id = desired.get("tracker_entity_id")
+    to_work_entity_id = desired.get("to_work_entity_id")
+    zone = desired.get("work_zone", {})
+    if (
+        not isinstance(config_entry_id, str)
+        or not isinstance(tracker_entity_id, str)
+        or not tracker_entity_id.startswith("device_tracker.")
+        or not isinstance(to_work_entity_id, str)
+        or not to_work_entity_id.startswith("sensor.")
+        or zone.get("id") != "work"
+        or zone.get("name") != "Work"
+        or not isinstance(zone.get("radius"), (int, float))
+        or zone["radius"] <= 0
+        or not isinstance(zone.get("icon"), str)
+    ):
+        raise RuntimeError("Commute configuration is invalid")
+
+    storage = config / ".storage"
+    entries_path = storage / "core.config_entries"
+    entities_path = storage / "core.entity_registry"
+    if not entries_path.exists() or not entities_path.exists():
+        raise RuntimeError("Home Assistant commute registry storage is missing")
+
+    entries_document = json.loads(entries_path.read_text())
+    matches = [
+        entry
+        for entry in entries_document.get("data", {}).get("entries", [])
+        if entry.get("entry_id") == config_entry_id
+        and entry.get("domain") == "google_travel_time"
+    ]
+    if len(matches) != 1:
+        raise RuntimeError(
+            "Expected exactly one Google Travel Time commute entry; "
+            f"found {len(matches)}"
+        )
+    entry = matches[0]
+    data = entry.get("data", {})
+    if not data.get("api_key"):
+        raise RuntimeError("Google Travel Time commute entry has no API key")
+    latitude, longitude = _coordinates(data.get("destination"))
+
+    entities = {
+        item["entity_id"]: item
+        for item in json.loads(entities_path.read_text())
+        .get("data", {})
+        .get("entities", [])
+    }
+    tracker = entities.get(tracker_entity_id)
+    to_work = entities.get(to_work_entity_id)
+    if (
+        tracker is None
+        or tracker.get("platform") != "mobile_app"
+        or tracker.get("disabled_by") is not None
+    ):
+        raise RuntimeError("Commute tracker is not an enabled mobile-app entity")
+    if (
+        to_work is None
+        or to_work.get("platform") != "google_travel_time"
+        or to_work.get("config_entry_id") != config_entry_id
+        or to_work.get("disabled_by") is not None
+    ):
+        raise RuntimeError("Commute-to-work sensor does not match its config entry")
+
+    changed = False
+    if data.get("origin") != tracker_entity_id:
+        data["origin"] = tracker_entity_id
+        changed = True
+    if entry.get("pref_disable_polling") is not True:
+        entry["pref_disable_polling"] = True
+        changed = True
+
+    desired_hash = sha256(desired_path)[:12]
+    if changed:
+        backup = config / (
+            f"backups/core.config_entries.pre-commute-{desired_hash}"
+        )
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        if not backup.exists():
+            shutil.copy2(entries_path, backup)
+        atomic_json(entries_path, entries_document)
+
+    private_package = config / PRIVATE_COMMUTE_PACKAGE
+    private_document = {
+        "zone": [
+            {
+                "name": zone["name"],
+                "latitude": latitude,
+                "longitude": longitude,
+                "radius": float(zone["radius"]),
+                "passive": False,
+                "icon": zone["icon"],
+            }
+        ]
+    }
+    package_changed = (
+        not private_package.exists()
+        or json.loads(private_package.read_text()) != private_document
+    )
+    if package_changed:
+        atomic_json(private_package, private_document, mode=0o600)
+
+    if changed or package_changed:
+        print("Reconciled private Work zone and dynamic commute routing")
+    else:
+        print("Private Work zone and dynamic commute routing are already current")
+
+
 def remove_storage_dashboards(config: Path) -> None:
     marker = config / ".dashboard-cleanup-2026-08-13"
     if marker.exists():
@@ -926,6 +1060,7 @@ def main() -> None:
     install_custom_integrations(manifest, config)
     migrate_areas(source, config)
     reconcile_home_location(source, config)
+    reconcile_commute(source, config)
     validate_protect_streams(source, config)
     reconcile_family_access(source, config)
     reconcile_dashboard_defaults(source, config)

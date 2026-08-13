@@ -35,12 +35,18 @@ and red communicate full/charging, normal, low and critical levels. The Pixel 8,
 Pixel 10 Pro and iPhone level/state entity pairs are recorded in the Git-owned
 family access matrix.
 
-Abhimanyu's sidebar also includes the enabled Google Travel Time
-`sensor.abhimanyu_home_to_work` as a private `Home → Work` card. It shows the
-current traffic-aware minutes with a green, amber or red car-clock icon and is
-rendered only for the Git-mapped `asaharan` account. Work coordinates remain in
-the integration's UI-owned configuration and are not copied into this public
-repository.
+The sidebar includes `sensor.abhimanyu_to_home` for every family account, using
+Abhimanyu's Pixel 8 GPS position to show his current traffic-aware time home.
+Abhimanyu additionally sees `sensor.abhimanyu_home_to_work`; that Work card is
+hidden while his phone is inside the private Work zone. Both use compact
+green, amber or red commute cards. The Git-owned bootstrap converts the existing
+Google Travel Time origin to the Companion App GPS tracker, disables duplicate
+automatic polling, and derives a runtime-only Work zone from the integration's
+existing destination. The API key and Work coordinates remain in Home
+Assistant's private storage and are never copied into this public repository.
+The paired routes refresh every 20 minutes and on meaningful Home/Work
+transitions, keeping the two ETAs near Google Maps' documented free monthly
+request allowance.
 
 ## Dashboards
 

@@ -473,10 +473,18 @@ button_card_templates:
     show_name: true
     show_state: false
     show_label: true
-    name: Home → Work
-    icon: mdi:car-clock
+    name: |
+      [[[
+        return variables.destination || 'Commute';
+      ]]]
+    icon: |
+      [[[
+        return variables.icon || 'mdi:car-clock';
+      ]]]
     label: |
       [[[
+        const person = states[variables.person_entity];
+        if (variables.zero_when_home && person?.state === 'home') return '0 min';
         const minutes = Number(entity?.state);
         return Number.isFinite(minutes) ? `${Math.round(minutes)} min` : '—';
       ]]]
@@ -1568,10 +1576,26 @@ views:
                 users: !include ../access/generated/calendar-household-users.json
           - type: custom:button-card
             template: family_commute
+            entity: sensor.abhimanyu_to_home
+            variables:
+              destination: Home
+              icon: mdi:home-clock
+              person_entity: person.abhimanyu_saharan
+              zero_when_home: true
+          - type: custom:button-card
+            template: family_commute
             entity: sensor.abhimanyu_home_to_work
+            variables:
+              destination: Work
+              icon: mdi:briefcase-clock
+              person_entity: person.abhimanyu_saharan
+              zero_when_home: false
             visibility:
               - condition: user
                 users: !include ../access/generated/profile-abhimanyu-saharan-users.json
+              - condition: state
+                entity: person.abhimanyu_saharan
+                state_not: Work
           - type: heading
             heading: Phones
             heading_style: subtitle

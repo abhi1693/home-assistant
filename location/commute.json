@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "config_entry_id": "01KZYG4SWHRFJBKQPFR4V2HDPV",
+  "tracker_entity_id": "device_tracker.abhimanyu_pixel_8_2",
+  "to_work_entity_id": "sensor.abhimanyu_home_to_work",
+  "to_home_entity_id": "sensor.abhimanyu_to_home",
+  "work_zone": {
+    "id": "work",
+    "name": "Work",
+    "radius": 150,
+    "icon": "mdi:briefcase"
+  }
+}

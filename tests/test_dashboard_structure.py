@@ -324,24 +324,35 @@ class DashboardStructureTests(unittest.TestCase):
             home_view.index("heading: Phones"), home_view.index("type: conditional")
         )
 
-    def test_home_to_work_commute_is_owner_only(self):
+    def test_commute_shows_home_to_family_and_work_only_to_owner(self):
         access = (ROOT / "access/family-dashboard.json").read_text()
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
         home_view = home.split("  - title: Home", 1)[1].split(
             "  - title: Rooms", 1
         )[0]
-        commute = home_view.split("template: family_commute", 1)[1].split(
+        commute_home = home_view.split("template: family_commute", 1)[1].split(
+            "          - type: custom:button-card", 1
+        )[0]
+        commute_work = home_view.split("template: family_commute", 2)[2].split(
             "          - type: heading", 1
         )[0]
 
         self.assertIn(
-            '"commute_entity_id": "sensor.abhimanyu_home_to_work"', access
+            '"shared_to_home_entity_id": "sensor.abhimanyu_to_home"', access
+        )
+        self.assertIn(
+            '"owner_to_work_entity_id": "sensor.abhimanyu_home_to_work"', access
         )
         self.assertIn("family_commute:", home)
-        self.assertIn("entity: sensor.abhimanyu_home_to_work", commute)
-        self.assertIn("profile-abhimanyu-saharan-users.json", commute)
-        self.assertIn("name: Home → Work", home)
-        self.assertIn("mdi:car-clock", home)
+        self.assertIn("entity: sensor.abhimanyu_to_home", commute_home)
+        self.assertNotIn("condition: user", commute_home)
+        self.assertIn("destination: Home", commute_home)
+        self.assertIn("entity: sensor.abhimanyu_home_to_work", commute_work)
+        self.assertIn("profile-abhimanyu-saharan-users.json", commute_work)
+        self.assertIn("state_not: Work", commute_work)
+        self.assertIn("destination: Work", commute_work)
+        self.assertIn("mdi:home-clock", home)
+        self.assertIn("mdi:briefcase-clock", home)
         self.assertNotIn("28.4114532", home)
 
     def test_camera_wall_applies_each_camera_user_gate(self):

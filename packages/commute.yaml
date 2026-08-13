@@ -1,0 +1,60 @@
+template:
+  - triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: time_pattern
+        minutes: "/20"
+      - trigger: state
+        entity_id: person.abhimanyu_saharan
+        from: home
+      - trigger: state
+        entity_id: person.abhimanyu_saharan
+        to: home
+      - trigger: state
+        entity_id: person.abhimanyu_saharan
+        to: Work
+      - trigger: state
+        entity_id: person.abhimanyu_saharan
+        from: Work
+    actions:
+      - if:
+          - condition: not
+            conditions:
+              - condition: state
+                entity_id: person.abhimanyu_saharan
+                state: Work
+        then:
+          - action: homeassistant.update_entity
+            target:
+              entity_id: sensor.abhimanyu_home_to_work
+      - action: google_travel_time.get_travel_times
+        data:
+          config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
+          origin: device_tracker.abhimanyu_pixel_8_2
+          destination: zone.home
+          mode: driving
+          units: metric
+          traffic_model: best_guess
+        response_variable: travel_home
+    sensor:
+      - name: Abhimanyu to Home
+        unique_id: abhimanyu_to_home
+        default_entity_id: sensor.abhimanyu_to_home
+        device_class: duration
+        state_class: measurement
+        unit_of_measurement: min
+        availability: >-
+          {{ travel_home is defined and travel_home.get('routes', []) | count > 0 }}
+        state: >-
+          {% set routes = travel_home.get('routes', []) %}
+          {{ (routes[0].duration | float(0) / 60) | round(1) }}
+        attributes:
+          distance: >-
+            {% set routes = travel_home.get('routes', []) %}
+            {{ routes[0].distance_text }}
+          traffic_time: >-
+            {% set routes = travel_home.get('routes', []) %}
+            {{ routes[0].duration_text }}
+          static_time: >-
+            {% set routes = travel_home.get('routes', []) %}
+            {{ routes[0].static_duration_text }}

@@ -18,6 +18,12 @@
       "calendar.topmate_calendar_2"
     ]
   },
+  "commute": {
+    "traveler_person_entity_id": "person.abhimanyu_saharan",
+    "tracker_entity_id": "device_tracker.abhimanyu_pixel_8_2",
+    "shared_to_home_entity_id": "sensor.abhimanyu_to_home",
+    "owner_to_work_entity_id": "sensor.abhimanyu_home_to_work"
+  },
   "profiles": {
     "abhimanyu-saharan": {
       "user_id": "9302d11f48c64fe796a3c9e5cb563650",
@@ -28,7 +34,6 @@
       "next_alarm_entity_id": "sensor.pixel_8_next_alarm",
       "battery_level_entity_id": "sensor.pixel_8_battery_level",
       "battery_state_entity_id": "sensor.pixel_8_battery_state",
-      "commute_entity_id": "sensor.abhimanyu_home_to_work",
       "device_trackers": [
         "device_tracker.abhi_pc",
         "device_tracker.abhimanyu_pixel_8",
