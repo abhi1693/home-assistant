@@ -346,17 +346,20 @@ button_card_templates:
         [[[
           const level = Number(states[variables.battery_entity]?.state);
           const batteryState = String(states[variables.battery_state_entity]?.state || '').toLowerCase();
-          const charging = batteryState === 'charging';
+          const charging = ['charging', 'full', 'charged'].includes(batteryState);
           const full = batteryState === 'full' || (Number.isFinite(level) && level >= 95);
+          const bucket = Number.isFinite(level)
+            ? Math.max(10, Math.min(100, Math.ceil(level / 10) * 10))
+            : null;
           const color = charging || full ? 'var(--green)'
             : Number.isFinite(level) && level <= 20 ? 'var(--red)'
             : Number.isFinite(level) && level <= 40 ? 'var(--yellow)'
             : Number.isFinite(level) ? 'var(--blue)'
             : 'var(--contrast8)';
-          const icon = charging ? 'mdi:battery-charging'
+          const icon = charging ? (bucket ? `mdi:battery-charging-${bucket}` : 'mdi:battery-charging')
             : full ? 'mdi:battery'
             : !Number.isFinite(level) ? 'mdi:battery-unknown'
-            : `mdi:battery-${Math.max(10, Math.min(90, Math.ceil(level / 10) * 10))}`;
+            : `mdi:battery-${Math.min(90, bucket)}`;
           const value = Number.isFinite(level) ? `${Math.round(level)}%` : '—';
           return `<span style="display:flex;align-items:center;gap:4px;color:${color};white-space:nowrap"><ha-icon icon="${icon}" style="width:18px;height:18px"></ha-icon><strong style="font-size:12px">${value}</strong></span>`;
         ]]]
