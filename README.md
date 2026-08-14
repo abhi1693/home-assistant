@@ -123,9 +123,9 @@ extra API call. A fixed centre rotor rotates only while running,
 unavailable fans collapse to a disabled wall-switch message, and one per-fan
 command lock prevents conflicting taps. Living Room presents both fans as equal
 tiles in one double-width card; the other rooms form a two-column desktop grid.
-Selecting a speed while off turns the fan on at that speed with one combined
-Atomberg command. An immediate action first cancels an active conflicting timer
-so it cannot unexpectedly reverse the fan later.
+Selecting a speed while off sends separate power and speed commands matching
+Atomberg's published API. An immediate action first cancels an active
+conflicting timer so it cannot unexpectedly reverse the fan later.
 The family row combines each person's avatar, approximate home/away likelihood,
 and color-coded phone battery state. Tapping a person opens Home Assistant's
 location panel without publishing coordinates on the shared card. The greeting ends with one prioritized
@@ -345,14 +345,16 @@ storage-mode dashboards after backing them up. A source-owned system integration
 unregisters the built-in `/home/overview` panel on every startup, leaving the
 custom `Home` and `Rack` dashboards as the intentional dashboard surfaces.
 
-The Atomberg fork publishes successful command state immediately, polls all fan
-states once per hour, and persists hard limits of 1000 total cloud calls and 24
-poll calls per rolling 24 hours. Calls are spaced below five per second. Local
-UDP broadcasts remain the preferred zero-quota low-latency update path when
-they can reach Home Assistant. Atomberg's HTTP 403 explicit-deny quota response
-opens a persisted 24-hour circuit breaker instead of triggering repeated
-authentication retries. During that circuit break, HA starts the integration
-from its device cache and uses matching network trackers for zero-quota local
+The Atomberg fork publishes requested command state immediately, then debounces
+one authoritative all-fan cloud confirmation after successful cloud controls.
+It also polls once per hour and persists hard limits of 1000 total cloud calls
+and 24 poll calls per rolling 24 hours. Calls are spaced below five per second.
+Confirmed states refresh the startup cache. Local UDP broadcasts remain the
+preferred zero-quota low-latency update path when they can reach Home Assistant.
+Atomberg's HTTP 403 explicit-deny quota response opens a persisted 24-hour
+circuit breaker instead of triggering repeated authentication retries. During
+that circuit break, HA starts the integration from its device cache and uses
+matching network trackers for zero-quota local
 UDP command fallback instead of leaving the fans unavailable.
 Sleep and Timer are mutually exclusive in both the fan card and the
 integration's acknowledged state. Enabling either mode clears the other from
