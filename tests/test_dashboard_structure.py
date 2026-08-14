@@ -389,13 +389,18 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("heading: Phones", home_view)
         self.assertEqual(home_view.count("battery_entity:"), 3)
         self.assertEqual(home_view.count("battery_state_entity:"), 3)
+        self.assertEqual(home_view.count("battery_charging_entity:"), 2)
         family_template = home.split("  family_presence_likelihood:", 1)[1].split(
             "\n  family_ribbon_activity:", 1
         )[0]
         self.assertIn("action: more-info", family_template)
         self.assertIn('custom_fields:\n      indicator:', family_template)
         self.assertIn("      battery: |", family_template)
+        self.assertIn("['on', 'true', 'charging'].includes(chargingState)", home)
         self.assertIn("['charging', 'full', 'charged'].includes(batteryState)", home)
+        self.assertIn("batteryIcon.includes('battery-charging')", home)
+        self.assertIn("binary_sensor.pixel_8_is_charging", access)
+        self.assertIn("binary_sensor.pixel_10_pro_is_charging", access)
         self.assertIn("`mdi:battery-charging-${bucket}`", home)
         self.assertIn("Math.min(100, Math.ceil(level / 10) * 10)", home)
         self.assertIn("var(--red)", home)

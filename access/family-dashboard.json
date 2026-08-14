@@ -85,6 +85,7 @@
       "next_alarm_entity_id": "sensor.pixel_8_next_alarm",
       "battery_level_entity_id": "sensor.pixel_8_battery_level",
       "battery_state_entity_id": "sensor.pixel_8_battery_state",
+      "battery_charging_entity_id": "binary_sensor.pixel_8_is_charging",
       "device_trackers": [
         "device_tracker.abhimanyu_pixel_8",
         "device_tracker.abhimanyu_pixel_8_2"
@@ -107,6 +108,7 @@
       "next_alarm_entity_id": "sensor.pixel_10_pro_next_alarm",
       "battery_level_entity_id": "sensor.pixel_10_pro_battery_level",
       "battery_state_entity_id": "sensor.pixel_10_pro_battery_state",
+      "battery_charging_entity_id": "binary_sensor.pixel_10_pro_is_charging",
       "device_trackers": [
         "device_tracker.pixel_10_pro",
         "device_tracker.pixel_10_pro_2"

@@ -344,9 +344,14 @@ button_card_templates:
         ]]]
       battery: |
         [[[
-          const level = Number(states[variables.battery_entity]?.state);
+          const battery = states[variables.battery_entity];
+          const level = Number(battery?.state);
           const batteryState = String(states[variables.battery_state_entity]?.state || '').toLowerCase();
-          const charging = ['charging', 'full', 'charged'].includes(batteryState);
+          const chargingState = String(states[variables.battery_charging_entity]?.state || '').toLowerCase();
+          const batteryIcon = String(battery?.attributes?.icon || '').toLowerCase();
+          const charging = ['on', 'true', 'charging'].includes(chargingState)
+            || ['charging', 'full', 'charged'].includes(batteryState)
+            || batteryIcon.includes('battery-charging');
           const full = batteryState === 'full' || (Number.isFinite(level) && level >= 95);
           const bucket = Number.isFinite(level)
             ? Math.max(10, Math.min(100, Math.ceil(level / 10) * 10))
@@ -1420,6 +1425,7 @@ views:
                   likelihood_entity: sensor.abhimanyu_home_likelihood
                   battery_entity: sensor.pixel_8_battery_level
                   battery_state_entity: sensor.pixel_8_battery_state
+                  battery_charging_entity: binary_sensor.pixel_8_is_charging
                   avatar_color: var(--blue)
               - type: custom:button-card
                 template: family_presence_likelihood
@@ -1429,6 +1435,7 @@ views:
                   likelihood_entity: sensor.krishna_home_likelihood
                   battery_entity: sensor.pixel_10_pro_battery_level
                   battery_state_entity: sensor.pixel_10_pro_battery_state
+                  battery_charging_entity: binary_sensor.pixel_10_pro_is_charging
                   avatar_color: var(--purple)
               - type: custom:button-card
                 template: family_presence_likelihood
