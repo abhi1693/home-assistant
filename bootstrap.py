@@ -172,8 +172,6 @@ def validate_household_policy(source: Path) -> None:
             isinstance(entity_id, str) and entity_id.startswith("camera.")
             for entity_id in required
         )
-        or security.get("warning_percent", 0)
-        >= security.get("critical_percent", 0)
     ):
         raise RuntimeError("Household security contract is invalid")
 

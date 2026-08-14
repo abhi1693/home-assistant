@@ -176,7 +176,7 @@ The household package supplies restart-safe Normal, Guest and Maintenance
 intent, quiet hours, a default `Shadow` safety stage,
 confidence-aware phone presence, five-minute empty-home dwell, camera outage
 timers, one notification router, washer, dishwasher, fan,
-travel-battery, perimeter and Protect-storage workflows. Shadow mode records
+travel-battery and perimeter workflows. Shadow mode records
 decisions but does not send mobile alerts or control devices. Hardware-dependent
 contact, leak, certified smoke/CO, indoor-air and wellbeing capabilities remain
 explicitly dormant instead of appearing healthy without sensors or consent.

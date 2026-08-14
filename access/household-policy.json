@@ -19,15 +19,10 @@
     }
   },
   "security": {
-    "alarm": "alarm_control_panel.home_protect_storage_alarm_manager",
     "required_cameras": [
       "camera.g5_turret_ultra_high_resolution_channel",
       "camera.hallway_high_resolution_channel"
-    ],
-    "nvr_utilization": "sensor.home_protect_storage_storage_utilization",
-    "nvr_disk_problem": "binary_sensor.home_protect_storage_hdd_1",
-    "warning_percent": 85,
-    "critical_percent": 92
+    ]
   },
   "normally_powered_off": [
     "fan.master_bedroom_fan",

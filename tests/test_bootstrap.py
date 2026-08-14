@@ -115,8 +115,6 @@ class BootstrapTests(unittest.TestCase):
             },
             "security": {
                 "required_cameras": ["camera.outside", "camera.balcony"],
-                "warning_percent": 85,
-                "critical_percent": 92,
             },
             "hardware_contracts": {
                 "entry_contacts": [],

@@ -2232,18 +2232,9 @@ views:
               label: [{ justify-self: start }, { color: var(--contrast10) }, { white-space: normal }]
             grid_options: { columns: 24, rows: auto }
           - type: grid
-            columns: 2
+            columns: 1
             square: false
             cards:
-              - type: custom:button-card
-                entity: alarm_control_panel.home_protect_storage_alarm_manager
-                name: Protect alarm
-                icon: mdi:shield-lock-outline
-                show_state: true
-                tap_action: { action: none }
-                styles:
-                  card: [{ min-height: 94px }, { border-radius: 22px }, { background: var(--contrast2) }]
-                  icon: [{ width: 26px }, { color: var(--blue) }]
               - type: custom:button-card
                 entity: sensor.camera_coverage
                 name: Camera coverage
@@ -2730,12 +2721,6 @@ views:
               - type: tile
                 entity: sensor.house_attention_level
                 name: Household attention
-              - type: tile
-                entity: sensor.home_protect_storage_storage_utilization
-                name: NVR storage
-              - type: tile
-                entity: binary_sensor.home_protect_storage_hdd_1
-                name: NVR disk
               - type: tile
                 entity: sensor.camera_coverage
                 name: Camera coverage

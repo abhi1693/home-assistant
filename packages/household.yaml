@@ -578,43 +578,6 @@ automation:
             target: { entity_id: timer.hallway_camera_offline }
             data: { duration: "00:15:00" }
 
-  - id: household_nvr_storage_incident
-    alias: Household · Report Protect storage risk
-    description: Treat Protect storage above 92 percent as critical and deduplicate by notification tag.
-    mode: restart
-    triggers:
-      - trigger: numeric_state
-        entity_id: sensor.home_protect_storage_storage_utilization
-        above: 92
-      - trigger: state
-        entity_id: binary_sensor.home_protect_storage_hdd_1
-        to: "on"
-      - trigger: event
-        event_type: timer.finished
-        event_data: { entity_id: timer.household_startup_settle }
-    conditions:
-      - condition: state
-        entity_id: timer.household_startup_settle
-        state: idle
-      - condition: or
-        conditions:
-          - condition: numeric_state
-            entity_id: sensor.home_protect_storage_storage_utilization
-            above: 92
-          - condition: state
-            entity_id: binary_sensor.home_protect_storage_hdd_1
-            state: "on"
-    actions:
-      - action: script.family_household_incident
-        data:
-          recipient: owner
-          severity: critical
-          fingerprint: protect-recording-risk
-          title: Protect recording is at risk
-          message: >-
-            Storage is {{ states('sensor.home_protect_storage_storage_utilization') }}% full{% if is_state('binary_sensor.home_protect_storage_hdd_1', 'on') %} and the disk reports a problem{% endif %}.
-          url: /home-tablet/security
-
   - id: household_ups_on_battery
     alias: Household · Report backup power
     description: Share household impact while Rack Ops remains the only infrastructure actuator.
