@@ -35,6 +35,11 @@ input_text:
     max: 255
     icon: mdi:text-box-check-outline
 
+  vacation_preflight_result:
+    name: Vacation check result
+    max: 255
+    icon: mdi:airplane-check
+
 input_datetime:
   last_household_evaluation:
     name: Last household evaluation
@@ -800,6 +805,17 @@ automation:
       - condition: template
         value_template: >-
           {{ trigger.to_state.context.user_id == '9302d11f48c64fe796a3c9e5cb563650' }}
+      - variables:
+          preflight_blockers: >-
+            {{ state_attr('binary_sensor.vacation_ready', 'blockers') or [] }}
+          vacation_control_active: >-
+            {{ is_state('input_select.household_automation_stage', 'Active') }}
+          blocker_message: >-
+            {% set items = preflight_blockers | list %}
+            {% if not vacation_control_active %}
+              {% set items = items + ['Vacation setup is still in preview'] %}
+            {% endif %}
+            {{ items | join(' · ') if items else 'house checks did not pass' }}
       - choose:
           - conditions:
               - condition: state
@@ -812,6 +828,9 @@ automation:
               - action: input_select.select_option
                 target: { entity_id: input_select.house_mode }
                 data: { option: Vacation }
+              - action: input_text.set_value
+                target: { entity_id: input_text.vacation_preflight_result }
+                data: { value: "Vacation mode started" }
               - action: script.family_household_notify
                 data:
                   recipient: family
@@ -821,13 +840,17 @@ automation:
                   message: Camera, recording, location, and washer checks passed.
                   url: /home-tablet/security
         default:
+          - action: input_text.set_value
+            target: { entity_id: input_text.vacation_preflight_result }
+            data:
+              value: "Not ready · {{ blocker_message }}"
           - action: script.family_household_incident
             data:
               recipient: owner
               severity: warning
               fingerprint: vacation-preflight
               title: Vacation needs attention
-              message: "Blocked by: {{ state_attr('binary_sensor.vacation_ready', 'blockers') | join(', ') }}."
+              message: "Blocked by: {{ blocker_message }}."
               url: /home-tablet/security
 
   - id: household_periodic_health_evaluation

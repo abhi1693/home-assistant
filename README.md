@@ -167,6 +167,10 @@ travel-battery, perimeter and Protect-storage workflows. Shadow mode records
 decisions but does not send mobile alerts or control devices. Hardware-dependent
 contact, leak, certified smoke/CO, indoor-air and wellbeing capabilities remain
 explicitly dormant instead of appearing healthy without sensors or consent.
+Vacation checks always leave an immediate result on the Security view. While the
+household stage is `Shadow`, the control is labelled as a readiness check and
+cannot imply that Vacation mode will start; only an `Active`, fully ready check
+can change house mode.
 Bootstrap also reconciles the existing cluster NUT endpoint as a credential-free,
 read-only `Rack UPS` config entry. Home Assistant can explain battery, load and
 runtime, while Rack Ops remains the only system allowed to stage Kubernetes

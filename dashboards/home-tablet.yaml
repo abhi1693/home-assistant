@@ -2431,6 +2431,8 @@ views:
             label: |
               [[[
                 const blockers = entity?.attributes?.blockers || [];
+                const active = states['input_select.household_automation_stage']?.state === 'Active';
+                if (!active) return 'Preview only · checks will not change house mode';
                 return blockers.length ? blockers.join(' · ') : 'Ready when you are';
               ]]]
             tap_action: { action: none }
@@ -2445,10 +2447,65 @@ views:
             entity: input_button.request_vacation_mode
             name: Check and start Vacation
             icon: mdi:airplane-check
-            tap_action: { action: toggle }
+            tap_action:
+              action: perform-action
+              perform_action: input_button.press
+              target: { entity_id: input_button.request_vacation_mode }
+              confirmation:
+                text: Check the house and start Vacation if everything is ready?
             visibility:
               - condition: user
                 users: !include ../access/generated/profile-abhimanyu-saharan-users.json
+              - condition: state
+                entity: input_select.household_automation_stage
+                state: Active
+          - type: tile
+            entity: input_button.request_vacation_mode
+            name: Check Vacation readiness
+            icon: mdi:shield-search-outline
+            tap_action:
+              action: perform-action
+              perform_action: input_button.press
+              target: { entity_id: input_button.request_vacation_mode }
+            visibility:
+              - condition: user
+                users: !include ../access/generated/profile-abhimanyu-saharan-users.json
+              - condition: state
+                entity: input_select.household_automation_stage
+                state: Shadow
+          - type: custom:button-card
+            entity: input_text.vacation_preflight_result
+            name: Last Vacation check
+            icon: mdi:clipboard-check-outline
+            show_state: true
+            show_label: true
+            label: |
+              [[[
+                const changed = new Date(entity?.last_changed || 0).getTime();
+                const minutes = Math.max(0, Math.floor((Date.now() - changed) / 60000));
+                if (minutes < 2) return 'Checked just now';
+                if (minutes < 60) return `Checked ${minutes} min ago`;
+                return `Checked ${Math.floor(minutes / 60)} hr ago`;
+              ]]]
+            tap_action: { action: none }
+            hold_action: { action: none }
+            styles:
+              card: [{ min-height: 88px }, { border-radius: 22px }, { background: var(--contrast2) }]
+              icon: [{ color: var(--orange) }]
+              state: [{ white-space: normal }, { text-align: left }]
+              label: [{ color: var(--contrast10) }]
+            visibility:
+              - condition: user
+                users: !include ../access/generated/profile-abhimanyu-saharan-users.json
+              - condition: state
+                entity: input_text.vacation_preflight_result
+                state_not: unknown
+              - condition: state
+                entity: input_text.vacation_preflight_result
+                state_not: unavailable
+              - condition: state
+                entity: input_text.vacation_preflight_result
+                state_not: ""
           - type: markdown
             content: >-
               Future entrance contacts, leak sensors and certified smoke/CO alarms

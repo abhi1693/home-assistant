@@ -463,6 +463,26 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("sensor.home_protect_storage_storage_utilization", shared)
         self.assertIn("sensor.home_protect_storage_storage_utilization", maintenance)
         self.assertIn("entity: binary_sensor.vacation_ready", home)
+        self.assertIn("entity: input_text.vacation_preflight_result", home)
+        self.assertIn("name: Check and start Vacation", home)
+        self.assertIn("name: Check Vacation readiness", home)
+        self.assertEqual(
+            home.count("perform_action: input_button.press"),
+            2,
+        )
+        self.assertIn(
+            "text: Check the house and start Vacation if everything is ready?",
+            home,
+        )
+        vacation_controls = home.split(
+            "entity: binary_sensor.vacation_ready", 1
+        )[1].split("Future entrance contacts", 1)[0]
+        self.assertNotIn("tap_action: { action: toggle }", vacation_controls)
+        self.assertIn("Preview only · checks will not change house mode", home)
+        self.assertIn("vacation_preflight_result:", package)
+        self.assertIn("Vacation setup is still in preview", package)
+        self.assertIn('value: "Vacation mode started"', package)
+        self.assertIn('value: "Not ready · {{ blocker_message }}"', package)
         self.assertNotIn("household_good_night", home)
         self.assertNotIn("household_good_night", package)
         self.assertIn("household_automation_stage:", package)
