@@ -510,12 +510,16 @@ def migrate_areas(source: Path, config: Path) -> None:
 
 
 def _family_entity_policy(
-    allowed_entities: list[str], unrestricted_domains: set[str]
+    allowed_entities: list[str],
+    unrestricted_domains: set[str],
+    denied_entities: set[str] | None = None,
 ) -> dict:
     """Allow unrestricted domains and individually granted private domains."""
+    entity_ids = {entity_id: True for entity_id in allowed_entities}
+    entity_ids.update({entity_id: False for entity_id in denied_entities or set()})
     return {
         "entities": {
-            "entity_ids": {entity_id: True for entity_id in allowed_entities},
+            "entity_ids": entity_ids,
             "domains": {domain: True for domain in sorted(unrestricted_domains)},
         }
     }
@@ -561,6 +565,32 @@ def reconcile_family_access(source: Path, config: Path) -> None:
         for entity_id in entities
         if entity_id.partition(".")[0] not in {"calendar", "camera"}
     }
+
+    owner_health = access.get("owner_health", {})
+    owner_health_profile = owner_health.get("profile")
+    owner_health_entities = owner_health.get("entities", [])
+    owner_profile = access.get("profiles", {}).get(owner_health_profile)
+    if owner_health:
+        if (
+            not owner_health_profile
+            or not owner_profile
+            or not owner_profile.get("is_owner")
+            or not owner_health_entities
+            or len(owner_health_entities) != len(set(owner_health_entities))
+        ):
+            raise RuntimeError("Owner health privacy contract is invalid")
+        for entity_id in owner_health_entities:
+            entity = entities.get(entity_id)
+            if (
+                not isinstance(entity_id, str)
+                or not entity_id.startswith("sensor.")
+                or entity is None
+                or entity.get("platform") != "mobile_app"
+            ):
+                raise RuntimeError(
+                    f"Owner health entity is not a Companion App sensor: {entity_id}"
+                )
+    owner_health_entities = set(owner_health_entities)
 
     calendars = access.get("calendars", {})
     shared_calendars = calendars.get("shared", [])
@@ -755,7 +785,9 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                 "id": group_id,
                 "name": f"Family access: {profile.get('person_name', profile['username'])}",
                 "policy": _family_entity_policy(
-                    [*allowed_entities, *shared_calendars], unrestricted_domains
+                    [*allowed_entities, *shared_calendars],
+                    unrestricted_domains,
+                    owner_health_entities,
                 ),
             }
             user["group_ids"] = [group_id]

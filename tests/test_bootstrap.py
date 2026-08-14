@@ -421,6 +421,10 @@ class BootstrapTests(unittest.TestCase):
                         "shared": ["calendar.birthdays"],
                         "owner_only": ["calendar.private"],
                     },
+                    "owner_health": {
+                        "profile": "owner",
+                        "entities": ["sensor.owner_heart_rate"],
+                    },
                     "profiles": {
                         "owner": {
                             "user_id": owner_id,
@@ -544,6 +548,11 @@ class BootstrapTests(unittest.TestCase):
                         "disabled_by": None,
                     },
                     {
+                        "entity_id": "sensor.owner_heart_rate",
+                        "platform": "mobile_app",
+                        "disabled_by": None,
+                    },
+                    {
                         "entity_id": "calendar.birthdays",
                         "platform": "google",
                         "disabled_by": None,
@@ -578,6 +587,7 @@ class BootstrapTests(unittest.TestCase):
                 "camera.master_bedroom": True,
                 "camera.master_bedroom_medium": True,
                 "calendar.birthdays": True,
+                "sensor.owner_heart_rate": False,
             },
         )
         self.assertEqual(

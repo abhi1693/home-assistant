@@ -45,6 +45,14 @@ routes:
     icon_selected: mdi:account-group
     url: /home-tablet/people
     label: People
+  - icon: mdi:heart-pulse
+    icon_selected: mdi:heart
+    url: /home-tablet/health
+    label: Health
+    hidden: |
+      [[[
+        return user?.id !== '9302d11f48c64fe796a3c9e5cb563650';
+      ]]]
   - icon: mdi:tools
     icon_selected: mdi:toolbox
     url: /home-tablet/maintenance

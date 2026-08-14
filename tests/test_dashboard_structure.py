@@ -18,7 +18,7 @@ class DashboardStructureTests(unittest.TestCase):
             ),
             1,
         )
-        self.assertEqual(home.count("- *family_navigation"), 5)
+        self.assertEqual(home.count("- *family_navigation"), 6)
         self.assertEqual(
             rack.count("- !include includes/family-navigation.yaml"), 1
         )
@@ -41,6 +41,7 @@ class DashboardStructureTests(unittest.TestCase):
                 "Cameras",
                 "Security",
                 "People",
+                "Health",
                 "Maintenance",
                 "Rack",
                 "Settings",
@@ -477,6 +478,54 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("mode: queued", package)
         self.assertEqual(policy["automation_stage"], "Shadow")
         self.assertEqual(policy["profiles"]["manisha"]["wifi"], None)
+
+    def test_health_view_is_owner_only_and_uses_available_sensors(self):
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        access = json.loads((ROOT / "access/family-dashboard.json").read_text())
+        configuration = (ROOT / "configuration.yaml").read_text()
+        health = home.split("  - title: Health", 1)[1].split(
+            "  - title: Maintenance", 1
+        )[0]
+
+        self.assertEqual(access["owner_health"]["profile"], "abhimanyu-saharan")
+        self.assertIn(
+            "sensor.pixel_8_heart_rate", access["owner_health"]["entities"]
+        )
+        self.assertIn(
+            "visible: !include ../access/generated/profile-abhimanyu-saharan-users.json",
+            health,
+        )
+        self.assertGreaterEqual(
+            health.count(
+                "users: !include ../access/generated/profile-abhimanyu-saharan-users.json"
+            ),
+            2,
+        )
+        for entity_id in (
+            "sensor.pixel_8_daily_steps",
+            "sensor.pixel_8_daily_distance",
+            "sensor.pixel_8_total_calories_burned",
+            "sensor.pixel_8_heart_rate",
+            "sensor.pixel_8_oxygen_saturation",
+            "sensor.pixel_8_sleep_duration",
+            "sensor.pixel_8_sleep_confidence",
+        ):
+            self.assertIn(f"entity: {entity_id}", health)
+        for unavailable_metric in (
+            "blood_glucose",
+            "body_fat",
+            "weight",
+            "systolic_blood_pressure",
+            "sleep_segment",
+        ):
+            self.assertNotIn(unavailable_metric, health)
+        self.assertIn("template: health_metric", health)
+        self.assertEqual(health.count("hours_to_show: 24"), 3)
+        self.assertNotIn("condition: numeric_state", health)
+        self.assertIn("- sensor.*heart_rate*", configuration)
+        self.assertIn("- sensor.*oxygen_saturation*", configuration)
+        self.assertIn("- sensor.*respiratory_rate*", configuration)
+        self.assertIn("- sensor.*sleep*", configuration)
 
     def test_presence_uses_only_travelling_phone_trackers(self):
         access = json.loads((ROOT / "access/family-dashboard.json").read_text())

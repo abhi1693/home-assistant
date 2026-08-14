@@ -59,15 +59,18 @@ journey and immediately when homeward travel is first detected.
 
 ## Dashboards
 
-- **Home** is family-facing and responsive. Its six views cover the household
+- **Home** is family-facing and responsive. Its seven views cover the household
   overview, rooms and Atomberg fans, an account-filtered UniFi Protect wall,
-  Security, People, and owner-only Maintenance. Music Assistant and Jellyfin
+  Security, People, and owner-only Health and Maintenance. Health uses current
+  Companion App measurements plus recorded activity trends; private vitals and
+  sleep history remain excluded from Recorder. Music Assistant and Jellyfin
   activity remain embedded in the household overview.
 - **Rack** is admin-only. It keeps Kubernetes, UniFi and rack temperatures away
   from the shared family experience.
 - Every dashboard view consumes the same source-owned navigation rail. Everyone
-  sees Home, Rooms, Cameras, Security and People; admins additionally see
-  Maintenance, Rack and Settings.
+  sees Home, Rooms, Cameras, Security and People. Only Abhimanyu sees Health and
+  Maintenance; admins additionally see Rack and Settings. Owner health entities
+  are explicitly denied to every non-owner account, independently of Lovelace.
 - `Family Dark` is the local visual system. Bubble Card, Button Card, Navbar Card,
   Card Mod, Auto Entities, Todo Swipe Card and Kiosk Mode are
   commit/version-pinned, checksum-verified assets.
