@@ -17,7 +17,9 @@ compete with the family navigation rail.
 Home's status strip is one quiet visual sentence rather than a row of
 competing cards. Weather and presence are stable anchors; the other positions
 adapt to laundry, shopping, sunrise or sunset, active playback or fans, humidity
-and genuine attention states. Internet appears only when
+and genuine attention states. When playback and fans are inactive, the activity
+position reports the home as quiet instead of repeating another environmental
+reading. Internet appears only when
 degraded, the signed-in person's phone only when below 25 percent, and routine fan-off
 states are omitted. Abhimanyu and Krishna each see their own Android phone's
 next alarm beside the attention card, formatted as a local day and time or

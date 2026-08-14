@@ -434,11 +434,9 @@ button_card_templates:
             name: 'Fans', label: running === 1 ? '1 room cooling' : `${running} fans running`,
             icon: 'mdi:fan', color: 'var(--blue)'
           };
-          const humidity = states['sensor.home_humidity'];
-          const value = Number(humidity?.state);
           return {
-            name: 'Humidity', label: Number.isFinite(value) ? `${Math.round(value)}%` : 'Unavailable',
-            icon: 'mdi:water-percent', color: 'var(--blue)'
+            name: 'Activity', label: 'All quiet',
+            icon: 'mdi:home-outline', color: 'var(--contrast10)'
           };
         ]]]
     name: '[[[ return variables.context.name; ]]]'

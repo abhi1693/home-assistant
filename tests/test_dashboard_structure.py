@@ -116,7 +116,12 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("calendar-owner-users.json", home_view)
         self.assertIn("calendar-household-users.json", home_view)
         self.assertEqual(home_view.count("template: family_ribbon_air_quality"), 1)
-        self.assertIn("template: family_ribbon_humidity", home_view)
+        self.assertEqual(home_view.count("template: family_ribbon_humidity"), 1)
+        activity = home.split("  family_ribbon_activity:", 1)[1].split(
+            "\n  family_ribbon_attention:", 1
+        )[0]
+        self.assertNotIn("sensor.home_humidity", activity)
+        self.assertIn("name: 'Activity', label: 'All quiet'", activity)
         self.assertIn("entity: sensor.home_naqi_in_aqi", home)
         air_quality = home.split("  family_ribbon_air_quality:", 1)[1].split(
             "\n  family_ribbon_presence:", 1
