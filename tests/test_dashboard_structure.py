@@ -469,6 +469,12 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("mode: queued", automation)
         self.assertIn("to: towards", automation)
         self.assertIn("condition: zone.not_in_zone", automation)
+        departure_gate = automation.split("          - conditions:", 1)[1].split(
+            "            sequence:", 1
+        )[0]
+        self.assertNotIn("person.krishna", departure_gate)
+        self.assertNotIn("person.manisha", departure_gate)
+        self.assertNotIn("notify.abhimanyu_s_echo_dot_announce", departure_gate)
         self.assertIn("trigger: zone.entered", automation)
         self.assertIn('for: "00:00:30"', automation)
         self.assertEqual(
@@ -478,8 +484,15 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("origin: device_tracker.abhimanyu_pixel_8_2", automation)
         self.assertIn("destination: zone.home", automation)
         self.assertIn("notify.abhimanyu_s_echo_dot_announce", automation)
+        self.assertEqual(automation.count("notify.pixel_10_pro"), 3)
+        self.assertEqual(automation.count("notify.iphone"), 3)
         self.assertIn("Abhimanyu has left for home.", automation)
         self.assertIn("Abhimanyu is home.", automation)
+        self.assertIn("Abhimanyu is coming home", automation)
+        self.assertIn("Abhimanyu arrived home", automation)
+        self.assertEqual(automation.count("tag: abhimanyu-homeward-journey"), 6)
+        self.assertEqual(automation.count("condition: zone.not_in_zone"), 7)
+        self.assertEqual(automation.count("              - parallel:"), 3)
         self.assertIn("person.krishna", automation)
         self.assertIn("person.manisha", automation)
         self.assertGreaterEqual(

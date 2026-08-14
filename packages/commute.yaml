@@ -6,7 +6,7 @@ input_boolean:
 automation:
   - id: household_announce_abhimanyu_homeward_journey
     alias: Household · Announce Abhimanyu's journey home
-    description: Announce one fresh ETA per homeward journey and confirm arrival after 30 seconds inside Home.
+    description: Share one fresh ETA per homeward journey and confirm arrival after 30 seconds inside Home.
     mode: queued
     max: 2
     triggers:
@@ -40,19 +40,6 @@ automation:
               - condition: state
                 entity_id: input_boolean.abhimanyu_homeward_journey_active
                 state: "off"
-              - condition: or
-                conditions:
-                  - condition: state
-                    entity_id: person.krishna
-                    state: home
-                  - condition: state
-                    entity_id: person.manisha
-                    state: home
-              - condition: not
-                conditions:
-                  - condition: state
-                    entity_id: notify.abhimanyu_s_echo_dot_announce
-                    state: unavailable
             sequence:
               - action: google_travel_time.get_travel_times
                 data:
@@ -76,14 +63,70 @@ automation:
                 target:
                   entity_id: input_boolean.abhimanyu_homeward_journey_active
                 note: Persist the journey before speaking so repeated direction updates cannot duplicate it.
-              - action: notify.send_message
-                target:
-                  entity_id: notify.abhimanyu_s_echo_dot_announce
-                data:
-                  message: >-
-                    Abhimanyu has left for home. Current travel time is
-                    approximately {{ departure_minutes }} minutes.
-                continue_on_error: true
+              - parallel:
+                  - if:
+                      - condition: or
+                        conditions:
+                          - condition: state
+                            entity_id: person.krishna
+                            state: home
+                          - condition: state
+                            entity_id: person.manisha
+                            state: home
+                      - condition: not
+                        conditions:
+                          - condition: state
+                            entity_id: notify.abhimanyu_s_echo_dot_announce
+                            state: unavailable
+                    then:
+                      - action: notify.send_message
+                        target:
+                          entity_id: notify.abhimanyu_s_echo_dot_announce
+                        data:
+                          message: >-
+                            Abhimanyu has left for home. Current travel time is
+                            approximately {{ departure_minutes }} minutes.
+                        continue_on_error: true
+                  - if:
+                      - condition: zone.not_in_zone
+                        target:
+                          entity_id: person.krishna
+                        options:
+                          zone: zone.home
+                    then:
+                      - action: notify.send_message
+                        target:
+                          entity_id: notify.pixel_10_pro
+                        data:
+                          title: Abhimanyu is coming home
+                          message: >-
+                            Current travel time is approximately
+                            {{ departure_minutes }} minutes.
+                          data:
+                            tag: abhimanyu-homeward-journey
+                            url: /home-tablet/home
+                            clickAction: /home-tablet/home
+                        continue_on_error: true
+                  - if:
+                      - condition: zone.not_in_zone
+                        target:
+                          entity_id: person.manisha
+                        options:
+                          zone: zone.home
+                    then:
+                      - action: notify.send_message
+                        target:
+                          entity_id: notify.iphone
+                        data:
+                          title: Abhimanyu is coming home
+                          message: >-
+                            Current travel time is approximately
+                            {{ departure_minutes }} minutes.
+                          data:
+                            tag: abhimanyu-homeward-journey
+                            url: /home-tablet/home
+                            clickAction: /home-tablet/home
+                        continue_on_error: true
           - conditions:
               - condition: trigger
                 id: arrival
@@ -91,27 +134,64 @@ automation:
                 entity_id: input_boolean.abhimanyu_homeward_journey_active
                 state: "on"
             sequence:
-              - if:
-                  - condition: or
-                    conditions:
-                      - condition: state
-                        entity_id: person.krishna
-                        state: home
-                      - condition: state
-                        entity_id: person.manisha
-                        state: home
-                  - condition: not
-                    conditions:
-                      - condition: state
-                        entity_id: notify.abhimanyu_s_echo_dot_announce
-                        state: unavailable
-                then:
-                  - action: notify.send_message
-                    target:
-                      entity_id: notify.abhimanyu_s_echo_dot_announce
-                    data:
-                      message: Abhimanyu is home.
-                    continue_on_error: true
+              - parallel:
+                  - if:
+                      - condition: or
+                        conditions:
+                          - condition: state
+                            entity_id: person.krishna
+                            state: home
+                          - condition: state
+                            entity_id: person.manisha
+                            state: home
+                      - condition: not
+                        conditions:
+                          - condition: state
+                            entity_id: notify.abhimanyu_s_echo_dot_announce
+                            state: unavailable
+                    then:
+                      - action: notify.send_message
+                        target:
+                          entity_id: notify.abhimanyu_s_echo_dot_announce
+                        data:
+                          message: Abhimanyu is home.
+                        continue_on_error: true
+                  - if:
+                      - condition: zone.not_in_zone
+                        target:
+                          entity_id: person.krishna
+                        options:
+                          zone: zone.home
+                    then:
+                      - action: notify.send_message
+                        target:
+                          entity_id: notify.pixel_10_pro
+                        data:
+                          title: Abhimanyu arrived home
+                          message: Abhimanyu is home.
+                          data:
+                            tag: abhimanyu-homeward-journey
+                            url: /home-tablet/home
+                            clickAction: /home-tablet/home
+                        continue_on_error: true
+                  - if:
+                      - condition: zone.not_in_zone
+                        target:
+                          entity_id: person.manisha
+                        options:
+                          zone: zone.home
+                    then:
+                      - action: notify.send_message
+                        target:
+                          entity_id: notify.iphone
+                        data:
+                          title: Abhimanyu arrived home
+                          message: Abhimanyu is home.
+                          data:
+                            tag: abhimanyu-homeward-journey
+                            url: /home-tablet/home
+                            clickAction: /home-tablet/home
+                        continue_on_error: true
               - action: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.abhimanyu_homeward_journey_active
@@ -130,27 +210,64 @@ automation:
               - condition: state
                 entity_id: person.abhimanyu_saharan
                 state: home
-              - if:
-                  - condition: or
-                    conditions:
-                      - condition: state
-                        entity_id: person.krishna
-                        state: home
-                      - condition: state
-                        entity_id: person.manisha
-                        state: home
-                  - condition: not
-                    conditions:
-                      - condition: state
-                        entity_id: notify.abhimanyu_s_echo_dot_announce
-                        state: unavailable
-                then:
-                  - action: notify.send_message
-                    target:
-                      entity_id: notify.abhimanyu_s_echo_dot_announce
-                    data:
-                      message: Abhimanyu is home.
-                    continue_on_error: true
+              - parallel:
+                  - if:
+                      - condition: or
+                        conditions:
+                          - condition: state
+                            entity_id: person.krishna
+                            state: home
+                          - condition: state
+                            entity_id: person.manisha
+                            state: home
+                      - condition: not
+                        conditions:
+                          - condition: state
+                            entity_id: notify.abhimanyu_s_echo_dot_announce
+                            state: unavailable
+                    then:
+                      - action: notify.send_message
+                        target:
+                          entity_id: notify.abhimanyu_s_echo_dot_announce
+                        data:
+                          message: Abhimanyu is home.
+                        continue_on_error: true
+                  - if:
+                      - condition: zone.not_in_zone
+                        target:
+                          entity_id: person.krishna
+                        options:
+                          zone: zone.home
+                    then:
+                      - action: notify.send_message
+                        target:
+                          entity_id: notify.pixel_10_pro
+                        data:
+                          title: Abhimanyu arrived home
+                          message: Abhimanyu is home.
+                          data:
+                            tag: abhimanyu-homeward-journey
+                            url: /home-tablet/home
+                            clickAction: /home-tablet/home
+                        continue_on_error: true
+                  - if:
+                      - condition: zone.not_in_zone
+                        target:
+                          entity_id: person.manisha
+                        options:
+                          zone: zone.home
+                    then:
+                      - action: notify.send_message
+                        target:
+                          entity_id: notify.iphone
+                        data:
+                          title: Abhimanyu arrived home
+                          message: Abhimanyu is home.
+                          data:
+                            tag: abhimanyu-homeward-journey
+                            url: /home-tablet/home
+                            clickAction: /home-tablet/home
+                        continue_on_error: true
               - action: input_boolean.turn_off
                 target:
                   entity_id: input_boolean.abhimanyu_homeward_journey_active

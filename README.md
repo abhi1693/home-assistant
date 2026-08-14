@@ -60,10 +60,12 @@ valid GPS coordinates are available; they refresh every 20 minutes during that
 journey and immediately when homeward travel is first detected.
 
 When Abhimanyu's direction first changes to `towards` outside Home, a persistent
-journey helper suppresses duplicate announcements. If Krishna or Manisha is home,
-Home Assistant requests one fresh traffic-aware route and the Kitchen Echo Dot
-announces the approximate travel time. A native Home-zone entry trigger requires
-Abhimanyu to remain inside for 30 seconds before announcing his arrival and
+journey helper suppresses duplicate announcements. Home Assistant requests one
+fresh traffic-aware route for every journey. If Krishna or Manisha is home, the
+Kitchen Echo Dot announces the approximate travel time; each family member who
+is away receives the same ETA on their own phone. A native Home-zone entry
+trigger requires Abhimanyu to remain inside for 30 seconds before announcing
+his arrival at home, replacing the ETA notification on away family phones, and
 resetting the helper. The restored helper and startup reconciliation prevent a
 Home Assistant restart from duplicating or permanently stranding a journey.
 
