@@ -984,6 +984,8 @@ class DashboardStructureTests(unittest.TestCase):
 
         self.assertEqual(streams["version"], 2)
         self.assertIn("api.subscribe_events", sensor)
+        self.assertIn("await api.get_events(", sensor)
+        self.assertIn("start=now - timedelta(hours=24)", sensor)
         self.assertIn("use_content_user=True", sensor)
         self.assertIn("self.manager.can_access(user.id, key)", sensor)
         self.assertIn('"input_boolean.empty_home_confirmed", "on"', sensor)

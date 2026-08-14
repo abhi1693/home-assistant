@@ -117,9 +117,11 @@ tiles and recover without a dashboard edit.
 
 The source-owned `family_camera_events` integration subscribes to Protect's
 local event WebSocket rather than polling the cloud. It retains at most 20
-events per camera, proxies thumbnails and completed clips through authenticated
-account-aware endpoints, and never exposes notification bookkeeping as entity
-attributes. Alerts are deduplicated per Protect event and detection type.
+events per camera, seeds the feed from the previous 24 hours of local Protect
+history after startup, proxies thumbnails and completed clips through
+authenticated account-aware endpoints, and never exposes notification
+bookkeeping as entity attributes. Alerts are deduplicated per Protect event and
+detection type; historical backfill never sends an alert.
 Smoke, carbon-monoxide, and baby-cry alerts are immediate; person, vehicle, and
 animal alerts use the declared empty-home confidence policy. Informational and
 advisory alerts respect quiet hours. A clip follow-up is sent only after Protect

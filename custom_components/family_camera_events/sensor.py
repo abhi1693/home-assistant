@@ -106,6 +106,7 @@ class FamilyCameraEventManager:
         self._api_by_camera: dict[str, Any] = {}
         self._subscriptions: list[Callable[[], None]] = []
         self._subscribed_entries: set[str] = set()
+        self._backfilled_entries: set[str] = set()
         self._attach_retry: Callable[[], None] | None = None
         self._attached = False
         self._speaker_lock = asyncio.Lock()
@@ -189,6 +190,12 @@ class FamilyCameraEventManager:
                         api.subscribe_events(self._event_changed)
                     )
                     self._subscribed_entries.add(entry.entry_id)
+                    if entry.entry_id not in self._backfilled_entries:
+                        self._backfilled_entries.add(entry.entry_id)
+                        self.hass.async_create_task(
+                            self._async_backfill(api),
+                            f"backfill recent Protect events for {entry.title}",
+                        )
                 except Exception:
                     for key in matched_keys:
                         self._api_by_camera.pop(key, None)
@@ -213,6 +220,54 @@ class FamilyCameraEventManager:
         self.hass.async_create_task(
             self._async_attach(), "retry private Protect event feeds"
         )
+
+    async def _async_backfill(self, api: Any) -> None:
+        """Seed the timeline from recent local Protect history without alerts."""
+        try:
+            now = datetime.now(UTC)
+            events = await api.get_events(
+                start=now - timedelta(hours=24),
+                end=now,
+                limit=200,
+                sorting="desc",
+            )
+            changed_keys: set[str] = set()
+            for event in events:
+                key = self._camera_by_device_id.get(
+                    event.camera_id or event.device_id
+                )
+                types = event_types(event)
+                if key is None or not types or event.start is None:
+                    continue
+                end = event.end.astimezone(UTC).isoformat() if event.end else None
+                incoming = {
+                    "id": event.id,
+                    "camera_key": key,
+                    "camera_name": self.cameras[key]["name"],
+                    "types": types,
+                    "start": event.start.astimezone(UTC).isoformat(),
+                    "end": end,
+                    "active": end is None,
+                    "thumbnail": (
+                        f"/api/family_camera_events/{key}/{event.id}/thumbnail"
+                    ),
+                    "video": f"/api/family_camera_events/{key}/{event.id}/video",
+                }
+                self._records[key], _ = merge_event(
+                    self._records[key], incoming, now
+                )
+                changed_keys.add(key)
+
+            if changed_keys:
+                await self._store.async_save({"cameras": self._records})
+                for key in changed_keys:
+                    self._write_state(key)
+                _LOGGER.info(
+                    "Backfilled recent Protect activity for %d cameras",
+                    len(changed_keys),
+                )
+        except Exception:
+            _LOGGER.exception("Unable to backfill recent Protect activity")
 
     @callback
     def _event_changed(self, event: ProtectEvent, change: EventChange) -> None:
