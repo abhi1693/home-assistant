@@ -1,0 +1,861 @@
+input_select:
+  house_mode:
+    name: House mode
+    icon: mdi:home-switch
+    options:
+      - Normal
+      - Guest
+      - Vacation
+      - Maintenance
+
+  household_automation_stage:
+    name: Household automation stage
+    icon: mdi:shield-half-full
+    options:
+      - Shadow
+      - Active
+
+input_boolean:
+  noncritical_automations_paused:
+    name: Pause noncritical automations
+    icon: mdi:pause-circle-outline
+
+  empty_home_confirmed:
+    name: Empty home confirmed
+    icon: mdi:home-export-outline
+
+  good_night:
+    name: Good night
+    icon: mdi:weather-night
+
+input_button:
+  household_good_night:
+    name: Good night
+    icon: mdi:weather-night
+
+  request_vacation_mode:
+    name: Check Vacation readiness
+    icon: mdi:airplane-check
+
+input_text:
+  last_household_decision:
+    name: Last household decision
+    max: 255
+    icon: mdi:text-box-check-outline
+
+input_datetime:
+  last_household_evaluation:
+    name: Last household evaluation
+    has_date: true
+    has_time: true
+
+counter:
+  household_shadow_decisions:
+    name: Shadow decisions
+    icon: mdi:shield-search
+    restore: true
+
+timer:
+  household_startup_settle:
+    name: Household startup settling
+    duration: "00:10:00"
+    restore: true
+
+  high_confidence_empty_home:
+    name: High confidence empty home
+    duration: "00:05:00"
+    restore: true
+
+  outside_camera_offline:
+    name: Outside camera offline
+    duration: "00:15:00"
+    restore: true
+
+  hallway_camera_offline:
+    name: Kitchen Balcony camera offline
+    duration: "00:15:00"
+    restore: true
+
+schedule:
+  quiet_hours:
+    name: Quiet hours
+    icon: mdi:volume-mute
+    monday:
+      - from: "00:00:00"
+        to: "06:30:00"
+      - from: "22:30:00"
+        to: "23:59:59"
+    tuesday:
+      - from: "00:00:00"
+        to: "06:30:00"
+      - from: "22:30:00"
+        to: "23:59:59"
+    wednesday:
+      - from: "00:00:00"
+        to: "06:30:00"
+      - from: "22:30:00"
+        to: "23:59:59"
+    thursday:
+      - from: "00:00:00"
+        to: "06:30:00"
+      - from: "22:30:00"
+        to: "23:59:59"
+    friday:
+      - from: "00:00:00"
+        to: "06:30:00"
+      - from: "23:00:00"
+        to: "23:59:59"
+    saturday:
+      - from: "00:00:00"
+        to: "07:00:00"
+      - from: "23:00:00"
+        to: "23:59:59"
+    sunday:
+      - from: "00:00:00"
+        to: "07:00:00"
+      - from: "22:30:00"
+        to: "23:59:59"
+
+command_line:
+  - sensor:
+      name: Home Assistant config backup
+      unique_id: home_assistant_config_backup
+      command: >-
+        test -r /config/.config-backup-status.json
+        && cat /config/.config-backup-status.json
+        || echo '{"status":"never","age_hours":9999,"snapshot":"none"}'
+      value_template: "{{ value_json.status }}"
+      json_attributes:
+        - age_hours
+        - snapshot
+        - checked_at
+      scan_interval: 300
+
+  - sensor:
+      name: Home Assistant config restore test
+      unique_id: home_assistant_config_restore_test
+      command: >-
+        test -r /config/.config-restore-status.json
+        && cat /config/.config-restore-status.json
+        || echo '{"status":"never","checked_at":null,"snapshot":"none"}'
+      value_template: "{{ value_json.status }}"
+      json_attributes:
+        - checked_at
+        - snapshot
+      scan_interval: 3600
+
+template:
+  - sensor:
+      - name: Abhimanyu presence confidence
+        unique_id: abhimanyu_presence_confidence
+        icon: mdi:crosshairs-gps
+        state: >-
+          {% set gps = states('device_tracker.abhimanyu_pixel_8_2') %}
+          {% set wifi = states('device_tracker.abhimanyu_pixel_8') %}
+          {% set gps_age = (as_timestamp(now()) - as_timestamp(states.device_tracker.abhimanyu_pixel_8_2.last_updated)) / 60 if gps not in ['unknown', 'unavailable'] else 9999 %}
+          {% set wifi_age = (as_timestamp(now()) - as_timestamp(states.device_tracker.abhimanyu_pixel_8.last_updated)) / 60 if wifi not in ['unknown', 'unavailable'] else 9999 %}
+          {% if gps_age <= 20 and wifi_age <= 20 and ((gps == 'home') == (wifi == 'home')) %}high{% elif gps_age <= 20 or (wifi == 'home' and wifi_age <= 20) %}medium{% elif gps not in ['unknown', 'unavailable'] or wifi not in ['unknown', 'unavailable'] %}low{% else %}unknown{% endif %}
+        attributes:
+          gps_age_minutes: >-
+            {{ ((as_timestamp(now()) - as_timestamp(states.device_tracker.abhimanyu_pixel_8_2.last_updated)) / 60) | round(0) if has_value('device_tracker.abhimanyu_pixel_8_2') else none }}
+          wifi_age_minutes: >-
+            {{ ((as_timestamp(now()) - as_timestamp(states.device_tracker.abhimanyu_pixel_8.last_updated)) / 60) | round(0) if has_value('device_tracker.abhimanyu_pixel_8') else none }}
+          reason: >-
+            {% if this.state == 'high' %}GPS and home Wi-Fi agree{% elif this.state == 'medium' %}One fresh phone signal{% elif this.state == 'low' %}Phone location is stale or disagrees{% else %}No usable phone location{% endif %}
+
+      - name: Krishna presence confidence
+        unique_id: krishna_presence_confidence
+        icon: mdi:crosshairs-gps
+        state: >-
+          {% set gps = states('device_tracker.pixel_10_pro_2') %}
+          {% set wifi = states('device_tracker.pixel_10_pro') %}
+          {% set gps_age = (as_timestamp(now()) - as_timestamp(states.device_tracker.pixel_10_pro_2.last_updated)) / 60 if gps not in ['unknown', 'unavailable'] else 9999 %}
+          {% set wifi_age = (as_timestamp(now()) - as_timestamp(states.device_tracker.pixel_10_pro.last_updated)) / 60 if wifi not in ['unknown', 'unavailable'] else 9999 %}
+          {% if gps_age <= 20 and wifi_age <= 20 and ((gps == 'home') == (wifi == 'home')) %}high{% elif gps_age <= 20 or (wifi == 'home' and wifi_age <= 20) %}medium{% elif gps not in ['unknown', 'unavailable'] or wifi not in ['unknown', 'unavailable'] %}low{% else %}unknown{% endif %}
+        attributes:
+          gps_age_minutes: >-
+            {{ ((as_timestamp(now()) - as_timestamp(states.device_tracker.pixel_10_pro_2.last_updated)) / 60) | round(0) if has_value('device_tracker.pixel_10_pro_2') else none }}
+          wifi_age_minutes: >-
+            {{ ((as_timestamp(now()) - as_timestamp(states.device_tracker.pixel_10_pro.last_updated)) / 60) | round(0) if has_value('device_tracker.pixel_10_pro') else none }}
+          reason: >-
+            {% if this.state == 'high' %}GPS and home Wi-Fi agree{% elif this.state == 'medium' %}One fresh phone signal{% elif this.state == 'low' %}Phone location is stale or disagrees{% else %}No usable phone location{% endif %}
+
+      - name: Manisha presence confidence
+        unique_id: manisha_presence_confidence
+        icon: mdi:crosshairs-question
+        state: >-
+          {% set gps = states('device_tracker.iphone') %}
+          {% set age = (as_timestamp(now()) - as_timestamp(states.device_tracker.iphone.last_updated)) / 60 if gps not in ['unknown', 'unavailable'] else 9999 %}
+          {% if age <= 20 %}medium{% elif gps not in ['unknown', 'unavailable'] %}low{% else %}unknown{% endif %}
+        attributes:
+          gps_age_minutes: >-
+            {{ ((as_timestamp(now()) - as_timestamp(states.device_tracker.iphone.last_updated)) / 60) | round(0) if has_value('device_tracker.iphone') else none }}
+          wifi_confirmation: not configured
+          reason: >-
+            {% if this.state == 'medium' %}Fresh iPhone location; home Wi-Fi confirmation is not configured{% elif this.state == 'low' %}iPhone location is stale{% else %}iPhone location is unavailable{% endif %}
+
+      - name: Presence confidence
+        unique_id: household_presence_confidence
+        icon: mdi:account-check-outline
+        state: >-
+          {% set values = [states('sensor.abhimanyu_presence_confidence'), states('sensor.krishna_presence_confidence'), states('sensor.manisha_presence_confidence')] %}
+          {% set people = [states('person.abhimanyu_saharan'), states('person.krishna'), states('person.manisha')] %}
+          {% set home_confidence = [
+            states('sensor.abhimanyu_presence_confidence') if is_state('person.abhimanyu_saharan', 'home') else none,
+            states('sensor.krishna_presence_confidence') if is_state('person.krishna', 'home') else none,
+            states('sensor.manisha_presence_confidence') if is_state('person.manisha', 'home') else none
+          ] | reject('eq', none) | list %}
+          {% if 'high' in home_confidence %}high{% elif 'medium' in home_confidence %}medium{% elif 'unknown' in people or 'unavailable' in people %}unknown{% elif 'low' in values %}low{% elif 'medium' in values %}medium{% else %}high{% endif %}
+        attributes:
+          abhimanyu: "{{ states('sensor.abhimanyu_presence_confidence') }}"
+          krishna: "{{ states('sensor.krishna_presence_confidence') }}"
+          manisha: "{{ states('sensor.manisha_presence_confidence') }}"
+
+      - name: Camera coverage
+        unique_id: household_camera_coverage
+        icon: mdi:cctv
+        state: >-
+          {% set cameras = [states('camera.g5_turret_ultra_high_resolution_channel'), states('camera.hallway_high_resolution_channel'), states('camera.living_room_high_resolution_channel')] %}
+          {{ cameras | reject('in', ['unknown', 'unavailable']) | list | count }} of 3 online
+        attributes:
+          outside: "{{ states('camera.g5_turret_ultra_high_resolution_channel') }}"
+          kitchen_balcony: "{{ states('camera.hallway_high_resolution_channel') }}"
+          master_bedroom: "{{ states('camera.living_room_high_resolution_channel') }}"
+          required_offline: >-
+            {{ [
+              'Outside' if states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] else none,
+              'Kitchen Balcony' if states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] else none
+            ] | reject('eq', none) | list }}
+
+      - name: House attention level
+        unique_id: house_attention_level
+        icon: mdi:home-alert-outline
+        state: >-
+          {% set nvr = states('sensor.home_protect_storage_storage_utilization') | float(0) %}
+          {% set disk = is_state('binary_sensor.home_protect_storage_hdd_1', 'on') %}
+          {% set cameras_offline = states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] or states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] %}
+          {% set backup = states('sensor.home_assistant_config_backup') %}
+          {% set checked = state_attr('sensor.home_assistant_config_backup', 'checked_at') %}
+          {% set backup_age = (as_timestamp(now()) - as_timestamp(checked)) / 3600 if checked else 9999 %}
+          {% if disk or nvr >= 92 or backup == 'failed' %}critical{% elif cameras_offline or nvr >= 85 or backup in ['never', 'stale', 'unavailable', 'unknown'] or backup_age > 36 %}warning{% elif states('sensor.presence_confidence') in ['low', 'unknown'] %}advisory{% else %}clear{% endif %}
+        attributes:
+          primary_reason: >-
+            {% set nvr = states('sensor.home_protect_storage_storage_utilization') | float(0) %}
+            {% set checked = state_attr('sensor.home_assistant_config_backup', 'checked_at') %}
+            {% set backup_age = (as_timestamp(now()) - as_timestamp(checked)) / 3600 if checked else 9999 %}
+            {% if is_state('binary_sensor.home_protect_storage_hdd_1', 'on') %}Protect disk reports a problem{% elif nvr >= 92 %}Protect storage is critically full at {{ nvr | round(1) }}%{% elif states('sensor.home_assistant_config_backup') == 'failed' %}Home Assistant config backup failed{% elif states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] or states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] %}Perimeter camera coverage is incomplete{% elif states('sensor.home_assistant_config_backup') in ['never', 'stale', 'unavailable', 'unknown'] or backup_age > 36 %}Config backup is stale or not yet verified{% elif states('sensor.presence_confidence') in ['low', 'unknown'] %}Some family location signals are uncertain{% else %}Nothing needs attention{% endif %}
+
+      - name: Household capability coverage
+        unique_id: household_capability_coverage
+        icon: mdi:shield-home-outline
+        state: existing devices
+        attributes:
+          entry_contacts: not installed
+          leak_sensors: not installed
+          certified_smoke_co: not installed
+          indoor_air_quality: not installed
+          bed_occupancy: not installed
+          wellbeing: consent required
+
+  - binary_sensor:
+      - name: House occupied
+        unique_id: house_occupied
+        device_class: occupancy
+        state: >-
+          {{ (is_state('person.abhimanyu_saharan', 'home') and states('sensor.abhimanyu_presence_confidence') in ['high', 'medium'])
+             or (is_state('person.krishna', 'home') and states('sensor.krishna_presence_confidence') in ['high', 'medium'])
+             or (is_state('person.manisha', 'home') and states('sensor.manisha_presence_confidence') in ['high', 'medium']) }}
+        availability: >-
+          {{ states('sensor.presence_confidence') != 'unknown' }}
+
+      - name: Vacation ready
+        unique_id: vacation_ready
+        icon: mdi:airplane-check
+        state: >-
+          {{ is_state('input_boolean.empty_home_confirmed', 'on')
+             and is_state('binary_sensor.house_occupied', 'off')
+             and is_state('sensor.presence_confidence', 'high')
+             and states('camera.g5_turret_ultra_high_resolution_channel') not in ['unknown', 'unavailable']
+             and states('camera.hallway_high_resolution_channel') not in ['unknown', 'unavailable']
+             and states('sensor.home_protect_storage_storage_utilization') | float(100) < 92
+             and is_state('binary_sensor.home_protect_storage_hdd_1', 'off')
+             and states('sensor.home_assistant_config_backup') == 'ok'
+             and state_attr('sensor.home_assistant_config_backup', 'checked_at')
+             and (as_timestamp(now()) - as_timestamp(state_attr('sensor.home_assistant_config_backup', 'checked_at'))) / 3600 < 36
+             and states('sensor.front_load_washer_current_status') | lower in ['off', 'power_off', 'unavailable'] }}
+        attributes:
+          blockers: >-
+            {% set items = [] %}
+            {% if not is_state('input_boolean.empty_home_confirmed', 'on') or not is_state('binary_sensor.house_occupied', 'off') %}{% set items = items + ['everyone must be away for five minutes'] %}{% endif %}
+            {% if not is_state('sensor.presence_confidence', 'high') %}{% set items = items + ['location confidence'] %}{% endif %}
+            {% if states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] %}{% set items = items + ['Outside camera'] %}{% endif %}
+            {% if states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] %}{% set items = items + ['Kitchen Balcony camera'] %}{% endif %}
+            {% if states('sensor.home_protect_storage_storage_utilization') | float(100) >= 92 %}{% set items = items + ['Protect storage'] %}{% endif %}
+            {% set checked = state_attr('sensor.home_assistant_config_backup', 'checked_at') %}
+            {% if states('sensor.home_assistant_config_backup') != 'ok' or not checked or (as_timestamp(now()) - as_timestamp(checked)) / 3600 >= 36 %}{% set items = items + ['config backup'] %}{% endif %}
+            {{ items }}
+
+script:
+  family_household_notify:
+    alias: Route household notification
+    mode: parallel
+    max: 10
+    fields:
+      recipient:
+        required: true
+        selector:
+          select:
+            options: [owner, abhimanyu, krishna, manisha, family]
+      title:
+        required: true
+        selector:
+          text:
+      message:
+        required: true
+        selector: { text: { multiline: true } }
+      severity:
+        required: true
+        selector:
+          select:
+            options: [informational, advisory, warning, critical]
+      fingerprint:
+        required: true
+        selector:
+          text:
+      url:
+        selector:
+          text:
+    sequence:
+      - condition: template
+        value_template: >-
+          {{ severity in ['warning', 'critical'] or not is_state('schedule.quiet_hours', 'on') }}
+      - variables:
+          payload:
+            title: "{{ title }}"
+            message: "{{ message }}"
+            data:
+              tag: "{{ fingerprint }}"
+              url: "{{ url | default('/home-tablet/home', true) }}"
+              clickAction: "{{ url | default('/home-tablet/home', true) }}"
+      - if:
+          - condition: template
+            value_template: "{{ recipient in ['owner', 'abhimanyu', 'family'] }}"
+        then:
+          - action: notify.abhimanyu_pixel_8
+            data: "{{ payload }}"
+      - if:
+          - condition: template
+            value_template: "{{ recipient in ['krishna', 'family'] }}"
+        then:
+          - action: notify.pixel_10_pro
+            data: "{{ payload }}"
+      - if:
+          - condition: template
+            value_template: "{{ recipient in ['manisha', 'family'] }}"
+        then:
+          - action: notify.iphone
+            data: "{{ payload }}"
+
+  family_household_incident:
+    alias: Record household incident
+    mode: queued
+    max: 20
+    fields:
+      recipient:
+        required: true
+        selector:
+          text:
+      title:
+        required: true
+        selector:
+          text:
+      message:
+        required: true
+        selector:
+          text:
+            multiline: true
+      severity:
+        required: true
+        selector:
+          text:
+      fingerprint:
+        required: true
+        selector:
+          text:
+      url:
+        selector:
+          text:
+    sequence:
+      - action: input_text.set_value
+        target: { entity_id: input_text.last_household_decision }
+        data:
+          value: "{{ severity }} · {{ title }} · {{ message }}"
+      - action: input_datetime.set_datetime
+        target: { entity_id: input_datetime.last_household_evaluation }
+        data:
+          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: input_select.household_automation_stage
+                state: Active
+              - condition: state
+                entity_id: input_boolean.noncritical_automations_paused
+                state: "off"
+            sequence:
+              - action: script.family_household_notify
+                data:
+                  recipient: "{{ recipient }}"
+                  title: "{{ title }}"
+                  message: "{{ message }}"
+                  severity: "{{ severity }}"
+                  fingerprint: "{{ fingerprint }}"
+                  url: "{{ url | default('/home-tablet/home', true) }}"
+        default:
+          - action: counter.increment
+            target: { entity_id: counter.household_shadow_decisions }
+
+automation:
+  - id: household_protect_admin_modes
+    alias: Household · Protect administrator modes
+    description: Revert direct non-owner changes to automation stage or house mode.
+    mode: queued
+    triggers:
+      - trigger: state
+        entity_id:
+          - input_select.house_mode
+          - input_select.household_automation_stage
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ trigger.to_state.context.user_id not in [none, '9302d11f48c64fe796a3c9e5cb563650'] }}
+      - condition: template
+        value_template: "{{ trigger.from_state is not none }}"
+    actions:
+      - action: input_select.select_option
+        target: { entity_id: "{{ trigger.entity_id }}" }
+        data: { option: "{{ trigger.from_state.state }}" }
+
+  - id: household_protect_admin_pause
+    alias: Household · Protect administrator pause
+    description: Revert direct non-owner changes to the noncritical automation pause.
+    mode: queued
+    triggers:
+      - trigger: state
+        entity_id: input_boolean.noncritical_automations_paused
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ trigger.to_state.context.user_id not in [none, '9302d11f48c64fe796a3c9e5cb563650'] }}
+      - condition: template
+        value_template: "{{ trigger.from_state is not none }}"
+    actions:
+      - action: >-
+          {{ 'input_boolean.turn_on' if trigger.from_state.state == 'on' else 'input_boolean.turn_off' }}
+        target: { entity_id: input_boolean.noncritical_automations_paused }
+
+  - id: household_startup_reconciliation
+    alias: Household · Settle integrations after startup
+    description: Prevent startup unknown and unavailable states from becoming incidents.
+    mode: restart
+    triggers:
+      - trigger: homeassistant
+        event: start
+    actions:
+      - action: timer.start
+        target: { entity_id: timer.household_startup_settle }
+
+  - id: household_empty_confidence_dwell
+    alias: Household · Confirm empty home
+    description: Preserve a five-minute, restart-safe dwell before away workflows become eligible.
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.house_occupied
+        id: evaluate
+      - trigger: state
+        entity_id: sensor.presence_confidence
+        id: evaluate
+      - trigger: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.household_startup_settle }
+        id: evaluate
+      - trigger: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.high_confidence_empty_home }
+        id: confirmed
+    actions:
+      - choose:
+          - conditions:
+              - condition: trigger
+                id: confirmed
+              - condition: state
+                entity_id: binary_sensor.house_occupied
+                state: "off"
+              - condition: state
+                entity_id: sensor.presence_confidence
+                state: high
+            sequence:
+              - action: input_boolean.turn_on
+                target: { entity_id: input_boolean.empty_home_confirmed }
+          - conditions:
+              - condition: trigger
+                id: evaluate
+              - condition: state
+                entity_id: binary_sensor.house_occupied
+                state: "off"
+              - condition: state
+                entity_id: sensor.presence_confidence
+                state: high
+            sequence:
+              - action: input_boolean.turn_off
+                target: { entity_id: input_boolean.empty_home_confirmed }
+              - action: timer.start
+                target: { entity_id: timer.high_confidence_empty_home }
+        default:
+          - action: input_boolean.turn_off
+            target: { entity_id: input_boolean.empty_home_confirmed }
+          - action: timer.cancel
+            target: { entity_id: timer.high_confidence_empty_home }
+
+  - id: household_camera_coverage_timers
+    alias: Household · Track perimeter camera coverage
+    description: Use restoring timers so camera outage dwell survives a Home Assistant restart.
+    mode: parallel
+    max: 4
+    triggers:
+      - trigger: state
+        entity_id: camera.g5_turret_ultra_high_resolution_channel
+        id: outside
+      - trigger: state
+        entity_id: camera.hallway_high_resolution_channel
+        id: hallway
+    conditions:
+      - condition: state
+        entity_id: timer.household_startup_settle
+        state: idle
+    actions:
+      - variables:
+          timer_entity: >-
+            {{ 'timer.outside_camera_offline' if trigger.id == 'outside' else 'timer.hallway_camera_offline' }}
+          duration: >-
+            {{ '00:05:00' if is_state('input_select.house_mode', 'Vacation') else '00:15:00' }}
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.to_state.state in ['unknown', 'unavailable'] }}"
+            sequence:
+              - action: timer.start
+                target: { entity_id: "{{ timer_entity }}" }
+                data: { duration: "{{ duration }}" }
+        default:
+          - action: timer.cancel
+            target: { entity_id: "{{ timer_entity }}" }
+
+  - id: household_camera_coverage_incident
+    alias: Household · Report perimeter camera outage
+    description: Report one owner incident after the camera-specific dwell expires.
+    mode: queued
+    triggers:
+      - trigger: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.outside_camera_offline }
+        id: outside
+      - trigger: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.hallway_camera_offline }
+        id: hallway
+    actions:
+      - variables:
+          camera_name: "{{ 'Outside' if trigger.id == 'outside' else 'Kitchen Balcony' }}"
+      - action: script.family_household_incident
+        data:
+          recipient: owner
+          severity: warning
+          fingerprint: "camera-offline-{{ trigger.id }}"
+          title: Camera coverage gap
+          message: "{{ camera_name }} camera has remained offline."
+          url: /home-tablet/security
+
+  - id: household_reconcile_camera_outages
+    alias: Household · Reconcile camera outages after startup
+    description: Re-evaluate durable camera outage timers after integrations settle.
+    mode: single
+    triggers:
+      - trigger: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.household_startup_settle }
+    actions:
+      - if:
+          - condition: template
+            value_template: >-
+              {{ states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] }}
+        then:
+          - action: timer.start
+            target: { entity_id: timer.outside_camera_offline }
+            data:
+              duration: >-
+                {{ '00:05:00' if is_state('input_select.house_mode', 'Vacation') else '00:15:00' }}
+      - if:
+          - condition: template
+            value_template: >-
+              {{ states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] }}
+        then:
+          - action: timer.start
+            target: { entity_id: timer.hallway_camera_offline }
+            data:
+              duration: >-
+                {{ '00:05:00' if is_state('input_select.house_mode', 'Vacation') else '00:15:00' }}
+
+  - id: household_nvr_storage_incident
+    alias: Household · Report Protect storage risk
+    description: Treat Protect storage above 92 percent as critical and deduplicate by notification tag.
+    mode: restart
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.home_protect_storage_storage_utilization
+        above: 92
+      - trigger: state
+        entity_id: binary_sensor.home_protect_storage_hdd_1
+        to: "on"
+      - trigger: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.household_startup_settle }
+    conditions:
+      - condition: state
+        entity_id: timer.household_startup_settle
+        state: idle
+      - condition: or
+        conditions:
+          - condition: numeric_state
+            entity_id: sensor.home_protect_storage_storage_utilization
+            above: 92
+          - condition: state
+            entity_id: binary_sensor.home_protect_storage_hdd_1
+            state: "on"
+    actions:
+      - action: script.family_household_incident
+        data:
+          recipient: owner
+          severity: critical
+          fingerprint: protect-recording-risk
+          title: Protect recording is at risk
+          message: >-
+            Storage is {{ states('sensor.home_protect_storage_storage_utilization') }}% full{% if is_state('binary_sensor.home_protect_storage_hdd_1', 'on') %} and the disk reports a problem{% endif %}.
+          url: /home-tablet/security
+
+  - id: household_perimeter_person_event
+    alias: Household · Report perimeter person event
+    description: Never treat indoor motion as intrusion; only perimeter person detections while confidently away qualify.
+    mode: parallel
+    max: 4
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.g5_turret_ultra_person_detected
+        to: "on"
+        id: outside
+      - trigger: state
+        entity_id: binary_sensor.hallway_person_detected
+        to: "on"
+        id: hallway
+    conditions:
+      - condition: state
+        entity_id: input_boolean.empty_home_confirmed
+        state: "on"
+      - condition: state
+        entity_id: binary_sensor.house_occupied
+        state: "off"
+      - condition: state
+        entity_id: sensor.presence_confidence
+        state: high
+    actions:
+      - action: script.family_household_incident
+        data:
+          recipient: family
+          severity: warning
+          fingerprint: "perimeter-person-{{ trigger.id }}"
+          title: Person seen outside
+          message: "{{ 'Outside' if trigger.id == 'outside' else 'Kitchen Balcony' }} camera detected a person while the home is empty."
+          url: /home-tablet/cameras
+
+  - id: household_fan_guard
+    alias: Household · Offer to stop fans after departure
+    description: Ask rather than control; Atomberg commands remain explicit and quota-aware.
+    mode: single
+    triggers:
+      - trigger: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.high_confidence_empty_home }
+    conditions:
+      - condition: state
+        entity_id: binary_sensor.house_occupied
+        state: "off"
+      - condition: state
+        entity_id: sensor.presence_confidence
+        state: high
+      - condition: template
+        value_template: >-
+          {{ expand('fan.master_bedroom_fan', 'fan.bedroom_fan', 'fan.guest_fan', 'fan.office_fan', 'fan.kitchen_fan', 'fan.dining_fan', 'fan.living_room_fan_1', 'fan.living_room_fan_2') | selectattr('state', 'eq', 'on') | list | count > 0 }}
+    actions:
+      - action: script.family_household_incident
+        data:
+          recipient: owner
+          severity: advisory
+          fingerprint: fans-running-away
+          title: Fans are still running
+          message: One or more available fans remain on after everyone left. Open Rooms to review them.
+          url: /home-tablet/rooms
+
+  - id: household_washer_complete
+    alias: Household · Washer cycle complete
+    description: Treat electrically-off washer entities as normal and notify only on a real completed state.
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: sensor.front_load_washer_current_status
+        to:
+          - complete
+          - completed
+          - finished
+          - end
+    actions:
+      - action: script.family_household_incident
+        data:
+          recipient: family
+          severity: advisory
+          fingerprint: washer-complete
+          title: Laundry is ready
+          message: The washer cycle has finished.
+          url: /home-tablet/home
+
+  - id: household_low_travel_battery
+    alias: Household · Low battery while away
+    description: Notify only the affected person when their phone is low away from Home.
+    mode: parallel
+    max: 3
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.pixel_8_battery_level
+        below: 20
+        id: abhimanyu
+      - trigger: numeric_state
+        entity_id: sensor.pixel_10_pro_battery_level
+        below: 20
+        id: krishna
+      - trigger: numeric_state
+        entity_id: sensor.iphone_battery_level
+        below: 20
+        id: manisha
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ not is_state('person.' ~ ('abhimanyu_saharan' if trigger.id == 'abhimanyu' else trigger.id), 'home') }}
+    actions:
+      - action: script.family_household_incident
+        data:
+          recipient: "{{ trigger.id }}"
+          severity: advisory
+          fingerprint: "travel-battery-{{ trigger.id }}"
+          title: Phone battery is low
+          message: "{{ trigger.to_state.state }}% remaining while away from Home."
+          url: /home-tablet/people
+
+  - id: household_good_night
+    alias: Household · Prepare Good Night
+    description: One explicit action prepares choices without claiming that anyone is asleep.
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: input_button.household_good_night
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ trigger.to_state.context.user_id in [
+            '9302d11f48c64fe796a3c9e5cb563650',
+            '8117b77542614a06b4672a8ae1a979b5',
+            '734722ec932a41a68d47553b6c2f7f5d'
+          ] }}
+      - condition: state
+        entity_id: binary_sensor.house_occupied
+        state: "on"
+    actions:
+      - action: input_boolean.turn_on
+        target: { entity_id: input_boolean.good_night }
+      - action: script.family_household_incident
+        data:
+          recipient: family
+          severity: informational
+          fingerprint: good-night-ready
+          title: Good night is ready
+          message: Review security, active media, tomorrow's first event, and fan Sleep or Timer choices.
+          url: /home-tablet/home
+
+  - id: household_reset_good_night
+    alias: Household · End Good Night period
+    description: Clear the explicit night intent after sunrise.
+    mode: single
+    triggers:
+      - trigger: sun
+        event: sunrise
+    actions:
+      - action: input_boolean.turn_off
+        target: { entity_id: input_boolean.good_night }
+
+  - id: household_vacation_preflight
+    alias: Household · Check Vacation readiness
+    description: Vacation remains explicit and cannot silently bypass failed preflight checks.
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: input_button.request_vacation_mode
+    actions:
+      - condition: template
+        value_template: >-
+          {{ trigger.to_state.context.user_id == '9302d11f48c64fe796a3c9e5cb563650' }}
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: binary_sensor.vacation_ready
+                state: "on"
+              - condition: state
+                entity_id: input_select.household_automation_stage
+                state: Active
+            sequence:
+              - action: input_select.select_option
+                target: { entity_id: input_select.house_mode }
+                data: { option: Vacation }
+              - action: script.family_household_notify
+                data:
+                  recipient: family
+                  severity: informational
+                  fingerprint: vacation-mode
+                  title: Vacation mode is on
+                  message: Camera, recording, location, washer, and config-backup checks passed.
+                  url: /home-tablet/security
+        default:
+          - action: script.family_household_incident
+            data:
+              recipient: owner
+              severity: warning
+              fingerprint: vacation-preflight
+              title: Vacation needs attention
+              message: "Blocked by: {{ state_attr('binary_sensor.vacation_ready', 'blockers') | join(', ') }}."
+              url: /home-tablet/security
+
+  - id: household_periodic_health_evaluation
+    alias: Household · Evaluate health
+    description: Keep a small, inspectable heartbeat and suppression reason for owner maintenance.
+    mode: single
+    triggers:
+      - trigger: time_pattern
+        minutes: "/5"
+    actions:
+      - action: input_datetime.set_datetime
+        target: { entity_id: input_datetime.last_household_evaluation }
+        data:
+          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+      - action: input_text.set_value
+        target: { entity_id: input_text.last_household_decision }
+        data:
+          value: >-
+            {{ states('sensor.house_attention_level') }} · {{ state_attr('sensor.house_attention_level', 'primary_reason') }} · {{ states('input_select.household_automation_stage') }}

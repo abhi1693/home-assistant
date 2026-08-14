@@ -37,6 +37,22 @@ routes:
     icon_selected: mdi:video
     url: /home-tablet/cameras
     label: Cameras
+  - icon: mdi:shield-home-outline
+    icon_selected: mdi:shield-home
+    url: /home-tablet/security
+    label: Security
+  - icon: mdi:account-group-outline
+    icon_selected: mdi:account-group
+    url: /home-tablet/people
+    label: People
+  - icon: mdi:tools
+    icon_selected: mdi:toolbox
+    url: /home-tablet/maintenance
+    label: Maintenance
+    hidden: |
+      [[[
+        return !user?.is_admin;
+      ]]]
   - icon: mdi:server-network-outline
     icon_selected: mdi:server-network
     url: /rack-admin/overview

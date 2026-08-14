@@ -20,6 +20,7 @@ CUSTOM_INTEGRATION_STATE = ".home-assistant-custom-integrations.json"
 FAMILY_ACCESS_STATE = ".home-assistant-family-access.json"
 PROTECT_STREAM_QUALITIES = {"high", "medium", "low"}
 PRIVATE_COMMUTE_PACKAGE = "packages/private_commute.yaml"
+HOUSEHOLD_POLICY = "access/household-policy.json"
 
 
 def sha256(path: Path) -> str:
@@ -114,6 +115,142 @@ def sync_source_files(source: Path, config: Path) -> None:
         print(f"Installed {relative_path}")
 
     atomic_json(state_path, {"version": 1, "files": managed}, mode=0o644)
+
+
+def validate_household_policy(source: Path) -> None:
+    """Validate the public entity contract before installing household logic."""
+    access = json.loads((source / "access/family-dashboard.json").read_text())
+    policy = json.loads((source / HOUSEHOLD_POLICY).read_text())
+    if policy.get("version") != 1 or policy.get("automation_stage") != "Shadow":
+        raise RuntimeError("Household policy must start at version 1 in Shadow mode")
+
+    profiles = policy.get("profiles")
+    if not isinstance(profiles, dict) or set(profiles) != {
+        "abhimanyu-saharan",
+        "krishna",
+        "manisha",
+    }:
+        raise RuntimeError("Household policy profiles are incomplete")
+
+    for profile_key, policy_profile in profiles.items():
+        access_profile = access.get("profiles", {}).get(profile_key)
+        if not access_profile or not isinstance(policy_profile, dict):
+            raise RuntimeError(f"Household profile {profile_key!r} is invalid")
+        gps = policy_profile.get("gps")
+        wifi = policy_profile.get("wifi")
+        notify = policy_profile.get("notify")
+        trusted_trackers = [gps, *([wifi] if wifi else [])]
+        if (
+            not isinstance(gps, str)
+            or not gps.startswith("device_tracker.")
+            or wifi is not None
+            and (not isinstance(wifi, str) or not wifi.startswith("device_tracker."))
+            or not isinstance(notify, str)
+            or not notify.startswith("notify.")
+            or sorted(access_profile.get("device_trackers", []))
+            != sorted(trusted_trackers)
+            or access_profile.get("notify_entity_id") != notify
+        ):
+            raise RuntimeError(f"Household profile {profile_key!r} has policy drift")
+
+    security = policy.get("security", {})
+    required = security.get("required_cameras", [])
+    if (
+        len(required) != 2
+        or not all(
+            isinstance(entity_id, str) and entity_id.startswith("camera.")
+            for entity_id in required
+        )
+        or security.get("warning_percent", 0)
+        >= security.get("critical_percent", 0)
+    ):
+        raise RuntimeError("Household security contract is invalid")
+
+    contracts = policy.get("hardware_contracts")
+    if not isinstance(contracts, dict) or set(contracts) != {
+        "entry_contacts",
+        "leak_sensors",
+        "certified_smoke_co",
+        "indoor_air_quality",
+        "bed_occupancy",
+    }:
+        raise RuntimeError("Household hardware contracts are incomplete")
+
+
+def reconcile_nut(source: Path, config: Path) -> None:
+    """Install the read-only NUT config entry without storing UPS credentials."""
+    desired_path = source / "access/nut.json"
+    desired = json.loads(desired_path.read_text())
+    if (
+        desired.get("version") != 1
+        or not isinstance(desired.get("entry_id"), str)
+        or len(desired["entry_id"]) != 26
+        or not isinstance(desired.get("title"), str)
+        or not isinstance(desired.get("host"), str)
+        or not isinstance(desired.get("port"), int)
+        or desired["port"] != 3493
+        or not isinstance(desired.get("alias"), str)
+    ):
+        raise RuntimeError("NUT configuration is invalid")
+
+    entries_path = config / ".storage/core.config_entries"
+    if not entries_path.exists():
+        raise RuntimeError("Home Assistant config entry storage is missing")
+    document = json.loads(entries_path.read_text())
+    entries = document.get("data", {}).get("entries", [])
+    matches = [entry for entry in entries if entry.get("domain") == "nut"]
+    expected_data = {
+        "host": desired["host"],
+        "port": desired["port"],
+        "alias": desired["alias"],
+    }
+    changed = False
+    if len(matches) > 1:
+        raise RuntimeError("Expected at most one NUT config entry")
+    if matches:
+        entry = matches[0]
+        if entry.get("entry_id") != desired["entry_id"]:
+            raise RuntimeError("A different NUT config entry already exists")
+        if entry.get("title") != desired["title"]:
+            entry["title"] = desired["title"]
+            changed = True
+        if entry.get("data") != expected_data:
+            entry["data"] = expected_data
+            changed = True
+    else:
+        entries.append(
+            {
+                "created_at": "2026-08-14T00:00:00+00:00",
+                "data": expected_data,
+                "disabled_by": None,
+                "discovery_keys": {},
+                "domain": "nut",
+                "entry_id": desired["entry_id"],
+                "minor_version": 1,
+                "modified_at": "2026-08-14T00:00:00+00:00",
+                "options": {},
+                "pref_disable_new_entities": False,
+                "pref_disable_polling": False,
+                "source": "user",
+                "subentries": [],
+                "title": desired["title"],
+                "unique_id": None,
+                "version": 1,
+            }
+        )
+        changed = True
+
+    if changed:
+        backup = config / (
+            f"backups/core.config_entries.pre-nut-{sha256(desired_path)[:12]}"
+        )
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        if not backup.exists():
+            shutil.copy2(entries_path, backup)
+        atomic_json(entries_path, document)
+        print("Reconciled read-only Rack UPS integration")
+    else:
+        print("Read-only Rack UPS integration is already current")
 
 
 def initialize_mutable_yaml(source: Path, config: Path) -> None:
@@ -1206,6 +1343,7 @@ def main() -> None:
     config = arguments.config.resolve()
 
     manifest = json.loads((source / "bootstrap/manifest.json").read_text())
+    validate_household_policy(source)
     sync_source_files(source, config)
     initialize_mutable_yaml(source, config)
     install_hacs(manifest, config)
@@ -1214,6 +1352,7 @@ def main() -> None:
     migrate_areas(source, config)
     reconcile_home_location(source, config)
     reconcile_commute(source, config)
+    reconcile_nut(source, config)
     validate_protect_streams(source, config)
     reconcile_family_access(source, config)
     reconcile_dashboard_defaults(source, config)

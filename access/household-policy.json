@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "automation_stage": "Shadow",
+  "profiles": {
+    "abhimanyu-saharan": {
+      "gps": "device_tracker.abhimanyu_pixel_8_2",
+      "wifi": "device_tracker.abhimanyu_pixel_8",
+      "notify": "notify.abhimanyu_pixel_8"
+    },
+    "krishna": {
+      "gps": "device_tracker.pixel_10_pro_2",
+      "wifi": "device_tracker.pixel_10_pro",
+      "notify": "notify.pixel_10_pro"
+    },
+    "manisha": {
+      "gps": "device_tracker.iphone",
+      "wifi": null,
+      "notify": "notify.iphone"
+    }
+  },
+  "security": {
+    "alarm": "alarm_control_panel.home_protect_storage_alarm_manager",
+    "required_cameras": [
+      "camera.g5_turret_ultra_high_resolution_channel",
+      "camera.hallway_high_resolution_channel"
+    ],
+    "nvr_utilization": "sensor.home_protect_storage_storage_utilization",
+    "nvr_disk_problem": "binary_sensor.home_protect_storage_hdd_1",
+    "warning_percent": 85,
+    "critical_percent": 92
+  },
+  "normally_powered_off": [
+    "fan.master_bedroom_fan",
+    "fan.bedroom_fan",
+    "fan.guest_fan",
+    "fan.kitchen_fan",
+    "fan.dining_fan",
+    "fan.living_room_fan_1",
+    "fan.living_room_fan_2",
+    "sensor.front_load_washer_current_status"
+  ],
+  "hardware_contracts": {
+    "entry_contacts": [],
+    "leak_sensors": [],
+    "certified_smoke_co": [],
+    "indoor_air_quality": [],
+    "bed_occupancy": []
+  }
+}

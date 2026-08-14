@@ -94,23 +94,17 @@ views:
             h1 { font-size: 32px; letter-spacing: -1.2px; margin-bottom: 6px; }
     badges:
       - type: entity
-        entity: sensor.k8s_rpi1_kubernetes_ready
-        name: rpi1
+        entity: sensor.rack_ready_nodes
+        name: Nodes
         show_name: true
         show_state: true
         color: green
       - type: entity
-        entity: sensor.k8s_rpi2_kubernetes_ready
-        name: rpi2
+        entity: sensor.rack_active_alerts
+        name: Alerts
         show_name: true
         show_state: true
-        color: green
-      - type: entity
-        entity: sensor.k8s_rpi3_kubernetes_ready
-        name: rpi3
-        show_name: true
-        show_state: true
-        color: green
+        color: orange
       - type: entity
         entity: sensor.usw_pro_aggregation_temperature
         name: Aggregation
@@ -122,7 +116,7 @@ views:
         column_span: 2
         cards:
           - type: heading
-            heading: Kubernetes
+            heading: Cluster
             heading_style: title
             icon: mdi:kubernetes
           - type: grid
@@ -130,41 +124,53 @@ views:
             columns: 3
             cards:
               - type: custom:button-card
-                template: rack_ready
-                entity: sensor.k8s_rpi1_kubernetes_ready
-                name: k8s-rpi1
-              - type: custom:button-card
-                template: rack_ready
-                entity: sensor.k8s_rpi2_kubernetes_ready
-                name: k8s-rpi2
-              - type: custom:button-card
-                template: rack_ready
-                entity: sensor.k8s_rpi3_kubernetes_ready
-                name: k8s-rpi3
-              - type: custom:button-card
-                template: rack_temperature
-                entity: sensor.k8s_rpi1_cpu_temperature
-                name: rpi1 CPU
-                icon: mdi:raspberry-pi
+                template: rack_metric
+                entity: sensor.rack_ready_nodes
+                name: Ready nodes
+                icon: mdi:kubernetes
                 styles:
                   card:
-                    - --metric-accent: var(--purple)
+                    - --metric-accent: var(--green)
               - type: custom:button-card
-                template: rack_temperature
-                entity: sensor.k8s_rpi2_cpu_temperature
-                name: rpi2 CPU
-                icon: mdi:raspberry-pi
+                template: rack_metric
+                entity: sensor.rack_unhealthy_workloads
+                name: Workloads
+                icon: mdi:alert-decagram-outline
                 styles:
                   card:
                     - --metric-accent: var(--orange)
               - type: custom:button-card
-                template: rack_temperature
-                entity: sensor.k8s_rpi3_cpu_temperature
-                name: rpi3 CPU
-                icon: mdi:raspberry-pi
+                template: rack_metric
+                entity: sensor.rack_fleet_failures
+                name: Fleet failures
+                icon: mdi:git
                 styles:
                   card:
-                    - --metric-accent: var(--teal)
+                    - --metric-accent: var(--purple)
+              - type: custom:button-card
+                template: rack_metric
+                entity: sensor.rack_degraded_volumes
+                name: Degraded volumes
+                icon: mdi:harddisk-remove
+                styles:
+                  card:
+                    - --metric-accent: var(--red)
+              - type: custom:button-card
+                template: rack_metric
+                entity: sensor.rack_unreachable_targets
+                name: Unreachable targets
+                icon: mdi:access-point-network-off
+                styles:
+                  card:
+                    - --metric-accent: var(--yellow)
+              - type: custom:button-card
+                template: rack_metric
+                entity: sensor.rack_active_alerts
+                name: Active alerts
+                icon: mdi:alert-outline
+                styles:
+                  card:
+                    - --metric-accent: var(--pink)
       - type: grid
         cards:
           - type: heading
@@ -215,6 +221,22 @@ views:
                 styles:
                   card:
                     - --metric-accent: var(--green)
+              - type: custom:button-card
+                template: rack_metric
+                entity: sensor.rack_database_backup_age
+                name: Database backup age
+                icon: mdi:database-clock-outline
+                styles:
+                  card:
+                    - --metric-accent: var(--teal)
+              - type: custom:button-card
+                template: rack_metric
+                entity: sensor.home_assistant_config_backup
+                name: HA config backup
+                icon: mdi:backup-restore
+                styles:
+                  card:
+                    - --metric-accent: var(--blue)
       - type: grid
         cards:
           - type: heading

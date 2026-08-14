@@ -1,0 +1,57 @@
+rest:
+  - resource: http://home-assistant-status-bridge.home-assistant.svc.cluster.local:8080/status
+    scan_interval: 60
+    timeout: 10
+    sensor:
+      - name: Rack ready nodes
+        unique_id: rack_ready_nodes
+        value_template: "{{ value_json.cluster.ready_nodes }}"
+        state_class: measurement
+        unit_of_measurement: nodes
+        json_attributes_path: "$.cluster"
+        json_attributes:
+          - total_nodes
+
+      - name: Rack unhealthy workloads
+        unique_id: rack_unhealthy_workloads
+        value_template: "{{ value_json.cluster.unhealthy_workloads }}"
+        state_class: measurement
+        unit_of_measurement: workloads
+
+      - name: Rack Fleet failures
+        unique_id: rack_fleet_failures
+        value_template: "{{ value_json.cluster.fleet_failures }}"
+        state_class: measurement
+        unit_of_measurement: bundles
+
+      - name: Rack degraded volumes
+        unique_id: rack_degraded_volumes
+        value_template: "{{ value_json.cluster.longhorn_degraded_volumes }}"
+        state_class: measurement
+        unit_of_measurement: volumes
+
+      - name: Rack unreachable targets
+        unique_id: rack_unreachable_targets
+        value_template: "{{ value_json.monitoring.unreachable_targets }}"
+        state_class: measurement
+        unit_of_measurement: targets
+
+      - name: Rack active alerts
+        unique_id: rack_active_alerts
+        value_template: "{{ value_json.monitoring.active_alerts }}"
+        state_class: measurement
+        unit_of_measurement: alerts
+
+      - name: Rack database backup age
+        unique_id: rack_database_backup_age
+        value_template: "{{ value_json.backups.cnpg_age_hours }}"
+        device_class: duration
+        state_class: measurement
+        unit_of_measurement: h
+
+      - name: Rack summary status
+        unique_id: rack_summary_status
+        value_template: "{{ value_json.status }}"
+        json_attributes:
+          - generated_at
+          - links

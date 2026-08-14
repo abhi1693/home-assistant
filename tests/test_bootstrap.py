@@ -35,6 +35,98 @@ class BootstrapTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content)
 
+    def test_household_policy_rejects_non_phone_presence_drift(self):
+        access = {
+            "profiles": {
+                "abhimanyu-saharan": {
+                    "device_trackers": [
+                        "device_tracker.owner_phone_gps",
+                        "device_tracker.owner_phone_wifi",
+                        "device_tracker.owner_pc",
+                    ],
+                    "notify_entity_id": "notify.owner_phone",
+                },
+                "krishna": {
+                    "device_trackers": [
+                        "device_tracker.krishna_phone_gps",
+                        "device_tracker.krishna_phone_wifi",
+                    ],
+                    "notify_entity_id": "notify.krishna_phone",
+                },
+                "manisha": {
+                    "device_trackers": ["device_tracker.manisha_phone_gps"],
+                    "notify_entity_id": "notify.manisha_phone",
+                },
+            }
+        }
+        policy = {
+            "version": 1,
+            "automation_stage": "Shadow",
+            "profiles": {
+                "abhimanyu-saharan": {
+                    "gps": "device_tracker.owner_phone_gps",
+                    "wifi": "device_tracker.owner_phone_wifi",
+                    "notify": "notify.owner_phone",
+                },
+                "krishna": {
+                    "gps": "device_tracker.krishna_phone_gps",
+                    "wifi": "device_tracker.krishna_phone_wifi",
+                    "notify": "notify.krishna_phone",
+                },
+                "manisha": {
+                    "gps": "device_tracker.manisha_phone_gps",
+                    "wifi": None,
+                    "notify": "notify.manisha_phone",
+                },
+            },
+            "security": {
+                "required_cameras": ["camera.outside", "camera.balcony"],
+                "warning_percent": 85,
+                "critical_percent": 92,
+            },
+            "hardware_contracts": {
+                "entry_contacts": [],
+                "leak_sensors": [],
+                "certified_smoke_co": [],
+                "indoor_air_quality": [],
+                "bed_occupancy": [],
+            },
+        }
+        self.write("access/family-dashboard.json", json.dumps(access))
+        self.write("access/household-policy.json", json.dumps(policy))
+
+        with self.assertRaisesRegex(RuntimeError, "policy drift"):
+            bootstrap.validate_household_policy(self.source)
+
+    def test_nut_config_entry_is_created_and_reconciled_without_credentials(self):
+        desired = {
+            "version": 1,
+            "entry_id": "01KHGHA0000000000000000000",
+            "title": "Rack UPS",
+            "host": "ups-monitoring.ups.svc.cluster.local",
+            "port": 3493,
+            "alias": "ups",
+        }
+        self.write("access/nut.json", json.dumps(desired))
+        storage = self.config / ".storage"
+        storage.mkdir()
+        entries_path = storage / "core.config_entries"
+        entries_path.write_text(json.dumps({"data": {"entries": []}}))
+
+        bootstrap.reconcile_nut(self.source, self.config)
+        bootstrap.reconcile_nut(self.source, self.config)
+
+        entries = json.loads(entries_path.read_text())["data"]["entries"]
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["domain"], "nut")
+        self.assertEqual(entries[0]["data"], {
+            "host": desired["host"],
+            "port": 3493,
+            "alias": "ups",
+        })
+        self.assertNotIn("username", entries[0]["data"])
+        self.assertNotIn("password", entries[0]["data"])
+
     def commute_desired(self):
         return {
             "version": 1,

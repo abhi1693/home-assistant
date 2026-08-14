@@ -59,13 +59,15 @@ journey and immediately when homeward travel is first detected.
 
 ## Dashboards
 
-- **Home** is family-facing and responsive. Its three views cover the household
-  overview, rooms and Atomberg fans, and a three-camera UniFi Protect wall.
-  Music Assistant and Jellyfin activity remain embedded in the household overview.
+- **Home** is family-facing and responsive. Its six views cover the household
+  overview, rooms and Atomberg fans, an account-filtered UniFi Protect wall,
+  Security, People, and owner-only Maintenance. Music Assistant and Jellyfin
+  activity remain embedded in the household overview.
 - **Rack** is admin-only. It keeps Kubernetes, UniFi and rack temperatures away
   from the shared family experience.
 - Every dashboard view consumes the same source-owned navigation rail. Everyone
-  sees Home, Rooms and Cameras; admins additionally see Rack and Settings.
+  sees Home, Rooms, Cameras, Security and People; admins additionally see
+  Maintenance, Rack and Settings.
 - `Family Dark` is the local visual system. Bubble Card, Button Card, Navbar Card,
   Card Mod, Auto Entities, Todo Swipe Card and Kiosk Mode are
   commit/version-pinned, checksum-verified assets.
@@ -147,6 +149,24 @@ Home without the native card's large empty state; list contents remain normal
 mutable Home Assistant data while the card and its access policy stay Git-owned.
 Rack health remains confined to the admin-only dashboard.
 
+The household package supplies restart-safe Normal, Guest, Vacation and
+Maintenance intent, quiet hours, a default `Shadow` safety stage,
+confidence-aware phone presence, five-minute empty-home dwell, camera outage
+timers, one notification router, Vacation preflight, Good Night, washer, fan,
+travel-battery, perimeter and Protect-storage workflows. Shadow mode records
+decisions but does not send mobile alerts or control devices. Hardware-dependent
+contact, leak, certified smoke/CO, indoor-air and wellbeing capabilities remain
+explicitly dormant instead of appearing healthy without sensors or consent.
+Bootstrap also reconciles the existing cluster NUT endpoint as a credential-free,
+read-only `Rack UPS` config entry. Home Assistant can explain battery, load and
+runtime, while Rack Ops remains the only system allowed to stage Kubernetes
+shutdown or recovery.
+Rack's former per-node REST placeholders are replaced by one internal summary
+bridge. It exposes only ready-node, unhealthy-workload, Fleet, Longhorn,
+Prometheus-target, alert and database-backup counts from Prometheus, with no
+Kubernetes credentials or control path; Grafana and Rancher remain the deep
+diagnostic surfaces.
+
 The Coming up rail shows at most four events across the next 14 days. The owner
 profile combines Birthdays, the Google Family calendar, India holidays, the
 personal Google calendar and both Topmate calendars. Non-owner family and review
@@ -177,7 +197,8 @@ document without overwriting personal theme or locale preferences.
 The managed family profiles are Abhimanyu, Manisha and Krishna. Krishna's person
 is GitOps-linked to both the UniFi and Home Assistant Companion App trackers for
 her Pixel 10 Pro; Manisha's person is linked to her iPhone Companion App tracker;
-Abhimanyu's person retains only his own PC and Pixel 8 trackers. The Master
+Abhimanyu's person retains only the Pixel 8 GPS and matching UniFi phone
+trackers; desktop computers are never presence evidence. The Master
 Bedroom camera is rendered for Krishna but omitted from Manisha, Abhimanyu and
 the browser-review profile. Because Abhimanyu is the Home
 Assistant owner, hiding a camera from that profile can only be a presentation
@@ -225,6 +246,10 @@ the source repository contains no database credentials. The previous SQLite
 files remain on the persistent config volume as an offline rollback archive and
 are not imported because Home Assistant does not support Recorder database
 migration.
+Raw person, device-tracker, sleep, Health Connect, heart-rate, oxygen and
+respiratory entities are excluded from Recorder by default. Shared pages expose
+only named location state, confidence, freshness, arrival context and battery;
+optional wellbeing remains consent-gated and absent until enabled per person.
 
 Home's canonical location is G3-012, Indiabulls Centrum Park, Sector 103,
 Gurugram, Haryana 122006 at `28.4978819, 76.9830822`, approximately 211 metres
@@ -250,7 +275,8 @@ stream quality configuration reproducible without committing Protect secrets.
 
 ## Repository layout
 
-- `access/`: Git-owned account mappings and camera access policy
+- `access/`: Git-owned account mappings, camera access, UPS config and household
+  entity/policy contracts
 - `location/`: canonical home address and integration location targets
 - `configuration.yaml`: authoritative top-level Home Assistant YAML
 - `dashboards/`: the family and admin Lovelace dashboards
@@ -276,7 +302,8 @@ stream quality configuration reproducible without committing Protect secrets.
 - `www/family-room-card.js`: owns the reusable room boundary so fan, lighting,
   climate and media cards can be added independently without redesigning Rooms
 - `themes/`: source-owned themes
-- `packages/`: source-owned helpers for normalized temperature presentation
+- `packages/`: source-owned commute, household state/workflows and normalized
+  temperature presentation
 - `migrations/`: guarded, one-time area/device migration inputs
 - `bootstrap.py`: idempotent installer used by the Kubernetes init container
 - `bootstrap/manifest.json`: pinned and SHA-verified external assets and custom

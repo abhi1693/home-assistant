@@ -1,3 +1,4 @@
+import json
 import re
 import unittest
 from pathlib import Path
@@ -17,7 +18,7 @@ class DashboardStructureTests(unittest.TestCase):
             ),
             1,
         )
-        self.assertEqual(home.count("- *family_navigation"), 2)
+        self.assertEqual(home.count("- *family_navigation"), 5)
         self.assertEqual(
             rack.count("- !include includes/family-navigation.yaml"), 1
         )
@@ -32,9 +33,21 @@ class DashboardStructureTests(unittest.TestCase):
             if line.startswith("    label: ")
         ]
 
-        self.assertEqual(labels, ["Home", "Rooms", "Cameras", "Rack", "Settings"])
+        self.assertEqual(
+            labels,
+            [
+                "Home",
+                "Rooms",
+                "Cameras",
+                "Security",
+                "People",
+                "Maintenance",
+                "Rack",
+                "Settings",
+            ],
+        )
         self.assertNotIn("return Boolean(user?.is_admin);", navigation)
-        self.assertEqual(navigation.count("return !user?.is_admin;"), 2)
+        self.assertEqual(navigation.count("return !user?.is_admin;"), 3)
 
     def test_washer_card_is_read_only_and_uses_verified_entities(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
@@ -398,13 +411,72 @@ class DashboardStructureTests(unittest.TestCase):
 
     def test_camera_wall_applies_each_camera_user_gate(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
-        camera_view = home.split("  - title: Cameras", 1)[1]
+        camera_view = home.split("  - title: Cameras", 1)[1].split(
+            "  - title: Security", 1
+        )[0]
 
         self.assertEqual(camera_view.count("type: custom:auto-entities"), 3)
         for camera_key in ("outside", "master-bedroom", "hallway"):
             self.assertEqual(
                 camera_view.count(f"camera-{camera_key}-users.json"), 1
             )
+
+    def test_household_surfaces_are_bounded_and_access_aware(self):
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        package = (ROOT / "packages/household.yaml").read_text()
+        policy = json.loads((ROOT / "access/household-policy.json").read_text())
+
+        for title, path in (
+            ("Security", "security"),
+            ("People", "people"),
+            ("Maintenance", "maintenance"),
+        ):
+            self.assertIn(f"  - title: {title}\n    path: {path}", home)
+        maintenance = home.split("  - title: Maintenance", 1)[1]
+        self.assertIn(
+            "visible: !include ../access/generated/profile-abhimanyu-saharan-users.json",
+            maintenance,
+        )
+        self.assertIn("entity: sensor.house_attention_level", home)
+        self.assertIn("entity: binary_sensor.vacation_ready", home)
+        self.assertIn("entity: input_button.household_good_night", home)
+        self.assertIn("household_automation_stage:", package)
+        self.assertLess(package.index("- Shadow"), package.index("- Active"))
+        self.assertIn("schedule:\n  quiet_hours:", package)
+        self.assertIn("timer.household_startup_settle", package)
+        self.assertIn("timer.high_confidence_empty_home", package)
+        self.assertIn("input_boolean.empty_home_confirmed", package)
+        self.assertIn("is_state('input_boolean.empty_home_confirmed', 'on')", package)
+        self.assertIn("mode: queued", package)
+        self.assertEqual(policy["automation_stage"], "Shadow")
+        self.assertEqual(policy["profiles"]["manisha"]["wifi"], None)
+
+    def test_presence_uses_only_travelling_phone_trackers(self):
+        access = json.loads((ROOT / "access/family-dashboard.json").read_text())
+        policy = json.loads((ROOT / "access/household-policy.json").read_text())
+        owner = access["profiles"]["abhimanyu-saharan"]
+
+        self.assertNotIn("device_tracker.abhi_pc", owner["device_trackers"])
+        self.assertEqual(
+            set(owner["device_trackers"]),
+            {
+                policy["profiles"]["abhimanyu-saharan"]["gps"],
+                policy["profiles"]["abhimanyu-saharan"]["wifi"],
+            },
+        )
+
+    def test_recorder_excludes_raw_location_and_health_history(self):
+        configuration = (ROOT / "configuration.yaml").read_text()
+
+        self.assertIn("- device_tracker.*", configuration)
+        self.assertIn("- sensor.*health_connect*", configuration)
+        self.assertIn("- sensor.*sleep*", configuration)
+        for person in (
+            "person.abhimanyu_saharan",
+            "person.krishna",
+            "person.manisha",
+        ):
+            self.assertIn(f"- {person}", configuration)
 
     def test_rooms_use_quota_conscious_full_fan_controls(self):
         configuration = (ROOT / "configuration.yaml").read_text()

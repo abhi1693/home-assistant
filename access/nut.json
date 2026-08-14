@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "entry_id": "01KHGHA0000000000000000000",
+  "title": "Rack UPS",
+  "host": "ups-monitoring.ups.svc.cluster.local",
+  "port": 3493,
+  "alias": "ups"
+}

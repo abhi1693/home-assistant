@@ -49,7 +49,6 @@
       "battery_level_entity_id": "sensor.pixel_8_battery_level",
       "battery_state_entity_id": "sensor.pixel_8_battery_state",
       "device_trackers": [
-        "device_tracker.abhi_pc",
         "device_tracker.abhimanyu_pixel_8",
         "device_tracker.abhimanyu_pixel_8_2"
       ],

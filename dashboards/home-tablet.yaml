@@ -306,13 +306,15 @@ button_card_templates:
 
   family_ribbon_attention:
     template: family_ribbon
-    entity: sensor.home_state
+    entity: sensor.house_attention_level
     variables:
       context: |
         [[[
-          if (entity && entity.state !== 'connected') return {
-            name: 'Internet', label: 'Needs attention',
-            icon: 'mdi:wifi-alert', color: 'var(--red)'
+          if (entity && ['critical', 'warning'].includes(entity.state)) return {
+            name: entity.state === 'critical' ? 'Act now' : 'Attention',
+            label: entity.attributes?.primary_reason || 'Open Security',
+            icon: 'mdi:shield-alert-outline',
+            color: entity.state === 'critical' ? 'var(--red)' : 'var(--orange)'
           };
           const storm = Number(states['sensor.home_thunderstorm_probability']?.state);
           if (Number.isFinite(storm) && storm >= 30) return {
@@ -1192,9 +1194,11 @@ views:
               {% set event_days = (event_start.date() - now().date()).days if event_start else none %}
               {% set event_all_day = state_attr('calendar.birthdays', 'all_day') %}
               {% set shopping = states('todo.shopping_list') | int(0) %}
+              {% set attention = states('sensor.house_attention_level') %}
+              {% set attention_reason = state_attr('sensor.house_attention_level', 'primary_reason') %}
               **{{ now().strftime('%A') }} {{ daypart }} · {{ now().strftime('%-I:%M %p') }}**{% if condition not in ['unknown', 'unavailable'] %} · {{ condition }}{% endif %}{% if temperature_known %} · **{{ temperature }} °C** outside{% endif %}{% if air_known %} · Air is {{ air_category }}{% endif %}{% if home | count == 0 and known_people | count > 0 %} · Home is empty{% elif home | count == 1 %} · {{ home[0] }} is home{% elif home | count == 2 %} · {{ home[0] }} and {{ home[1] }} are home{% elif home | count > 2 %} · {{ home | count }} people are home{% endif %}
 
-              {% if air_known and aqi > 300 %}The air is **{{ air_category }}** at **AQI {{ aqi }}**—avoid outdoor activity and keep the windows closed.{% elif air_known and aqi > 200 %}Air quality is **{{ air_category }}** at **AQI {{ aqi }}**—limit time outdoors and keep the windows closed.{% elif washer in ['complete', 'completed', 'finished', 'end'] %}The laundry is ready to be collected.{% elif is_state('calendar.birthdays', 'on') and event %}**{{ event }}** is happening today.{% elif event and event_days == 0 %}{% if event_all_day %}**{{ event }}** is today.{% else %}Next: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif event and event_days == 1 %}{% if event_all_day %}Tomorrow: **{{ event }}**.{% else %}Tomorrow: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif apparent >= 38 and storm >= 30 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside, and storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—take water and an umbrella if you are heading out.{% elif apparent >= 38 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside—{% if hour < 12 %}take water if you are heading out later{% elif hour < 17 %}keep outdoor plans short and stay hydrated{% elif hour < 22 %}take water if you are heading out{% else %}keep the house cool overnight{% endif %}.{% elif storm >= 30 %}Storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—keep an umbrella handy.{% elif shopping > 0 %}There {% if shopping == 1 %}is **1 item**{% else %}are **{{ shopping }} items**{% endif %} on the shopping list.{% elif air_known and aqi > 100 %}The air is **{{ air_category }}** at **AQI {{ aqi }}**—anyone sensitive should take it easy outdoors.{% elif hour < 5 %}Everything at home is settled for the night.{% elif hour < 12 %}Nothing at home needs attention this morning.{% elif hour < 17 %}Nothing at home needs attention right now.{% elif hour < 22 %}Nothing at home needs attention this evening.{% else %}Everything at home is settled for the night.{% endif %}
+              {% if attention in ['critical', 'warning'] and attention_reason %}**{{ attention_reason }}.** Open Security for the details.{% elif air_known and aqi > 300 %}The air is **{{ air_category }}** at **AQI {{ aqi }}**—avoid outdoor activity and keep the windows closed.{% elif air_known and aqi > 200 %}Air quality is **{{ air_category }}** at **AQI {{ aqi }}**—limit time outdoors and keep the windows closed.{% elif washer in ['complete', 'completed', 'finished', 'end'] %}The laundry is ready to be collected.{% elif is_state('calendar.birthdays', 'on') and event %}**{{ event }}** is happening today.{% elif event and event_days == 0 %}{% if event_all_day %}**{{ event }}** is today.{% else %}Next: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif event and event_days == 1 %}{% if event_all_day %}Tomorrow: **{{ event }}**.{% else %}Tomorrow: **{{ event }}** at **{{ event_start.strftime('%-I:%M %p') }}**.{% endif %}{% elif apparent >= 38 and storm >= 30 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside, and storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—take water and an umbrella if you are heading out.{% elif apparent >= 38 %}It {% if hour < 12 %}already {% elif hour >= 17 %}still {% endif %}feels like **{{ apparent | round(0) | int }} °C** outside—{% if hour < 12 %}take water if you are heading out later{% elif hour < 17 %}keep outdoor plans short and stay hydrated{% elif hour < 22 %}take water if you are heading out{% else %}keep the house cool overnight{% endif %}.{% elif storm >= 30 %}Storms are possible {% if hour < 12 %}later today{% elif hour < 17 %}this afternoon{% else %}tonight{% endif %}—keep an umbrella handy.{% elif shopping > 0 %}There {% if shopping == 1 %}is **1 item**{% else %}are **{{ shopping }} items**{% endif %} on the shopping list.{% elif air_known and aqi > 100 %}The air is **{{ air_category }}** at **AQI {{ aqi }}**—anyone sensitive should take it easy outdoors.{% elif hour < 5 %}Everything at home is settled for the night.{% elif hour < 12 %}Nothing at home needs attention this morning.{% elif hour < 17 %}Nothing at home needs attention right now.{% elif hour < 22 %}Nothing at home needs attention this evening.{% else %}Everything at home is settled for the night.{% endif %}
             card_mod:
               style: |
                 ha-card { background: transparent; padding: 2px 0 0; }
@@ -1804,6 +1808,12 @@ views:
                   - justify-self: start
                   - color: var(--contrast10)
                   - font-size: 11px
+          - type: tile
+            entity: input_button.household_good_night
+            name: Good night
+            icon: mdi:weather-night
+            color: purple
+            tap_action: { action: toggle }
           - type: custom:family-announcements-card
             entity: sensor.family_announcements
             visibility:
@@ -2139,5 +2149,398 @@ views:
               rows: auto
       - type: grid
         column_span: 4
+        cards:
+          - *family_navigation
+
+  - title: Security
+    path: security
+    icon: mdi:shield-home
+    type: sections
+    theme: Family Dark
+    max_columns: 3
+    dense_section_placement: true
+    sections:
+      - type: grid
+        column_span: 2
+        cards:
+          - type: heading
+            heading: Security
+            heading_style: title
+            icon: mdi:shield-home-outline
+            grid_options: { columns: 24, rows: 1 }
+          - type: custom:button-card
+            entity: sensor.house_attention_level
+            name: Home attention
+            icon: mdi:home-alert-outline
+            show_state: true
+            show_label: true
+            label: |
+              [[[
+                return entity?.attributes?.primary_reason || 'Waiting for household state';
+              ]]]
+            tap_action: { action: none }
+            styles:
+              grid:
+                - grid-template-areas: '"i n" "i s" "i l"'
+                - grid-template-columns: 52px 1fr
+                - grid-template-rows: min-content min-content min-content
+              card:
+                - min-height: 106px
+                - padding: 18px
+                - border-radius: 24px
+                - background: var(--contrast2)
+              icon:
+                - width: 28px
+                - color: |
+                    [[[
+                      if (entity?.state === 'critical') return 'var(--red)';
+                      if (entity?.state === 'warning') return 'var(--orange)';
+                      if (entity?.state === 'advisory') return 'var(--yellow)';
+                      return 'var(--green)';
+                    ]]]
+              name: [{ justify-self: start }, { font-size: 17px }, { font-weight: 700 }]
+              state: [{ justify-self: start }, { text-transform: capitalize }, { color: var(--contrast14) }]
+              label: [{ justify-self: start }, { color: var(--contrast10) }, { white-space: normal }]
+            grid_options: { columns: 24, rows: auto }
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:button-card
+                entity: alarm_control_panel.home_protect_storage_alarm_manager
+                name: Protect alarm
+                icon: mdi:shield-lock-outline
+                show_state: true
+                tap_action: { action: none }
+                styles:
+                  card: [{ min-height: 94px }, { border-radius: 22px }, { background: var(--contrast2) }]
+                  icon: [{ width: 26px }, { color: var(--blue) }]
+              - type: custom:button-card
+                entity: sensor.camera_coverage
+                name: Camera coverage
+                icon: mdi:cctv
+                show_state: true
+                tap_action: { action: navigate, navigation_path: /home-tablet/cameras }
+                styles:
+                  card: [{ min-height: 94px }, { border-radius: 22px }, { background: var(--contrast2) }]
+                  icon:
+                    - width: 26px
+                    - color: |
+                        [[[
+                          return entity?.state === '3 of 3 online' ? 'var(--green)' : 'var(--orange)';
+                        ]]]
+            grid_options: { columns: 24, rows: auto }
+          - type: heading
+            heading: Perimeter cameras
+            heading_style: subtitle
+            icon: mdi:cctv
+            grid_options: { columns: 24, rows: 1 }
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: picture-entity
+                entity: camera.g5_turret_ultra_high_resolution_channel
+                camera_image: camera.g5_turret_ultra_medium_resolution_channel
+                camera_view: live
+                name: Outside
+                show_state: false
+                tap_action: { action: more-info }
+                visibility:
+                  - condition: user
+                    users: !include ../access/generated/camera-outside-users.json
+              - type: picture-entity
+                entity: camera.hallway_high_resolution_channel
+                camera_image: camera.hallway_medium_resolution_channel
+                camera_view: live
+                name: Kitchen Balcony
+                show_state: false
+                tap_action: { action: more-info }
+                visibility:
+                  - condition: user
+                    users: !include ../access/generated/camera-hallway-users.json
+            grid_options: { columns: 24, rows: auto }
+      - type: grid
+        cards:
+          - type: heading
+            heading: House posture
+            heading_style: title
+            icon: mdi:home-switch-outline
+          - type: custom:button-card
+            entity: input_select.house_mode
+            name: House mode
+            icon: mdi:home-switch
+            show_state: true
+            tap_action: { action: none }
+            styles:
+              card: [{ min-height: 88px }, { border-radius: 22px }, { background: var(--contrast2) }]
+              icon: [{ color: var(--purple) }]
+          - type: custom:button-card
+            entity: binary_sensor.vacation_ready
+            name: Vacation preflight
+            icon: mdi:airplane-check
+            show_state: true
+            show_label: true
+            label: |
+              [[[
+                const blockers = entity?.attributes?.blockers || [];
+                return blockers.length ? blockers.join(' · ') : 'Ready when you are';
+              ]]]
+            tap_action: { action: none }
+            styles:
+              card: [{ min-height: 96px }, { border-radius: 22px }, { background: var(--contrast2) }]
+              icon: [{ color: "[[[ return entity?.state === 'on' ? 'var(--green)' : 'var(--orange)'; ]]]" }]
+              label: [{ color: var(--contrast10) }, { white-space: normal }]
+          - type: tile
+            entity: input_button.request_vacation_mode
+            name: Check and start Vacation
+            icon: mdi:airplane-check
+            tap_action: { action: toggle }
+            visibility:
+              - condition: user
+                users: !include ../access/generated/profile-abhimanyu-saharan-users.json
+          - type: heading
+            heading: Recording
+            heading_style: subtitle
+            icon: mdi:record-rec
+          - type: tile
+            entity: sensor.home_protect_storage_storage_utilization
+            name: Protect storage
+            color: red
+          - type: tile
+            entity: binary_sensor.home_protect_storage_hdd_1
+            name: Protect disk
+          - type: markdown
+            content: >-
+              Future entrance contacts, leak sensors and certified smoke/CO alarms
+              will appear here after they are installed and tested. Camera sound
+              detection is not treated as a life-safety alarm.
+            card_mod:
+              style: |
+                ha-card { border-radius: 22px; background: var(--contrast2); }
+      - type: grid
+        column_span: 3
+        cards:
+          - *family_navigation
+
+  - title: People
+    path: people
+    icon: mdi:account-group
+    type: sections
+    theme: Family Dark
+    max_columns: 3
+    dense_section_placement: true
+    sections:
+      - type: grid
+        column_span: 3
+        cards:
+          - type: heading
+            heading: Family
+            heading_style: title
+            icon: mdi:account-group-outline
+            grid_options: { columns: 36, rows: 1 }
+          - type: custom:family-responsive-grid-card
+            min_width: 280
+            cards:
+              - type: custom:button-card
+                entity: person.abhimanyu_saharan
+                name: Abhimanyu
+                icon: mdi:account
+                show_state: true
+                show_label: true
+                label: |
+                  [[[
+                    const confidence = states['sensor.abhimanyu_presence_confidence'];
+                    const battery = states['sensor.pixel_8_battery_level'];
+                    return `${confidence?.state || 'unknown'} · ${battery?.state || '—'}%`;
+                  ]]]
+                tap_action: { action: none }
+                styles:
+                  card: [{ min-height: 118px }, { border-radius: 24px }, { background: var(--contrast2) }]
+                  icon: [{ color: var(--blue) }]
+                  label: [{ color: var(--contrast10) }]
+              - type: custom:button-card
+                entity: person.manisha
+                name: Manisha
+                icon: mdi:account
+                show_state: true
+                show_label: true
+                label: |
+                  [[[
+                    const confidence = states['sensor.manisha_presence_confidence'];
+                    const battery = states['sensor.iphone_battery_level'];
+                    return `${confidence?.state || 'unknown'} · ${battery?.state || '—'}%`;
+                  ]]]
+                tap_action: { action: none }
+                styles:
+                  card: [{ min-height: 118px }, { border-radius: 24px }, { background: var(--contrast2) }]
+                  icon: [{ color: var(--pink) }]
+                  label: [{ color: var(--contrast10) }]
+              - type: custom:button-card
+                entity: person.krishna
+                name: Krishna
+                icon: mdi:account
+                show_state: true
+                show_label: true
+                label: |
+                  [[[
+                    const confidence = states['sensor.krishna_presence_confidence'];
+                    const battery = states['sensor.pixel_10_pro_battery_level'];
+                    return `${confidence?.state || 'unknown'} · ${battery?.state || '—'}%`;
+                  ]]]
+                tap_action: { action: none }
+                styles:
+                  card: [{ min-height: 118px }, { border-radius: 24px }, { background: var(--contrast2) }]
+                  icon: [{ color: var(--purple) }]
+                  label: [{ color: var(--contrast10) }]
+            grid_options: { columns: 36, rows: auto }
+          - type: heading
+            heading: Coming home
+            heading_style: subtitle
+            icon: mdi:home-import-outline
+            visibility:
+              - condition: or
+                conditions:
+                  - condition: state
+                    entity: sensor.family_arrivals_abhimanyu_direction_of_travel
+                    state: towards
+                  - condition: state
+                    entity: sensor.family_arrivals_krishna_direction_of_travel
+                    state: towards
+                  - condition: state
+                    entity: sensor.family_arrivals_manisha_direction_of_travel
+                    state: towards
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:button-card
+                template: family_commute
+                entity: sensor.abhimanyu_to_home
+                variables: { traveler: Abhimanyu, icon: mdi:car-clock, arrival_eta: true }
+                visibility:
+                  - condition: state
+                    entity: sensor.family_arrivals_abhimanyu_direction_of_travel
+                    state: towards
+              - type: custom:button-card
+                template: family_commute
+                entity: sensor.manisha_to_home
+                variables: { traveler: Manisha, icon: mdi:car-clock, arrival_eta: true }
+                visibility:
+                  - condition: state
+                    entity: sensor.family_arrivals_manisha_direction_of_travel
+                    state: towards
+              - type: custom:button-card
+                template: family_commute
+                entity: sensor.krishna_to_home
+                variables: { traveler: Krishna, icon: mdi:car-clock, arrival_eta: true }
+                visibility:
+                  - condition: state
+                    entity: sensor.family_arrivals_krishna_direction_of_travel
+                    state: towards
+            grid_options: { columns: 36, rows: auto }
+          - type: markdown
+            content: >-
+              Shared family location is deliberately limited to home, named zones,
+              away, freshness and arrival time. Exact routes and location history
+              are not shown here.
+            card_mod:
+              style: |
+                ha-card { border-radius: 22px; background: var(--contrast2); }
+            grid_options: { columns: 36, rows: auto }
+      - type: grid
+        column_span: 3
+        cards:
+          - *family_navigation
+
+  - title: Maintenance
+    path: maintenance
+    icon: mdi:tools
+    type: sections
+    theme: Family Dark
+    max_columns: 3
+    dense_section_placement: true
+    visible: !include ../access/generated/profile-abhimanyu-saharan-users.json
+    sections:
+      - type: grid
+        column_span: 3
+        visibility:
+          - condition: user
+            users: !include ../access/generated/profile-abhimanyu-saharan-users.json
+        cards:
+          - type: heading
+            heading: Maintenance
+            heading_style: title
+            icon: mdi:tools
+            grid_options: { columns: 36, rows: 1 }
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: tile
+                entity: sensor.house_attention_level
+                name: Household attention
+              - type: tile
+                entity: sensor.home_assistant_config_backup
+                name: Config backup
+              - type: tile
+                entity: sensor.home_protect_storage_storage_utilization
+                name: NVR storage
+              - type: tile
+                entity: sensor.camera_coverage
+                name: Camera coverage
+              - type: tile
+                entity: sensor.presence_confidence
+                name: Presence confidence
+              - type: tile
+                entity: input_select.household_automation_stage
+                name: Automation stage
+            grid_options: { columns: 36, rows: auto }
+          - type: heading
+            heading: Automation health
+            heading_style: subtitle
+            icon: mdi:heart-pulse
+            grid_options: { columns: 36, rows: 1 }
+          - type: entities
+            entities:
+              - entity: input_datetime.last_household_evaluation
+                name: Last evaluation
+              - entity: input_text.last_household_decision
+                name: Last decision
+              - entity: counter.household_shadow_decisions
+                name: Shadow decisions
+              - entity: input_boolean.noncritical_automations_paused
+                name: Pause noncritical automations
+            grid_options: { columns: 36, rows: auto }
+          - type: heading
+            heading: Rack UPS
+            heading_style: subtitle
+            icon: mdi:battery-charging
+            grid_options: { columns: 36, rows: 1 }
+          - type: custom:auto-entities
+            card:
+              type: entities
+              title: Power
+              show_header_toggle: false
+            filter:
+              include:
+                - integration: nut
+                  domain: sensor
+            show_empty: false
+            grid_options: { columns: 36, rows: auto }
+          - type: markdown
+            content: >-
+              Door contacts, leak sensors, certified smoke/CO alarms, indoor air
+              quality and private wellbeing remain dormant contracts until hardware
+              exists or the affected person opts in.
+            card_mod:
+              style: |
+                ha-card { border-radius: 22px; background: var(--contrast2); }
+            grid_options: { columns: 36, rows: auto }
+      - type: grid
+        column_span: 3
+        visibility:
+          - condition: user
+            users: !include ../access/generated/profile-abhimanyu-saharan-users.json
         cards:
           - *family_navigation
