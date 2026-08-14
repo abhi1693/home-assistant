@@ -587,12 +587,15 @@ class BootstrapTests(unittest.TestCase):
                 "camera.master_bedroom": True,
                 "camera.master_bedroom_medium": True,
                 "calendar.birthdays": True,
-                "sensor.owner_heart_rate": False,
+                "sensor.office_temperature": True,
             },
         )
         self.assertEqual(
             group["policy"]["entities"]["domains"],
-            {"fan": True, "sensor": True},
+            {"fan": True},
+        )
+        self.assertNotIn(
+            "sensor.owner_heart_rate", group["policy"]["entities"]["entity_ids"]
         )
         self.assertNotIn("calendar.private", group["policy"]["entities"]["entity_ids"])
         self.assertNotIn("calendar", group["policy"]["entities"]["domains"])

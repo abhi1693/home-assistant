@@ -512,11 +512,9 @@ def migrate_areas(source: Path, config: Path) -> None:
 def _family_entity_policy(
     allowed_entities: list[str],
     unrestricted_domains: set[str],
-    denied_entities: set[str] | None = None,
 ) -> dict:
     """Allow unrestricted domains and individually granted private domains."""
     entity_ids = {entity_id: True for entity_id in allowed_entities}
-    entity_ids.update({entity_id: False for entity_id in denied_entities or set()})
     return {
         "entities": {
             "entity_ids": entity_ids,
@@ -591,6 +589,16 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                     f"Owner health entity is not a Companion App sensor: {entity_id}"
                 )
     owner_health_entities = set(owner_health_entities)
+    owner_health_domains = {
+        entity_id.partition(".")[0] for entity_id in owner_health_entities
+    }
+    family_unrestricted_domains = unrestricted_domains - owner_health_domains
+    family_public_entities = sorted(
+        entity_id
+        for entity_id in entities
+        if entity_id.partition(".")[0] in owner_health_domains
+        and entity_id not in owner_health_entities
+    )
 
     calendars = access.get("calendars", {})
     shared_calendars = calendars.get("shared", [])
@@ -785,9 +793,12 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                 "id": group_id,
                 "name": f"Family access: {profile.get('person_name', profile['username'])}",
                 "policy": _family_entity_policy(
-                    [*allowed_entities, *shared_calendars],
-                    unrestricted_domains,
-                    owner_health_entities,
+                    [
+                        *allowed_entities,
+                        *shared_calendars,
+                        *family_public_entities,
+                    ],
+                    family_unrestricted_domains,
                 ),
             }
             user["group_ids"] = [group_id]
