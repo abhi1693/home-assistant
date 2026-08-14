@@ -107,10 +107,10 @@ button_card_templates:
     styles:
       grid:
         - grid-template-areas: '"i n" "i l"'
-        - grid-template-columns: 24px max-content
+        - grid-template-columns: 24px minmax(0, 1fr)
         - grid-template-rows: 14px 22px
         - column-gap: 10px
-        - justify-content: center
+        - justify-content: stretch
       card:
         - height: 54px
         - padding: 7px 12px
@@ -130,7 +130,7 @@ button_card_templates:
       name:
         - align-self: end
         - justify-self: start
-        - max-width: 130px
+        - max-width: 100%
         - overflow: hidden
         - color: var(--contrast14)
         - font-size: 11px
@@ -141,7 +141,7 @@ button_card_templates:
       label:
         - align-self: start
         - justify-self: start
-        - max-width: 130px
+        - max-width: 100%
         - overflow: hidden
         - color: var(--contrast20)
         - font-size: 16px
@@ -1020,7 +1020,7 @@ button_card_templates:
         card:
           type: custom:button-card
           template: family_launcher
-          name: Open Music Assistant
+          name: Music Assistant
           icon: mdi:music-circle
           tap_action:
             action: url
@@ -1034,7 +1034,7 @@ button_card_templates:
         card:
           type: custom:button-card
           template: family_launcher
-          name: Open Jellyfin
+          name: Jellyfin
           icon: mdi:jellyfish
           tap_action:
             action: url
@@ -1200,6 +1200,11 @@ views:
                 ha-card { background: transparent; padding: 2px 0 0; }
                 h1 { font-size: 38px; letter-spacing: -1.3px; margin: 0 0 5px; }
                 p { color: var(--contrast11); font-size: 15px; line-height: 1.4; margin: 4px 0; }
+                @media (max-width: 639px) {
+                  ha-card { padding-inline: 2px; }
+                  h1 { font-size: 28px; letter-spacing: -0.7px; line-height: 1.15; }
+                  p { font-size: 14px; line-height: 1.45; }
+                }
             grid_options: { columns: 36, rows: auto }
           - type: custom:button-card
             show_icon: false
@@ -1209,13 +1214,22 @@ views:
               grid:
                 - grid-template-areas: |
                     [[[
-                      return ['9302d11f48c64fe796a3c9e5cb563650',
-                        '8117b77542614a06b4672a8ae1a979b5'].includes(user?.id)
+                      const alarm = ['9302d11f48c64fe796a3c9e5cb563650',
+                        '8117b77542614a06b4672a8ae1a979b5'].includes(user?.id);
+                      if (window.matchMedia('(max-width: 639px)').matches) {
+                        return alarm
+                          ? '"weather presence" "today activity" "attention alarm"'
+                          : '"weather presence" "today activity" "attention attention"';
+                      }
+                      return alarm
                         ? '"weather presence today activity attention alarm"'
                         : '"weather presence today activity attention"';
                     ]]]
                 - grid-template-columns: |
                     [[[
+                      if (window.matchMedia('(max-width: 639px)').matches) {
+                        return 'repeat(2, minmax(0, 1fr))';
+                      }
                       return ['9302d11f48c64fe796a3c9e5cb563650',
                         '8117b77542614a06b4672a8ae1a979b5'].includes(user?.id)
                         ? 'repeat(6, minmax(0, 1fr))'
@@ -1223,7 +1237,11 @@ views:
                     ]]]
               card:
                 - width: 100%
-                - padding: 3px 4px
+                - padding: |
+                    [[[
+                      return window.matchMedia('(max-width: 639px)').matches
+                        ? '4px 0' : '3px 4px';
+                    ]]]
                 - background: none
                 - border: none
                 - border-radius: 0
@@ -1272,6 +1290,12 @@ views:
             grid_options:
               columns: 36
               rows: auto
+          - type: custom:family-announcements-card
+            entity: sensor.family_announcements
+            visibility:
+              - condition: screen
+                media_query: "(max-width: 639px)"
+            grid_options: { columns: 36, rows: auto }
           - type: heading
             heading: Cameras
             heading_style: title
@@ -1290,9 +1314,8 @@ views:
             visibility:
               - condition: user
                 users: !include ../access/generated/camera-any-users.json
-          - type: grid
-            square: false
-            columns: 2
+          - type: custom:family-responsive-grid-card
+            min_width: 280
             cards:
               - type: custom:auto-entities
                 card:
@@ -1455,9 +1478,8 @@ views:
                     tap_action:
                       action: navigate
                       navigation_path: /home-tablet/rooms
-              - type: grid
-                square: false
-                columns: 3
+              - type: custom:family-responsive-grid-card
+                min_width: 150
                 cards:
                   - type: custom:button-card
                     template: family_area_summary
@@ -1502,9 +1524,8 @@ views:
                     tap_action:
                       action: navigate
                       navigation_path: /home-tablet/rooms
-              - type: grid
-                square: false
-                columns: 4
+              - type: custom:family-responsive-grid-card
+                min_width: 150
                 cards:
                   - type: custom:button-card
                     template: family_area_summary
@@ -1557,9 +1578,8 @@ views:
                     tap_action:
                       action: navigate
                       navigation_path: /home-tablet/rooms
-              - type: grid
-                square: false
-                columns: 4
+              - type: custom:family-responsive-grid-card
+                min_width: 150
                 cards:
                   - type: custom:button-card
                     template: family_area_summary
@@ -1786,6 +1806,9 @@ views:
                   - font-size: 11px
           - type: custom:family-announcements-card
             entity: sensor.family_announcements
+            visibility:
+              - condition: screen
+                media_query: "(min-width: 640px)"
           - type: custom:family-seerr-requests-card
             entity: sensor.seerr_pending_requests
             url: http://requests.media.home
@@ -1815,7 +1838,7 @@ views:
                 :host {
                   --todo-swipe-card-background: var(--contrast2);
                   --todo-swipe-card-text-color: var(--primary-text-color);
-                  --todo-swipe-card-item-height: 40px;
+                  --todo-swipe-card-item-height: 48px;
                   --todo-swipe-card-checkbox-size: 22px;
                   --todo-swipe-card-checkbox-checked-color: var(--pink);
                   --todo-swipe-card-title-background: transparent;
@@ -1830,6 +1853,11 @@ views:
                   border-radius: 24px;
                   box-shadow: none;
                   overflow: hidden;
+                }
+                @media (max-width: 639px) {
+                  ha-card { border-radius: 21px; }
+                  input { min-height: 44px !important; }
+                  button { min-width: 44px !important; min-height: 44px !important; }
                 }
 
   - title: Rooms
@@ -1852,6 +1880,10 @@ views:
                 ha-card { background: transparent; padding: 8px 0 4px; }
                 h1 { font-size: 40px; letter-spacing: -1.4px; margin-bottom: 8px; }
                 p { color: var(--contrast11); font-size: 16px; line-height: 1.5; }
+                @media (max-width: 639px) {
+                  ha-card { padding: 2px 2px 0; }
+                  h1 { font-size: 28px; letter-spacing: -0.7px; margin: 0; }
+                }
             grid_options:
               columns: 36
               rows: 1

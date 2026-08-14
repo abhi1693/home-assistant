@@ -89,7 +89,7 @@ class FamilyAnnouncementsCard extends HTMLElement {
         }
         .add {
           display: inline-flex;
-          min-height: 34px;
+          min-height: 44px;
           align-items: center;
           justify-content: center;
           gap: 6px;
@@ -110,7 +110,7 @@ class FamilyAnnouncementsCard extends HTMLElement {
         .announcement-list { border-top: 1px solid var(--contrast4); }
         .announcement {
           display: grid;
-          grid-template-columns: 38px minmax(0, 1fr) 34px;
+          grid-template-columns: 38px minmax(0, 1fr) 44px;
           align-items: center;
           gap: 12px;
           min-height: 66px;
@@ -148,8 +148,8 @@ class FamilyAnnouncementsCard extends HTMLElement {
         }
         .remove {
           display: grid;
-          width: 32px;
-          height: 32px;
+          width: 44px;
+          height: 44px;
           place-items: center;
           border: 0;
           border-radius: 11px;
@@ -161,7 +161,7 @@ class FamilyAnnouncementsCard extends HTMLElement {
         .remove:hover { background: var(--contrast4); color: var(--contrast18); }
         .remove:disabled { cursor: default; opacity: 0.32; }
         .remove ha-icon { width: 17px; }
-        .remove-spacer { width: 32px; height: 32px; }
+        .remove-spacer { width: 44px; height: 44px; }
         dialog {
           width: min(520px, calc(100vw - 48px));
           max-height: calc(100vh - 48px);
@@ -197,9 +197,9 @@ class FamilyAnnouncementsCard extends HTMLElement {
         }
         .dialog-close {
           display: grid;
-          width: 36px;
-          height: 36px;
-          flex: 0 0 36px;
+          width: 44px;
+          height: 44px;
+          flex: 0 0 44px;
           place-items: center;
           border: 0;
           border-radius: 12px;
@@ -246,7 +246,7 @@ class FamilyAnnouncementsCard extends HTMLElement {
         }
         .durations { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
         .duration {
-          min-height: 38px;
+          min-height: 44px;
           border: 0;
           border-radius: 12px;
           padding: 0 8px;
@@ -280,7 +280,7 @@ class FamilyAnnouncementsCard extends HTMLElement {
         }
         .dialog-action {
           display: inline-flex;
-          min-height: 42px;
+          min-height: 44px;
           align-items: center;
           justify-content: center;
           gap: 7px;
@@ -296,6 +296,27 @@ class FamilyAnnouncementsCard extends HTMLElement {
         .publish:disabled { cursor: default; opacity: 0.38; }
         .publish ha-icon { width: 17px; }
 
+        @media (max-width: 639px) {
+          .bulletin { padding-inline: 14px; border-radius: 21px; }
+          .bulletin.empty .bulletin-header { min-height: 50px; }
+          .add { min-width: 72px; min-height: 44px; border-radius: 14px; font-size: 12px; }
+          .announcement { grid-template-columns: 38px minmax(0,1fr) 44px; gap: 10px; }
+          .remove { width: 44px; height: 44px; border-radius: 14px; }
+          .remove-spacer { width: 44px; height: 44px; }
+          dialog {
+            width: 100vw;
+            max-width: none;
+            max-height: calc(100dvh - 12px);
+            margin: auto 0 0;
+            border-radius: 24px 24px 0 0;
+          }
+          .dialog-shell { padding: 20px 16px max(16px, env(safe-area-inset-bottom)); }
+          .dialog-close { width: 44px; height: 44px; flex-basis: 44px; border-radius: 14px; }
+          .durations { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+          .duration { min-height: 48px; border-radius: 14px; font-size: 12px; }
+          .dialog-actions { display: grid; grid-template-columns: 1fr 1fr; }
+          .dialog-action { min-height: 50px; }
+        }
         @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
       </style>
       <ha-card class="bulletin">

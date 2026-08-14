@@ -104,6 +104,25 @@ class FamilyRoomCard extends HTMLElement {
         gap: 14px;
       }
       .room-content > * { min-width: 0; }
+      @media (max-width: 639px) {
+        ha-card {
+          border-radius: 22px;
+          padding: 12px;
+        }
+        .room-heading {
+          min-height: 44px;
+          gap: 10px;
+          margin-bottom: 10px;
+        }
+        .room-icon {
+          width: 40px;
+          height: 40px;
+          flex-basis: 40px;
+          border-radius: 14px;
+        }
+        .room-name { font-size: 18px; }
+        .room-content { gap: 10px; }
+      }
     `;
 
     const shell = document.createElement("ha-card");

@@ -9,7 +9,8 @@ The desktop visual language closely follows the composition of
 [jlnbln/My-HA-Dashboard](https://github.com/jlnbln/My-HA-Dashboard): a fixed left
 navigation rail, narrative greeting, compact status strip, one dominant content
 zone, a narrow household rail, soft rounded surfaces and useful information
-visible without drilling through menus. Mobile-specific design is intentionally deferred.
+visible without drilling through menus. Phone layouts preserve the same information
+hierarchy while reflowing dense controls into readable, touch-safe rows and grids.
 The native Home Assistant sidebar is hidden on these kiosk views so it does not
 compete with the family navigation rail.
 
@@ -58,7 +59,7 @@ journey and immediately when homeward travel is first detected.
 
 ## Dashboards
 
-- **Home** is family-facing and desktop-first. Its three views cover the household
+- **Home** is family-facing and responsive. Its three views cover the household
   overview, rooms and Atomberg fans, and a three-camera UniFi Protect wall.
   Music Assistant and Jellyfin activity remain embedded in the household overview.
 - **Rack** is admin-only. It keeps Kubernetes, UniFi and rack temperatures away
@@ -68,6 +69,16 @@ journey and immediately when homeward travel is first detected.
 - `Family Dark` is the local visual system. Bubble Card, Button Card, Navbar Card,
   Card Mod, Auto Entities, Todo Swipe Card and Kiosk Mode are
   commit/version-pinned, checksum-verified assets.
+
+At widths below 640 pixels, Home's status ribbon becomes a two-column summary,
+camera and favourite-room grids reflow instead of clipping labels, and the fixed
+navigation gains safe-area spacing. Announcements move directly below the phone
+status summary while retaining their desktop household-rail position. Rooms stacks the two Living Room fans, reduces
+decorative padding, preserves 44-pixel or larger primary touch targets, and turns
+Light, Sleep and Timer into compact icon-led actions. Fan timers and announcement
+composition open as bottom sheets with large duration choices and controls that
+remain reachable above the phone safe area. Agenda, Seerr and announcement actions
+also use phone-specific spacing without changing account gates or service behavior.
 
 The current dashboard binds fixed controls only to entities verified in the
 live Home Assistant registry. Auto Entities discovers active Jellyfin and Music
@@ -314,6 +325,18 @@ Run the source tests with:
 ```sh
 python3 -m unittest discover -s tests -v
 ```
+
+Run the isolated phone component suite with Playwright available on `NODE_PATH`:
+
+```sh
+NODE_PATH=/path/to/node_modules node tests/mobile_dashboard_components.js
+```
+
+The browser suite covers 375px and 430px portrait phones plus an 844px
+landscape viewport. It checks horizontal overflow, responsive grid reflow,
+Living Room fan stacking, dial target separation, 44px touch targets, fan and
+announcement bottom sheets, agenda interaction, and Seerr confirmation actions
+using mocked Home Assistant services so no household device is changed.
 
 The Kubernetes repository additionally validates the rendered Helm resource and
 the live Fleet rollout that consumes this source.

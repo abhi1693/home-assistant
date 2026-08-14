@@ -388,6 +388,58 @@ class FamilyFanCard extends HTMLElement {
         .cancel-timer span { display:grid; gap:3px; }
         .cancel-timer strong { font-size:14px; }
         .dialog-cancel { width:100%; min-height:56px; margin-top:12px; border:0; border-radius:17px; background:var(--contrast4); color:var(--contrast16); font-size:13px; font-weight:700; cursor:pointer; }
+        @media (max-width:639px) {
+          ha-card { border-radius:22px; }
+          .room-heading { min-height:44px; gap:10px; margin-bottom:10px; }
+          .room-icon { width:40px; height:40px; border-radius:14px; }
+          .room-copy strong { font-size:18px; }
+          .fan-list { grid-template-columns:1fr; gap:10px; }
+          .fan-tile { border-radius:20px; padding:12px; }
+          .tile-heading { min-height:44px; }
+          .tile-icon { width:40px; height:40px; flex-basis:40px; border-radius:14px; }
+          .tile-copy strong { font-size:16px; }
+          .dial { width:min(292px,100%); height:310px; margin:4px auto 2px; }
+          .dial-ring { width:216px; height:216px; transform:translate(-50%,-50%); }
+          .power-core { width:144px; height:144px; transform:translate(-50%,-50%); }
+          .power-core:active:not(:disabled) { transform:translate(-50%,-50%) scale(.97); }
+          .core-fan { width:50px; height:50px; }
+          .fan-rotor,.fan-graphic { width:44px; height:44px; }
+          .speed { width:56px; height:56px; }
+          .speed-1 { left:0; top:127px; }
+          .speed-2 { left:10px; top:24px; }
+          .speed-3 { left:calc(50% - 28px); top:0; }
+          .speed-4 { right:10px; top:24px; }
+          .speed-5 { right:0; top:127px; }
+          .speed-6 { left:calc(50% - 28px); bottom:0; }
+          .feature-row { gap:8px; margin-top:6px; }
+          .feature {
+            min-height:58px;
+            flex-direction:column;
+            justify-content:center;
+            gap:4px;
+            border-radius:16px;
+            padding:7px 4px;
+            text-align:center;
+          }
+          .feature-icon { width:24px; height:24px; flex-basis:24px; }
+          .feature-icon ha-icon { width:21px; height:21px; }
+          .feature-copy { justify-items:center; }
+          .feature-copy strong { font-size:11px; }
+          .feature-copy small,.chevron { display:none; }
+          .unavailable { min-height:210px; }
+          .unavailable-body { min-height:132px; padding:12px; }
+          .unavailable-icon { width:54px; height:54px; border-radius:18px; }
+          .timer-dialog {
+            width:100vw;
+            max-width:none;
+            max-height:calc(100dvh - 12px);
+            margin:auto 0 0;
+            border-radius:24px 24px 0 0;
+            padding:18px 16px max(16px,env(safe-area-inset-bottom));
+          }
+          .timer-choice { min-height:72px; }
+          .dialog-cancel { min-height:52px; }
+        }
         @keyframes fan-spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
         @keyframes busy-spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
         @media (prefers-reduced-motion:reduce) { * { animation:none!important; transition:none!important; } }

@@ -69,8 +69,8 @@ class FamilySeerrRequestsCard extends HTMLElement {
           font-weight: 700;
         }
         .open {
-          width: 32px;
-          height: 32px;
+          width: 44px;
+          height: 44px;
           display: grid;
           place-items: center;
           padding: 0;
@@ -131,8 +131,8 @@ class FamilySeerrRequestsCard extends HTMLElement {
         }
         .actions { display: flex; align-items: center; gap: 5px; }
         .action {
-          width: 32px;
-          height: 32px;
+          width: 44px;
+          height: 44px;
           display: grid;
           place-items: center;
           padding: 0;
@@ -158,6 +158,20 @@ class FamilySeerrRequestsCard extends HTMLElement {
           font-size: 11px;
           text-align: left;
           cursor: pointer;
+        }
+        @media (max-width: 639px) {
+          ha-card { border-radius: 21px; }
+          .header { min-height: 60px; padding-inline: 14px; }
+          .open { width: 44px; height: 44px; border-radius: 14px; }
+          .request {
+            grid-template-columns: 42px minmax(0,1fr);
+            min-height: 104px;
+            padding: 10px;
+          }
+          .media-icon { width: 42px; height: 42px; }
+          .actions { grid-column: 1 / -1; justify-content: flex-end; }
+          .action { width: 48px; height: 44px; border-radius: 14px; }
+          .more { min-height: 44px; padding-top: 12px; }
         }
         @media (prefers-reduced-motion: no-preference) {
           .action, .open { transition: background 140ms ease, color 140ms ease, filter 140ms ease; }

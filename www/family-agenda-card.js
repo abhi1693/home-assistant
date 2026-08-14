@@ -184,6 +184,13 @@ class FamilyAgendaCard extends HTMLElement {
           font-size: 12px;
         }
         .empty ha-icon { width: 19px; color: var(--contrast8); }
+        @media (max-width: 639px) {
+          ha-card { border-radius: 21px; }
+          .events { padding-inline: 12px; }
+          .event { min-height: 64px; grid-template-columns: 46px 3px minmax(0,1fr); column-gap: 10px; }
+          .date,.accent { min-height: 46px; }
+          .title { font-size: 13.5px; }
+        }
         @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
       </style>
       <ha-card><div class="content"></div></ha-card>

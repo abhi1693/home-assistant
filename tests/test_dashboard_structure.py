@@ -101,15 +101,21 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("pm10: 'PM10'", air_quality)
         self.assertIn("value <= 100", air_quality)
         self.assertEqual(
-            home_view.count("type: custom:family-announcements-card"), 1
+            home_view.count("type: custom:family-announcements-card"), 2
         )
         self.assertIn("entity: sensor.family_announcements", home_view)
-        self.assertGreater(
+        self.assertIn('media_query: "(max-width: 639px)"', home_view)
+        self.assertIn('media_query: "(min-width: 640px)"', home_view)
+        self.assertLess(
             home_view.index("type: custom:family-announcements-card"),
+            home_view.index("heading: Cameras"),
+        )
+        self.assertGreater(
+            home_view.rindex("type: custom:family-announcements-card"),
             home_view.rindex("type: custom:family-agenda-card"),
         )
         self.assertLess(
-            home_view.index("type: custom:family-announcements-card"),
+            home_view.rindex("type: custom:family-announcements-card"),
             home_view.index("type: custom:todo-swipe-card"),
         )
         self.assertNotIn("mode: banner", home_view)
@@ -122,8 +128,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("`${status} on ${player}", home)
         self.assertIn("Jellyfin · ${viewer}", home)
         self.assertIn("` on ${player}`", home)
-        self.assertIn("name: Open Music Assistant", home)
-        self.assertIn("name: Open Jellyfin", home)
+        self.assertIn("name: Music Assistant", home)
+        self.assertIn("name: Jellyfin", home)
         self.assertLess(
             home_view.index("sensor.music_assistant_session_*"),
             home_view.index("template: family_media_launchers"),
@@ -173,22 +179,19 @@ class DashboardStructureTests(unittest.TestCase):
         profiles = [
             (
                 "profile-abhimanyu-saharan-users.json",
-                3,
                 ["Office", "Bedroom", "Living Room"],
             ),
             (
                 "profile-krishna-users.json",
-                4,
                 ["Master Bedroom", "Kitchen", "Living Room", "Dining Room"],
             ),
             (
                 "profile-manisha-users.json",
-                4,
                 ["Bedroom", "Kitchen", "Living Room", "Guest Room"],
             ),
         ]
 
-        for index, (profile, columns, expected_rooms) in enumerate(profiles):
+        for index, (profile, expected_rooms) in enumerate(profiles):
             start = home_view.index(profile)
             end = (
                 home_view.index(profiles[index + 1][0])
@@ -198,7 +201,8 @@ class DashboardStructureTests(unittest.TestCase):
             block = home_view[start:end]
             names = re.findall(r"^\s+name: (.+)$", block, re.MULTILINE)
 
-            self.assertIn(f"columns: {columns}", block)
+            self.assertIn("type: custom:family-responsive-grid-card", block)
+            self.assertIn("min_width: 150", block)
             self.assertEqual(
                 [name for name in names if name != "All rooms"],
                 expected_rooms,
@@ -251,7 +255,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("platform: family_seerr_requests", configuration)
         self.assertIn("api_key: !env_var SEERR_API_KEY", configuration)
         self.assertIn("jellyseerr.media.svc.cluster.local:10241", configuration)
-        self.assertIn("/local/family-seerr-requests-card.js?v=1.0.0", configuration)
+        self.assertIn("/local/family-seerr-requests-card.js?v=1.1.0", configuration)
         self.assertEqual(
             home_view.count("type: custom:family-seerr-requests-card"), 1
         )
@@ -286,7 +290,7 @@ class DashboardStructureTests(unittest.TestCase):
         manifest = (ROOT / "bootstrap/manifest.json").read_text()
         card = (ROOT / "www/family-agenda-card.js").read_text()
 
-        self.assertIn("/local/family-agenda-card.js?v=1.0.0", configuration)
+        self.assertIn("/local/family-agenda-card.js?v=1.1.0", configuration)
         self.assertNotIn("atomic-calendar-revive", configuration)
         self.assertNotIn("Atomic Calendar Revive", manifest)
         self.assertIn('service: "get_events"', card)
@@ -411,11 +415,11 @@ class DashboardStructureTests(unittest.TestCase):
         card = (ROOT / "www/family-fan-card.js").read_text()
         room_card = (ROOT / "www/family-room-card.js").read_text()
 
-        self.assertIn("/local/family-fan-card.js?v=3.2.0", configuration)
-        self.assertIn("/local/family-room-card.js?v=1.0.0", configuration)
+        self.assertIn("/local/family-fan-card.js?v=3.3.0", configuration)
+        self.assertIn("/local/family-room-card.js?v=1.1.0", configuration)
         self.assertLess(
-            configuration.index("/local/family-fan-card.js?v=3.2.0"),
-            configuration.index("/local/family-room-card.js?v=1.0.0"),
+            configuration.index("/local/family-fan-card.js?v=3.3.0"),
+            configuration.index("/local/family-room-card.js?v=1.1.0"),
         )
         self.assertEqual(rooms.count("type: custom:family-room-card"), 7)
         self.assertEqual(rooms.count("type: custom:family-fan-card"), 7)
@@ -497,6 +501,53 @@ class DashboardStructureTests(unittest.TestCase):
             'grid-template-columns:${multiple ? "repeat(2,minmax(0,1fr))"',
             card,
         )
+
+    def test_home_and_rooms_have_phone_specific_layouts(self):
+        configuration = (ROOT / "configuration.yaml").read_text()
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        navigation = (
+            ROOT / "dashboards/includes/family-navigation.yaml"
+        ).read_text()
+        room = (ROOT / "www/family-room-card.js").read_text()
+        fan = (ROOT / "www/family-fan-card.js").read_text()
+        announcements = (
+            ROOT / "www/family-announcements-card.js"
+        ).read_text()
+        agenda = (ROOT / "www/family-agenda-card.js").read_text()
+        seerr = (ROOT / "www/family-seerr-requests-card.js").read_text()
+        responsive_grid = (
+            ROOT / "www/family-responsive-grid-card.js"
+        ).read_text()
+
+        for resource in (
+            "/local/family-announcements-card.js?v=2.3.0",
+            "/local/family-responsive-grid-card.js?v=1.1.0",
+            "/local/family-fan-card.js?v=3.3.0",
+            "/local/family-agenda-card.js?v=1.1.0",
+            "/local/family-seerr-requests-card.js?v=1.1.0",
+            "/local/family-room-card.js?v=1.1.0",
+        ):
+            self.assertIn(resource, configuration)
+
+        self.assertIn("window.matchMedia('(max-width: 639px)')", home)
+        self.assertIn('\"weather presence\" \"today activity\"', home)
+        self.assertIn("repeat(2, minmax(0, 1fr))", home)
+        self.assertIn("min_width: 280", home)
+        self.assertEqual(home.count("min_width: 150"), 3)
+        self.assertIn("--todo-swipe-card-item-height: 48px", home)
+        self.assertIn("@media (max-width: 899px)", navigation)
+        self.assertIn("env(safe-area-inset-bottom)", navigation)
+
+        for source in (room, fan, announcements, agenda, seerr, responsive_grid):
+            self.assertIn("@media (max-width:", source)
+
+        self.assertIn(".fan-list { grid-template-columns:1fr", fan)
+        self.assertIn(".feature-copy small,.chevron { display:none", fan)
+        self.assertIn("width:100vw", fan)
+        self.assertIn("min-height: 44px", announcements)
+        self.assertIn("grid-template-columns: repeat(2, 1fr)", announcements)
+        self.assertIn(".open { width: 44px; height: 44px", seerr)
+        self.assertIn(".action { width: 48px; height: 44px", seerr)
 
 
 if __name__ == "__main__":

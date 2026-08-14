@@ -50,6 +50,9 @@ class FamilyResponsiveGridCard extends HTMLElement {
         grid-template-columns: repeat(auto-fit, minmax(min(100%, ${minimum}px), 1fr));
         gap: var(--grid-card-gap, 16px);
       }
+      @media (max-width: 639px) {
+        .grid { gap: var(--grid-card-mobile-gap, 10px); }
+      }
     `;
     const grid = document.createElement("div");
     grid.className = "grid";

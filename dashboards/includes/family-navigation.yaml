@@ -4,7 +4,7 @@ grid_options:
   rows: 1
 desktop:
   position: left
-  min_width: 768
+  min_width: 900
   show_labels: true
 routes:
   - icon: mdi:home-outline
@@ -56,8 +56,22 @@ routes:
 styles: |
   .navbar {
     --navbar-primary-color: var(--purple);
+    box-sizing: border-box;
     background: var(--contrast2);
     border: 1px solid var(--contrast4);
     border-radius: 30px;
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
+  }
+  @media (max-width: 899px) {
+    .navbar.mobile {
+      width: auto !important;
+      right: 8px !important;
+      bottom: max(8px, env(safe-area-inset-bottom)) !important;
+      left: 8px !important;
+      border-radius: 22px;
+    }
+    .navbar.mobile .route {
+      min-width: 48px;
+      min-height: 52px;
+    }
   }
