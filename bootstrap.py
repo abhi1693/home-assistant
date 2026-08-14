@@ -674,6 +674,9 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     streams = json.loads((source / "access/protect-streams.json").read_text())
     if access.get("version") != 2:
         raise RuntimeError("Unsupported family dashboard access schema")
+    if streams.get("version") not in {1, 2}:
+        raise RuntimeError("Unsupported Protect stream policy schema")
+    enhanced_camera_policy = streams.get("version") == 2
 
     auth_path = config / ".storage/auth"
     person_path = config / ".storage/person"
@@ -765,11 +768,45 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     camera_entities = set(cameras.values())
     if len(camera_entities) != len(cameras):
         raise RuntimeError("Family dashboard camera entities must be unique")
+    source_owned_camera_entities = set()
     for camera_key, entity_id in cameras.items():
         stream = streams.get("cameras", {}).get(camera_key)
         if stream is None or stream.get("high_entity_id") != entity_id:
             raise RuntimeError(
                 f"Camera {camera_key} does not match its Protect stream mapping"
+            )
+        required_stream_fields = {
+            "name",
+            "high_entity_id",
+            "medium_entity_id",
+            "activity_entity_id",
+            "motion_entity_id",
+            "person_entity_id",
+            "vehicle_entity_id",
+            "animal_entity_id",
+            "recording_mode_entity_id",
+            "is_dark_entity_id",
+            "microphone_level_entity_id",
+            "qualities",
+            "notify_profiles",
+            "alerts",
+        }
+        if enhanced_camera_policy and required_stream_fields - set(stream):
+            raise RuntimeError(f"Camera {camera_key} stream policy is incomplete")
+        if enhanced_camera_policy:
+            activity_entity_id = stream["activity_entity_id"]
+            if (
+                not isinstance(activity_entity_id, str)
+                or not activity_entity_id.startswith("sensor.family_camera_")
+                or activity_entity_id in source_owned_camera_entities
+            ):
+                raise RuntimeError(
+                    f"Camera {camera_key} has an invalid activity entity"
+                )
+            source_owned_camera_entities.add(activity_entity_id)
+        if stream.get("qualities") != ["high", "medium"]:
+            raise RuntimeError(
+                f"Camera {camera_key} must declare high and medium streams"
             )
         entity = entities.get(entity_id)
         if (
@@ -800,12 +837,18 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             )
         for entity_id in camera_entities:
             entity = entities.get(entity_id)
+            source_owned = entity_id in source_owned_camera_entities
             if (
                 not isinstance(entity_id, str)
-                or entity_id.partition(".")[0] not in {"binary_sensor", "event"}
-                or entity is None
-                or entity.get("platform") != "unifiprotect"
-                or entity.get("disabled_by") is not None
+                or entity_id.partition(".")[0]
+                not in {"binary_sensor", "event", "media_player", "sensor"}
+                or (entity is None and not source_owned)
+                or (
+                    entity is not None
+                    and entity.get("platform")
+                    != ("family_camera_events" if source_owned else "unifiprotect")
+                )
+                or (entity is not None and entity.get("disabled_by") is not None)
                 or entity_id in protected_camera_entities
             ):
                 raise RuntimeError(
@@ -813,6 +856,43 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                     f"{entity_id}"
                 )
             protected_camera_entities.add(entity_id)
+
+    profile_policies = access.get("profiles", {})
+    valid_severities = {"informational", "advisory", "warning", "critical"}
+    enhanced_streams = (
+        streams["cameras"].items() if enhanced_camera_policy else ()
+    )
+    for camera_key, stream in enhanced_streams:
+        if stream["activity_entity_id"] not in camera_security.get(camera_key, []):
+            raise RuntimeError(
+                f"Camera {camera_key} activity is not protected by account policy"
+            )
+        for profile_key in stream["notify_profiles"]:
+            profile = profile_policies.get(profile_key)
+            if (
+                profile is None
+                or not profile.get("is_family_member")
+                or not profile.get("notify_entity_id")
+                or camera_key
+                not in _camera_keys_for_profile(
+                    profile_key,
+                    profile,
+                    cameras,
+                    bool(profile.get("is_owner")),
+                )
+            ):
+                raise RuntimeError(
+                    f"Camera {camera_key} alert recipient {profile_key} lacks access"
+                )
+        alerts = stream["alerts"]
+        if set(alerts) != {"always", "when_empty"}:
+            raise RuntimeError(f"Camera {camera_key} alert policy is invalid")
+        for routing in alerts.values():
+            if (
+                not isinstance(routing, dict)
+                or not set(routing.values()).issubset(valid_severities)
+            ):
+                raise RuntimeError(f"Camera {camera_key} alert severity is invalid")
 
     private_domains = owner_health_domains | {
         entity_id.partition(".")[0]
@@ -1162,7 +1242,7 @@ def reconcile_dashboard_defaults(source: Path, config: Path) -> None:
 def validate_protect_streams(source: Path, config: Path) -> None:
     """Validate Git-owned Protect stream tiers against enabled high entities."""
     desired = json.loads((source / "access/protect-streams.json").read_text())
-    if desired.get("version") != 1 or not desired.get("cameras"):
+    if desired.get("version") not in {1, 2} or not desired.get("cameras"):
         raise RuntimeError("Unsupported or empty Protect stream configuration")
 
     registry_path = config / ".storage/core.entity_registry"

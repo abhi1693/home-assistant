@@ -1,0 +1,9 @@
+{
+  "domain": "family_camera_events",
+  "name": "Family Camera Events",
+  "after_dependencies": ["google_translate", "unifiprotect"],
+  "codeowners": [],
+  "documentation": "https://github.com/abhi1693/home-assistant",
+  "integration_type": "system",
+  "version": "1.0.0"
+}

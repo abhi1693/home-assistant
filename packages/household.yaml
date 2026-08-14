@@ -62,6 +62,26 @@ timer:
     duration: "00:15:00"
     restore: true
 
+  master_bedroom_camera_offline:
+    name: Master Bedroom camera offline
+    duration: "00:15:00"
+    restore: true
+
+  outside_camera_not_recording:
+    name: Outside camera not recording
+    duration: "00:15:00"
+    restore: true
+
+  hallway_camera_not_recording:
+    name: Kitchen Balcony camera not recording
+    duration: "00:15:00"
+    restore: true
+
+  master_bedroom_camera_not_recording:
+    name: Master Bedroom camera not recording
+    duration: "00:15:00"
+    restore: true
+
 schedule:
   quiet_hours:
     name: Quiet hours
@@ -282,7 +302,7 @@ script:
         required: true
         selector:
           select:
-            options: [owner, abhimanyu, krishna, manisha, family]
+            options: [owner, abhimanyu, krishna, manisha, family, master-camera]
       title:
         required: true
         selector:
@@ -316,13 +336,13 @@ script:
               clickAction: "{{ url | default('/home-tablet/home', true) }}"
       - if:
           - condition: template
-            value_template: "{{ recipient in ['owner', 'abhimanyu', 'family'] }}"
+            value_template: "{{ recipient in ['owner', 'abhimanyu', 'family', 'master-camera'] }}"
         then:
           - action: notify.mobile_app_pixel_8
             data: "{{ payload }}"
       - if:
           - condition: template
-            value_template: "{{ recipient in ['krishna', 'family'] }}"
+            value_template: "{{ recipient in ['krishna', 'family', 'master-camera'] }}"
         then:
           - action: notify.mobile_app_pixel_10_pro
             data: "{{ payload }}"
@@ -496,10 +516,10 @@ automation:
             target: { entity_id: timer.high_confidence_empty_home }
 
   - id: household_camera_coverage_timers
-    alias: Household · Track perimeter camera coverage
+    alias: Household · Track camera coverage
     description: Use restoring timers so camera outage dwell survives a Home Assistant restart.
     mode: parallel
-    max: 4
+    max: 6
     triggers:
       - trigger: state
         entity_id: camera.g5_turret_ultra_high_resolution_channel
@@ -507,6 +527,9 @@ automation:
       - trigger: state
         entity_id: camera.hallway_high_resolution_channel
         id: hallway
+      - trigger: state
+        entity_id: camera.living_room_high_resolution_channel
+        id: master-bedroom
     conditions:
       - condition: state
         entity_id: timer.household_startup_settle
@@ -514,7 +537,7 @@ automation:
     actions:
       - variables:
           timer_entity: >-
-            {{ 'timer.outside_camera_offline' if trigger.id == 'outside' else 'timer.hallway_camera_offline' }}
+            {{ {'outside': 'timer.outside_camera_offline', 'hallway': 'timer.hallway_camera_offline', 'master-bedroom': 'timer.master_bedroom_camera_offline'}[trigger.id] }}
       - choose:
           - conditions:
               - condition: template
@@ -528,8 +551,8 @@ automation:
             target: { entity_id: "{{ timer_entity }}" }
 
   - id: household_camera_coverage_incident
-    alias: Household · Report perimeter camera outage
-    description: Report one owner incident after the camera-specific dwell expires.
+    alias: Household · Report camera outage
+    description: Report one policy-routed incident after the camera-specific dwell expires.
     mode: queued
     triggers:
       - trigger: event
@@ -540,12 +563,23 @@ automation:
         event_type: timer.finished
         event_data: { entity_id: timer.hallway_camera_offline }
         id: hallway
+      - trigger: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.master_bedroom_camera_offline }
+        id: master-bedroom
     actions:
       - variables:
-          camera_name: "{{ 'Outside' if trigger.id == 'outside' else 'Kitchen Balcony' }}"
+          camera_name: >-
+            {{ {'outside': 'Outside', 'hallway': 'Kitchen Balcony', 'master-bedroom': 'Master Bedroom'}[trigger.id] }}
+          camera_recipient: "{{ 'master-camera' if trigger.id == 'master-bedroom' else 'owner' }}"
+          camera_entity: >-
+            {{ {'outside': 'camera.g5_turret_ultra_high_resolution_channel', 'hallway': 'camera.hallway_high_resolution_channel', 'master-bedroom': 'camera.living_room_high_resolution_channel'}[trigger.id] }}
+      - condition: template
+        value_template: >-
+          {{ states(camera_entity) in ['unknown', 'unavailable'] }}
       - action: script.family_household_incident
         data:
-          recipient: owner
+          recipient: "{{ camera_recipient }}"
           severity: warning
           fingerprint: "camera-offline-{{ trigger.id }}"
           title: Camera coverage gap
@@ -569,6 +603,9 @@ automation:
           - action: timer.start
             target: { entity_id: timer.outside_camera_offline }
             data: { duration: "00:15:00" }
+        else:
+          - action: timer.cancel
+            target: { entity_id: timer.outside_camera_offline }
       - if:
           - condition: template
             value_template: >-
@@ -577,6 +614,139 @@ automation:
           - action: timer.start
             target: { entity_id: timer.hallway_camera_offline }
             data: { duration: "00:15:00" }
+        else:
+          - action: timer.cancel
+            target: { entity_id: timer.hallway_camera_offline }
+      - if:
+          - condition: template
+            value_template: >-
+              {{ states('camera.living_room_high_resolution_channel') in ['unknown', 'unavailable'] }}
+        then:
+          - action: timer.start
+            target: { entity_id: timer.master_bedroom_camera_offline }
+            data: { duration: "00:15:00" }
+        else:
+          - action: timer.cancel
+            target: { entity_id: timer.master_bedroom_camera_offline }
+      - if:
+          - condition: state
+            entity_id: sensor.g5_turret_ultra_recording_mode
+            state: never
+          - condition: template
+            value_template: >-
+              {{ states('camera.g5_turret_ultra_high_resolution_channel') not in ['unknown', 'unavailable'] }}
+        then:
+          - action: timer.start
+            target: { entity_id: timer.outside_camera_not_recording }
+            data: { duration: "00:15:00" }
+        else:
+          - action: timer.cancel
+            target: { entity_id: timer.outside_camera_not_recording }
+      - if:
+          - condition: state
+            entity_id: sensor.hallway_recording_mode
+            state: never
+          - condition: template
+            value_template: >-
+              {{ states('camera.hallway_high_resolution_channel') not in ['unknown', 'unavailable'] }}
+        then:
+          - action: timer.start
+            target: { entity_id: timer.hallway_camera_not_recording }
+            data: { duration: "00:15:00" }
+        else:
+          - action: timer.cancel
+            target: { entity_id: timer.hallway_camera_not_recording }
+      - if:
+          - condition: state
+            entity_id: sensor.living_room_recording_mode
+            state: never
+          - condition: template
+            value_template: >-
+              {{ states('camera.living_room_high_resolution_channel') not in ['unknown', 'unavailable'] }}
+        then:
+          - action: timer.start
+            target: { entity_id: timer.master_bedroom_camera_not_recording }
+            data: { duration: "00:15:00" }
+        else:
+          - action: timer.cancel
+            target: { entity_id: timer.master_bedroom_camera_not_recording }
+
+  - id: household_camera_recording_timers
+    alias: Household · Track camera recording
+    description: Start a durable timer only when an online camera explicitly stops recording.
+    mode: parallel
+    max: 6
+    triggers:
+      - trigger: state
+        entity_id: sensor.g5_turret_ultra_recording_mode
+        id: outside
+      - trigger: state
+        entity_id: sensor.hallway_recording_mode
+        id: hallway
+      - trigger: state
+        entity_id: sensor.living_room_recording_mode
+        id: master-bedroom
+    conditions:
+      - condition: state
+        entity_id: timer.household_startup_settle
+        state: idle
+    actions:
+      - variables:
+          timer_entity: >-
+            {{ {'outside': 'timer.outside_camera_not_recording', 'hallway': 'timer.hallway_camera_not_recording', 'master-bedroom': 'timer.master_bedroom_camera_not_recording'}[trigger.id] }}
+          camera_entity: >-
+            {{ {'outside': 'camera.g5_turret_ultra_high_resolution_channel', 'hallway': 'camera.hallway_high_resolution_channel', 'master-bedroom': 'camera.living_room_high_resolution_channel'}[trigger.id] }}
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: >-
+                  {{ trigger.to_state.state == 'never' and states(camera_entity) not in ['unknown', 'unavailable'] }}
+            sequence:
+              - action: timer.start
+                target: { entity_id: "{{ timer_entity }}" }
+                data: { duration: "00:15:00" }
+        default:
+          - action: timer.cancel
+            target: { entity_id: "{{ timer_entity }}" }
+
+  - id: household_camera_recording_incident
+    alias: Household · Report camera recording stopped
+    description: Notify after an online Protect camera has remained out of recording mode.
+    mode: queued
+    max: 3
+    triggers:
+      - trigger: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.outside_camera_not_recording }
+        id: outside
+      - trigger: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.hallway_camera_not_recording }
+        id: hallway
+      - trigger: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.master_bedroom_camera_not_recording }
+        id: master-bedroom
+    actions:
+      - variables:
+          camera_name: >-
+            {{ {'outside': 'Outside', 'hallway': 'Kitchen Balcony', 'master-bedroom': 'Master Bedroom'}[trigger.id] }}
+          camera_recipient: "{{ 'master-camera' if trigger.id == 'master-bedroom' else 'owner' }}"
+          camera_entity: >-
+            {{ {'outside': 'camera.g5_turret_ultra_high_resolution_channel', 'hallway': 'camera.hallway_high_resolution_channel', 'master-bedroom': 'camera.living_room_high_resolution_channel'}[trigger.id] }}
+          recording_entity: >-
+            {{ {'outside': 'sensor.g5_turret_ultra_recording_mode', 'hallway': 'sensor.hallway_recording_mode', 'master-bedroom': 'sensor.living_room_recording_mode'}[trigger.id] }}
+      - condition: template
+        value_template: >-
+          {{ states(camera_entity) not in ['unknown', 'unavailable'] and states(recording_entity) == 'never' }}
+      - action: script.family_household_incident
+        data:
+          recipient: "{{ camera_recipient }}"
+          severity: warning
+          fingerprint: "camera-not-recording-{{ trigger.id }}"
+          title: Camera is not recording
+          message: "{{ camera_name }} camera has stopped recording for 15 minutes."
+          url: /home-tablet/security
 
   - id: household_ups_on_battery
     alias: Household · Report backup power
@@ -601,40 +771,6 @@ automation:
           message: >-
             The rack UPS is at {{ states('sensor.ups_battery_charge') }}% with {{ states('sensor.ups_load') }}% load. Rack protection is automatic.
           url: /home-tablet/home
-
-  - id: household_perimeter_person_event
-    alias: Household · Report perimeter person event
-    description: Never treat indoor motion as intrusion; only perimeter person detections while confidently away qualify.
-    mode: parallel
-    max: 4
-    triggers:
-      - trigger: state
-        entity_id: binary_sensor.g5_turret_ultra_person_detected
-        to: "on"
-        id: outside
-      - trigger: state
-        entity_id: binary_sensor.hallway_person_detected
-        to: "on"
-        id: hallway
-    conditions:
-      - condition: state
-        entity_id: input_boolean.empty_home_confirmed
-        state: "on"
-      - condition: state
-        entity_id: binary_sensor.house_occupied
-        state: "off"
-      - condition: state
-        entity_id: sensor.presence_confidence
-        state: high
-    actions:
-      - action: script.family_household_incident
-        data:
-          recipient: family
-          severity: warning
-          fingerprint: "perimeter-person-{{ trigger.id }}"
-          title: Person seen outside
-          message: "{{ 'Outside' if trigger.id == 'outside' else 'Kitchen Balcony' }} camera detected a person while the home is empty."
-          url: /home-tablet/security
 
   - id: household_fan_guard
     alias: Household · Offer to stop fans after departure

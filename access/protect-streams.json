@@ -1,29 +1,103 @@
 {
-  "version": 1,
+  "version": 2,
   "cameras": {
     "master-bedroom": {
+      "name": "Master Bedroom",
       "high_entity_id": "camera.living_room_high_resolution_channel",
       "medium_entity_id": "camera.living_room_medium_resolution_channel",
+      "activity_entity_id": "sensor.family_camera_master_bedroom_activity",
+      "motion_entity_id": "binary_sensor.living_room_motion",
+      "person_entity_id": "binary_sensor.living_room_person_detected",
+      "vehicle_entity_id": "binary_sensor.living_room_vehicle_detected",
+      "animal_entity_id": "binary_sensor.living_room_animal_detected",
+      "recording_mode_entity_id": "sensor.living_room_recording_mode",
+      "is_dark_entity_id": "binary_sensor.living_room_is_dark",
+      "microphone_level_entity_id": "sensor.living_room_microphone_level",
+      "speaker_entity_id": "media_player.living_room_speaker",
       "qualities": [
         "high",
         "medium"
-      ]
+      ],
+      "notify_profiles": [
+        "abhimanyu-saharan",
+        "krishna"
+      ],
+      "alerts": {
+        "always": {
+          "baby_cry": "warning",
+          "co": "critical",
+          "smoke": "critical"
+        },
+        "when_empty": {
+          "person": "warning"
+        }
+      }
     },
     "hallway": {
+      "name": "Kitchen Balcony",
       "high_entity_id": "camera.hallway_high_resolution_channel",
       "medium_entity_id": "camera.hallway_medium_resolution_channel",
+      "activity_entity_id": "sensor.family_camera_kitchen_balcony_activity",
+      "motion_entity_id": "binary_sensor.hallway_motion",
+      "person_entity_id": "binary_sensor.hallway_person_detected",
+      "vehicle_entity_id": "binary_sensor.hallway_vehicle_detected",
+      "animal_entity_id": "binary_sensor.hallway_animal_detected",
+      "recording_mode_entity_id": "sensor.hallway_recording_mode",
+      "is_dark_entity_id": "binary_sensor.hallway_is_dark",
+      "microphone_level_entity_id": "sensor.hallway_microphone_level",
       "qualities": [
         "high",
         "medium"
-      ]
+      ],
+      "notify_profiles": [
+        "abhimanyu-saharan",
+        "krishna",
+        "manisha"
+      ],
+      "alerts": {
+        "always": {
+          "co": "critical",
+          "smoke": "critical"
+        },
+        "when_empty": {
+          "animal": "informational",
+          "person": "warning",
+          "vehicle": "advisory"
+        }
+      }
     },
     "outside": {
+      "name": "Outside",
       "high_entity_id": "camera.g5_turret_ultra_high_resolution_channel",
       "medium_entity_id": "camera.g5_turret_ultra_medium_resolution_channel",
+      "activity_entity_id": "sensor.family_camera_outside_activity",
+      "motion_entity_id": "binary_sensor.g5_turret_ultra_motion",
+      "person_entity_id": "binary_sensor.g5_turret_ultra_person_detected",
+      "vehicle_entity_id": "binary_sensor.g5_turret_ultra_vehicle_detected",
+      "animal_entity_id": "binary_sensor.g5_turret_ultra_animal_detected",
+      "recording_mode_entity_id": "sensor.g5_turret_ultra_recording_mode",
+      "is_dark_entity_id": "binary_sensor.g5_turret_ultra_is_dark",
+      "microphone_level_entity_id": "sensor.g5_turret_ultra_microphone_level",
       "qualities": [
         "high",
         "medium"
-      ]
+      ],
+      "notify_profiles": [
+        "abhimanyu-saharan",
+        "krishna",
+        "manisha"
+      ],
+      "alerts": {
+        "always": {
+          "co": "critical",
+          "smoke": "critical"
+        },
+        "when_empty": {
+          "animal": "informational",
+          "person": "warning",
+          "vehicle": "advisory"
+        }
+      }
     }
   }
 }

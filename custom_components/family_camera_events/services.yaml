@@ -1,0 +1,15 @@
+announce:
+  name: Announce through camera
+  description: Speak a short message through an authorized UniFi Protect camera.
+  fields:
+    camera_key:
+      name: Camera
+      required: true
+      selector:
+        text:
+    message:
+      name: Message
+      required: true
+      selector:
+        text:
+          multiline: true

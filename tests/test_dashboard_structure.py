@@ -621,28 +621,41 @@ class DashboardStructureTests(unittest.TestCase):
 
     def test_camera_wall_applies_each_camera_user_gate(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        configuration = (ROOT / "configuration.yaml").read_text()
         camera_view = home.split("  - title: Security", 1)[1].split(
             "  - title: People", 1
         )[0]
 
-        self.assertEqual(camera_view.count("type: custom:auto-entities"), 3)
-        for camera_key in ("outside", "master-bedroom", "hallway"):
-            self.assertEqual(
-                camera_view.count(f"camera-{camera_key}-users.json"), 2
-            )
+        self.assertEqual(camera_view.count("type: custom:auto-entities"), 0)
+        self.assertEqual(
+            camera_view.count("type: custom:family-camera-wall-card"), 1
+        )
+        self.assertEqual(
+            camera_view.count("type: custom:family-camera-events-card"), 1
+        )
+        self.assertEqual(
+            camera_view.count("type: custom:family-camera-speaker-card"), 1
+        )
+        self.assertEqual(camera_view.count("camera-outside-users.json"), 2)
+        self.assertEqual(camera_view.count("camera-hallway-users.json"), 2)
+        self.assertEqual(camera_view.count("camera-master-bedroom-users.json"), 4)
         self.assertEqual(home.count("  - title: Security\n    path: security"), 1)
         self.assertNotIn("  - title: Cameras\n    path: cameras", home)
         self.assertNotIn("/home-tablet/cameras", home)
         self.assertIn("heading: Live cameras", camera_view)
-        self.assertIn("heading: Recent activity", camera_view)
-        self.assertEqual(camera_view.count("template: family_camera_activity"), 3)
-        self.assertIn("event.g5_turret_ultra_motion_detection", camera_view)
-        self.assertIn(
-            "event.living_room_living_room_camera_motion_detection", camera_view
-        )
-        self.assertIn(
-            "event.mummy_bedroom_hallway_camera_motion_detection", camera_view
-        )
+        self.assertIn("heading: Camera health and recent activity", camera_view)
+        self.assertIn("heading: Master Bedroom speaker", camera_view)
+        for camera_key in ("outside", "master_bedroom", "kitchen_balcony"):
+            self.assertEqual(
+                camera_view.count(f"sensor.family_camera_{camera_key}_activity"), 2
+            )
+        for resource in (
+            "/local/family-camera-wall-card.js?v=1.0.0",
+            "/local/family-camera-events-card.js?v=1.0.0",
+            "/local/family-camera-speaker-card.js?v=1.0.0",
+        ):
+            self.assertIn(resource, configuration)
+        self.assertIn("platform: family_camera_events", configuration)
 
     def test_household_surfaces_are_bounded_and_access_aware(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
@@ -943,10 +956,9 @@ class DashboardStructureTests(unittest.TestCase):
 
     def test_camera_cards_do_not_request_missing_medium_streams(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        camera_wall = (ROOT / "www/family-camera-wall-card.js").read_text()
 
         self.assertNotIn("state: idle", home)
-        self.assertEqual(home.count("not:\n                        state: unavailable"), 4)
-        self.assertEqual(home.count("not:\n                            state: unavailable"), 2)
         self.assertNotIn(
             "type: picture-entity\n"
             "                entity: camera.g5_turret_ultra_high_resolution_channel\n"
@@ -959,7 +971,43 @@ class DashboardStructureTests(unittest.TestCase):
             "                camera_image: camera.hallway_medium_resolution_channel",
             home,
         )
-        self.assertEqual(home.count("template: family_camera_offline"), 6)
+        self.assertIn('["unknown", "unavailable"].includes(medium.state)', camera_wall)
+        self.assertIn(": camera.high_entity", camera_wall)
+        self.assertEqual(home.count("template: family_camera_offline"), 3)
+
+    def test_camera_backend_is_bounded_private_and_presence_aware(self):
+        access = json.loads((ROOT / "access/family-dashboard.json").read_text())
+        streams = json.loads((ROOT / "access/protect-streams.json").read_text())
+        sensor = (ROOT / "custom_components/family_camera_events/sensor.py").read_text()
+        model = (ROOT / "custom_components/family_camera_events/model.py").read_text()
+        package = (ROOT / "packages/household.yaml").read_text()
+
+        self.assertEqual(streams["version"], 2)
+        self.assertIn("api.subscribe_events", sensor)
+        self.assertIn("use_content_user=True", sensor)
+        self.assertIn("self.manager.can_access(user.id, key)", sensor)
+        self.assertIn('"input_boolean.empty_home_confirmed", "on"', sensor)
+        self.assertIn('"sensor.presence_confidence", "high"', sensor)
+        self.assertIn("MAX_EVENTS_PER_CAMERA = 20", model)
+        self.assertIn("EVENT_RETENTION = timedelta(days=7)", model)
+        self.assertNotIn("household_perimeter_person_event", package)
+        self.assertIn("household_camera_recording_timers", package)
+        self.assertIn("household_camera_recording_incident", package)
+
+        master = streams["cameras"]["master-bedroom"]
+        self.assertEqual(
+            master["notify_profiles"], ["abhimanyu-saharan", "krishna"]
+        )
+        self.assertEqual(
+            master["speaker_entity_id"], "media_player.living_room_speaker"
+        )
+        self.assertIn(
+            "media_player.living_room_speaker",
+            access["camera_security_entities"]["master-bedroom"],
+        )
+        self.assertNotIn(
+            "master-bedroom", access["profiles"]["manisha"]["cameras"]
+        )
 
     def test_dashboard_avoids_ambiguous_flow_style_css_values(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()

@@ -2332,112 +2332,42 @@ views:
             heading_style: title
             icon: mdi:cctv
             grid_options: { columns: 48, rows: 1 }
-          - type: grid
-            square: false
-            columns: 3
-            cards:
-              - type: custom:auto-entities
-                card:
-                  type: grid
-                  square: false
-                  columns: 1
-                card_param: cards
-                filter:
-                  include:
-                    - entity_id: camera.g5_turret_ultra_medium_resolution_channel
-                      not:
-                        state: unavailable
-                      options:
-                        type: picture-entity
-                        entity: camera.g5_turret_ultra_high_resolution_channel
-                        camera_image: camera.g5_turret_ultra_medium_resolution_channel
-                        name: Outside
-                        camera_view: live
-                        fit_mode: cover
-                        aspect_ratio: "16:9"
-                        show_state: false
-                        tap_action: { action: more-info }
-                        card_mod:
-                          style: |
-                            ha-card { overflow: hidden; border-radius: 28px; }
-                    - entity_id: camera.g5_turret_ultra_high_resolution_channel
-                      state: unavailable
-                      options:
-                        type: custom:button-card
-                        template: family_camera_offline
-                        name: Outside
-                show_empty: false
-                visibility:
-                  - condition: user
-                    users: !include ../access/generated/camera-outside-users.json
-              - type: custom:auto-entities
-                card:
-                  type: grid
-                  square: false
-                  columns: 1
-                card_param: cards
-                filter:
-                  include:
-                    - entity_id: camera.living_room_medium_resolution_channel
-                      not:
-                        state: unavailable
-                      options:
-                        type: picture-entity
-                        entity: camera.living_room_high_resolution_channel
-                        camera_image: camera.living_room_medium_resolution_channel
-                        name: Master Bedroom
-                        camera_view: live
-                        fit_mode: cover
-                        aspect_ratio: "16:9"
-                        show_state: false
-                        tap_action: { action: more-info }
-                        card_mod:
-                          style: |
-                            ha-card { overflow: hidden; border-radius: 28px; }
-                    - entity_id: camera.living_room_high_resolution_channel
-                      state: unavailable
-                      options:
-                        type: custom:button-card
-                        template: family_camera_offline
-                        name: Master Bedroom
-                show_empty: false
-                visibility:
-                  - condition: user
-                    users: !include ../access/generated/camera-master-bedroom-users.json
-              - type: custom:auto-entities
-                card:
-                  type: grid
-                  square: false
-                  columns: 1
-                card_param: cards
-                filter:
-                  include:
-                    - entity_id: camera.hallway_medium_resolution_channel
-                      not:
-                        state: unavailable
-                      options:
-                        type: picture-entity
-                        entity: camera.hallway_high_resolution_channel
-                        camera_image: camera.hallway_medium_resolution_channel
-                        name: Hallway
-                        camera_view: live
-                        fit_mode: cover
-                        aspect_ratio: "16:9"
-                        show_state: false
-                        tap_action: { action: more-info }
-                        card_mod:
-                          style: |
-                            ha-card { overflow: hidden; border-radius: 28px; }
-                    - entity_id: camera.hallway_high_resolution_channel
-                      state: unavailable
-                      options:
-                        type: custom:button-card
-                        template: family_camera_offline
-                        name: Hallway
-                show_empty: false
-                visibility:
-                  - condition: user
-                    users: !include ../access/generated/camera-hallway-users.json
+          - type: custom:family-camera-wall-card
+            cameras:
+              - key: outside
+                name: Outside
+                high_entity: camera.g5_turret_ultra_high_resolution_channel
+                medium_entity: camera.g5_turret_ultra_medium_resolution_channel
+                activity_entity: sensor.family_camera_outside_activity
+                detectors:
+                  - binary_sensor.g5_turret_ultra_person_detected
+                  - binary_sensor.g5_turret_ultra_vehicle_detected
+                  - binary_sensor.g5_turret_ultra_animal_detected
+                  - binary_sensor.g5_turret_ultra_motion
+                users: !include ../access/generated/camera-outside-users.json
+              - key: master-bedroom
+                name: Master Bedroom
+                high_entity: camera.living_room_high_resolution_channel
+                medium_entity: camera.living_room_medium_resolution_channel
+                activity_entity: sensor.family_camera_master_bedroom_activity
+                detectors:
+                  - binary_sensor.living_room_person_detected
+                  - binary_sensor.living_room_baby_cry_detected
+                  - binary_sensor.living_room_smoke_alarm_detected
+                  - binary_sensor.living_room_co_alarm_detected
+                  - binary_sensor.living_room_motion
+                users: !include ../access/generated/camera-master-bedroom-users.json
+              - key: hallway
+                name: Kitchen Balcony
+                high_entity: camera.hallway_high_resolution_channel
+                medium_entity: camera.hallway_medium_resolution_channel
+                activity_entity: sensor.family_camera_kitchen_balcony_activity
+                detectors:
+                  - binary_sensor.hallway_person_detected
+                  - binary_sensor.hallway_vehicle_detected
+                  - binary_sensor.hallway_animal_detected
+                  - binary_sensor.hallway_motion
+                users: !include ../access/generated/camera-hallway-users.json
             visibility:
               - condition: user
                 users: !include ../access/generated/camera-any-users.json
@@ -2445,49 +2375,57 @@ views:
               columns: 48
               rows: auto
           - type: heading
-            heading: Recent activity
+            heading: Camera health and recent activity
             heading_style: title
             icon: mdi:motion-sensor
             grid_options: { columns: 48, rows: 1 }
-          - type: custom:family-responsive-grid-card
-            min_width: 260
-            cards:
-              - type: custom:button-card
-                template: family_camera_activity
-                entity: event.g5_turret_ultra_motion_detection
+          - type: custom:family-camera-events-card
+            cameras:
+              - key: outside
                 name: Outside
-                variables:
-                  motion_entity: binary_sensor.g5_turret_ultra_motion
-                  person_entity: binary_sensor.g5_turret_ultra_person_detected
-                  vehicle_entity: binary_sensor.g5_turret_ultra_vehicle_detected
-                visibility:
-                  - condition: user
-                    users: !include ../access/generated/camera-outside-users.json
-              - type: custom:button-card
-                template: family_camera_activity
-                entity: event.living_room_living_room_camera_motion_detection
+                high_entity: camera.g5_turret_ultra_high_resolution_channel
+                activity_entity: sensor.family_camera_outside_activity
+                recording_entity: sensor.g5_turret_ultra_recording_mode
+                dark_entity: binary_sensor.g5_turret_ultra_is_dark
+                microphone_entity: sensor.g5_turret_ultra_microphone_level
+                users: !include ../access/generated/camera-outside-users.json
+              - key: master-bedroom
                 name: Master Bedroom
-                variables:
-                  motion_entity: binary_sensor.living_room_motion
-                  person_entity: binary_sensor.living_room_person_detected
-                  vehicle_entity: binary_sensor.living_room_vehicle_detected
-                visibility:
-                  - condition: user
-                    users: !include ../access/generated/camera-master-bedroom-users.json
-              - type: custom:button-card
-                template: family_camera_activity
-                entity: event.mummy_bedroom_hallway_camera_motion_detection
+                high_entity: camera.living_room_high_resolution_channel
+                activity_entity: sensor.family_camera_master_bedroom_activity
+                recording_entity: sensor.living_room_recording_mode
+                dark_entity: binary_sensor.living_room_is_dark
+                microphone_entity: sensor.living_room_microphone_level
+                users: !include ../access/generated/camera-master-bedroom-users.json
+              - key: hallway
                 name: Kitchen Balcony
-                variables:
-                  motion_entity: binary_sensor.hallway_motion
-                  person_entity: binary_sensor.hallway_person_detected
-                  vehicle_entity: binary_sensor.hallway_vehicle_detected
-                visibility:
-                  - condition: user
-                    users: !include ../access/generated/camera-hallway-users.json
+                high_entity: camera.hallway_high_resolution_channel
+                activity_entity: sensor.family_camera_kitchen_balcony_activity
+                recording_entity: sensor.hallway_recording_mode
+                dark_entity: binary_sensor.hallway_is_dark
+                microphone_entity: sensor.hallway_microphone_level
+                users: !include ../access/generated/camera-hallway-users.json
             visibility:
               - condition: user
                 users: !include ../access/generated/camera-any-users.json
+            grid_options:
+              columns: 48
+              rows: auto
+          - type: heading
+            heading: Master Bedroom speaker
+            heading_style: title
+            icon: mdi:account-voice
+            visibility:
+              - condition: user
+                users: !include ../access/generated/camera-master-bedroom-users.json
+            grid_options: { columns: 48, rows: 1 }
+          - type: custom:family-camera-speaker-card
+            camera_key: master-bedroom
+            speaker: media_player.living_room_speaker
+            name: Speak to Master Bedroom
+            visibility:
+              - condition: user
+                users: !include ../access/generated/camera-master-bedroom-users.json
             grid_options:
               columns: 48
               rows: auto

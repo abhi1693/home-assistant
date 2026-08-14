@@ -1235,6 +1235,12 @@ class BootstrapTests(unittest.TestCase):
         desired = json.loads(
             (self.source / "access/protect-streams.json").read_text()
         )
+        desired["version"] = 2
+        (self.source / "access/protect-streams.json").write_text(
+            json.dumps(desired)
+        )
+        bootstrap.validate_protect_streams(self.source, self.config)
+
         desired["cameras"]["inside"]["qualities"].append("ultra")
         (self.source / "access/protect-streams.json").write_text(
             json.dumps(desired)

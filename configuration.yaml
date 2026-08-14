@@ -42,6 +42,9 @@ family_room_registry:
 sensor:
   - platform: family_announcements
     access_file: /config/access/family-dashboard.json
+  - platform: family_camera_events
+    access_file: /config/access/family-dashboard.json
+    streams_file: /config/access/protect-streams.json
   - platform: family_jellyfin_sessions
   - platform: family_music_assistant_sessions
   - platform: family_seerr_requests
@@ -83,6 +86,12 @@ lovelace:
     - url: /local/family-media-card.js?v=1.0.0
       type: module
     - url: /local/family-rooms-card.js?v=1.0.0
+      type: module
+    - url: /local/family-camera-wall-card.js?v=1.0.0
+      type: module
+    - url: /local/family-camera-events-card.js?v=1.0.0
+      type: module
+    - url: /local/family-camera-speaker-card.js?v=1.0.0
       type: module
     - url: /local/community/todo-swipe-card/todo-swipe-card.js?v=3.6.0
       type: module

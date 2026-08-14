@@ -59,17 +59,28 @@ async function installComponents(page) {
       <div id="agenda"></div>
       <div id="announcements"></div>
       <div id="seerr"></div>
+      <div id="camera-wall"></div>
+      <div id="camera-events"></div>
+      <div id="camera-speaker"></div>
     </main>
   `);
   await page.evaluate(() => {
     class HaCard extends HTMLElement {}
     class HaIcon extends HTMLElement {}
+    class HuiPictureEntityCard extends HTMLElement {
+      setConfig(config) {
+        this._config = config;
+        this.innerHTML = `<ha-card style="display:grid;place-items:center;min-height:210px">${config.name}</ha-card>`;
+      }
+      set hass(value) { this._hass = value; }
+    }
     class TestCard extends HTMLElement {
       setConfig(config) { this._config = config; }
       set hass(value) { this._hass = value; }
     }
     customElements.define("ha-card", HaCard);
     customElements.define("ha-icon", HaIcon);
+    customElements.define("hui-picture-entity-card", HuiPictureEntityCard);
     customElements.define("test-card", TestCard);
     window.loadCardHelpers = async () => ({
       createCardElement(config) {
@@ -91,6 +102,9 @@ async function installComponents(page) {
     "family-agenda-card.js",
     "family-announcements-card.js",
     "family-seerr-requests-card.js",
+    "family-camera-wall-card.js",
+    "family-camera-events-card.js",
+    "family-camera-speaker-card.js",
   ]) {
     await page.addScriptTag({ path: path.join(ROOT, "www", source) });
   }
@@ -142,6 +156,24 @@ async function buildFixture(page) {
         { id: 2, title: "Family Movie", year: 2025, media_type: "movie", seasons: [], requested_by: "Krishna" },
       ],
     }),
+    "camera.outside_high": state("camera.outside_high", "recording"),
+    "camera.outside_medium": state("camera.outside_medium", "recording"),
+    "camera.private_high": state("camera.private_high", "recording"),
+    "camera.private_medium": state("camera.private_medium", "recording"),
+    "sensor.outside_activity": state("sensor.outside_activity", "1", {
+      last_event: now.toISOString(),
+      events: [{
+        id:"camera-event", camera_key:"outside", camera_name:"Outside",
+        types:["person"], start:now.toISOString(), end:null, active:true,
+        thumbnail:"data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+        video:"/api/family_camera_events/outside/camera-event/video",
+      }],
+    }),
+    "sensor.outside_recording": state("sensor.outside_recording", "detections"),
+    "binary_sensor.outside_dark": state("binary_sensor.outside_dark", "off"),
+    "sensor.outside_microphone": state("sensor.outside_microphone", "70"),
+    "binary_sensor.outside_person": state("binary_sensor.outside_person", "on"),
+    "media_player.camera_speaker": state("media_player.camera_speaker", "idle"),
   };
   await page.evaluate(({ hassStates, eventStart }) => {
     window.__calls = [];
@@ -193,6 +225,22 @@ async function buildFixture(page) {
     mount("#agenda", "family-agenda-card", { entities:[{entity:"calendar.family", name:"Family", color:"var(--green)"}], days:14, max_events:4 });
     mount("#announcements", "family-announcements-card", { entity:"sensor.family_announcements" });
     mount("#seerr", "family-seerr-requests-card", { entity:"sensor.seerr", url:"http://requests.example.test" });
+    const cameraConfig = {
+      key:"outside", name:"Outside", high_entity:"camera.outside_high",
+      medium_entity:"camera.outside_medium", activity_entity:"sensor.outside_activity",
+      detectors:["binary_sensor.outside_person"], users:["owner"],
+    };
+    mount("#camera-wall", "family-camera-wall-card", { cameras:[
+      cameraConfig,
+      { ...cameraConfig, key:"private", name:"Private", high_entity:"camera.private_high", medium_entity:"camera.private_medium", users:["other"] },
+    ] });
+    mount("#camera-events", "family-camera-events-card", { cameras:[{
+      ...cameraConfig, recording_entity:"sensor.outside_recording",
+      dark_entity:"binary_sensor.outside_dark", microphone_entity:"sensor.outside_microphone",
+    }] });
+    mount("#camera-speaker", "family-camera-speaker-card", {
+      camera_key:"outside", speaker:"media_player.camera_speaker", name:"Speak outside",
+    });
   }, { hassStates, eventStart: tomorrow.toISOString() });
   await page.waitForTimeout(100);
 }
@@ -312,13 +360,27 @@ async function validate(page, viewport) {
   await seerr.locator('.action[aria-label="Decline request"]').nth(1).click();
   await seerr.locator('.action[aria-label="Confirm decline"]').click();
 
+  const cameraWall = page.locator("family-camera-wall-card");
+  assert.equal(await cameraWall.locator(".camera").count(), 1, "Camera wall leaked a camera outside the signed-in account policy");
+  assert.equal(await cameraWall.locator("hui-picture-entity-card").count(), 1);
+
+  const cameraEvents = page.locator("family-camera-events-card");
+  await cameraEvents.locator(".event").waitFor({ state:"visible" });
+  await assertTargets(cameraEvents.locator(".event-action"));
+  await cameraEvents.locator('.event-action[data-live="true"]').click();
+
+  const cameraSpeaker = page.locator("family-camera-speaker-card");
+  await assertTargets(cameraSpeaker.locator("input,button"));
+  await cameraSpeaker.locator('button[data-message="Dinner is ready."]').click();
+  await cameraSpeaker.locator(".send").click();
+
   const calls = await page.evaluate(() => window.__calls);
   const invoked = new Set(calls.map((call) => `${call.domain}.${call.service}`));
   for (const service of [
     "fan.turn_off", "fan.set_percentage", "light.turn_off", "switch.turn_on",
     "select.select_option", "family_announcements.dismiss",
     "family_announcements.publish", "family_seerr_requests.approve",
-    "family_seerr_requests.decline",
+    "family_seerr_requests.decline", "family_camera_events.announce",
   ]) {
     assert(invoked.has(service), `Service path was not exercised: ${service}`);
   }

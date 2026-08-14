@@ -18,7 +18,8 @@ Assistant installations.
 - Nested room pages that keep device controls bounded as rooms gain new devices.
 - Senior-friendly Atomberg fan controls with direct speeds, light, sleep, timer,
   unavailable-device guidance, and cloud-quota protection.
-- Live UniFi Protect camera wall with policy-controlled camera visibility.
+- Live UniFi Protect camera wall with policy-controlled visibility, automatic
+  activity focus, recent clips, health, alerts, and private speaker messages.
 - Concurrent Jellyfin and Music Assistant playback summaries.
 - Shared announcements, shopping, calendar agenda, family presence, phone
   status, air quality, weather, and travel-time context.
@@ -107,15 +108,39 @@ while room access is currently shared across authenticated family accounts.
 ### Security and cameras
 
 The combined Security surface presents household attention, camera coverage,
-account-filtered live streams, and recent Protect motion activity in one place.
+account-filtered live streams, recording health, and a seven-day Protect event
+timeline in one place. The wall uses medium-resolution streams for its ambient
+grid and opens the high-resolution entity on interaction. A current person,
+vehicle, animal, sound, or motion event temporarily promotes that camera to the
+full-width focus position. Offline cameras remain visible as deliberate status
+tiles and recover without a dashboard edit.
+
+The source-owned `family_camera_events` integration subscribes to Protect's
+local event WebSocket rather than polling the cloud. It retains at most 20
+events per camera, proxies thumbnails and completed clips through authenticated
+account-aware endpoints, and never exposes notification bookkeeping as entity
+attributes. Alerts are deduplicated per Protect event and detection type.
+Smoke, carbon-monoxide, and baby-cry alerts are immediate; person, vehicle, and
+animal alerts use the declared empty-home confidence policy. Informational and
+advisory alerts respect quiet hours. A clip follow-up is sent only after Protect
+marks the event complete.
+
 Camera grants come from the family access policy, and non-owner permissions are
-reconciled in Home Assistant's backend. Motion, person, vehicle, and event
-entities inherit the same grant as their camera, so a restricted room cannot
-leak activity metadata through another entity domain. Protect stream tiers are
-declarative and reconciled without committing Protect credentials. An
-owner-only `all_cameras` profile capability adds every declared camera to the
-owner's generated dashboard visibility lists without weakening non-owner
-backend policy.
+reconciled in Home Assistant's backend. Streams, event history, motion and smart
+detection entities, recording diagnostics, and camera speakers inherit the
+same grant as their camera, so a restricted room cannot leak metadata or media
+through another entity domain. The Master Bedroom camera and speaker are
+available to Krishna and the owner; Manisha receives only Outside and Kitchen
+Balcony. An owner-only `all_cameras` capability adds every declared camera to
+the owner's generated grants without weakening another account.
+
+The Master Bedroom G4 Instant speaker has an explicit text composer with useful
+presets. The backend rechecks the caller's camera grant before using the local
+Protect media-player entity, while Google Translate TTS is created through its
+supported zero-credential config flow. Speaker playback requires TCP `7004`
+from Home Assistant to the camera. Privacy mode is not surfaced because these
+cameras do not currently expose that entity; Protect Alarm Manager remains an
+administrator concern rather than a family control.
 
 ### Rack
 
@@ -188,8 +213,9 @@ integration dependencies, including:
 The configuration also expects existing Home Assistant integrations for the
 devices and services used by the household, such as UniFi Protect, Google
 Calendar, Google Travel Time, Music Assistant, Jellyfin, Home Connect, ThinQ,
-mobile companion apps, weather, and NUT. Their credentials and config-entry
-state are not stored in this repository.
+mobile companion apps, weather, and NUT. Google Translate TTS is initialized by
+the camera event integration because it has no credential setup. Other
+credentials and config-entry state are not stored in this repository.
 
 ## Configuration and secrets
 
@@ -232,7 +258,8 @@ The browser suite exercises phone, landscape, tablet, and desktop viewports
 using mocked Home Assistant services, so it does not control household devices.
 It checks overflow, navigation, responsive reflow, touch-target sizing, room
 modules, fan controls, appliance guards, media rendering, agenda interaction,
-announcements, and Seerr confirmation actions.
+announcements, Seerr confirmation actions, account-filtered camera walls,
+camera-event timelines, and camera-speaker actions.
 
 Before deploying a source revision:
 
