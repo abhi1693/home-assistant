@@ -1467,9 +1467,18 @@ views:
                 - height: 42px
                 - border-radius: 14px
                 - background: rgba(0, 0, 0, 0.12)
-              icon: [{ color: var(--black) }, { width: 24px }]
-              name: [{ justify-self: start }, { color: var(--black) }, { font-size: 16px }, { font-weight: 750 }]
-              label: [{ justify-self: start }, { color: rgba(0, 0, 0, 0.65) }, { font-size: 12px }]
+              icon:
+                - color: var(--black)
+                - width: 24px
+              name:
+                - justify-self: start
+                - color: var(--black)
+                - font-size: 16px
+                - font-weight: 750
+              label:
+                - justify-self: start
+                - color: rgba(0, 0, 0, 0.65)
+                - font-size: 12px
             visibility:
               - condition: state
                 entity: binary_sensor.rack_ups_on_battery
@@ -2261,23 +2270,59 @@ views:
             columns: 2
             square: false
             cards:
-              - type: picture-entity
-                entity: camera.g5_turret_ultra_high_resolution_channel
-                camera_image: camera.g5_turret_ultra_medium_resolution_channel
-                camera_view: live
-                name: Outside
-                show_state: false
-                tap_action: { action: more-info }
+              - type: custom:auto-entities
+                card:
+                  type: grid
+                  square: false
+                  columns: 1
+                card_param: cards
+                filter:
+                  include:
+                    - entity_id: camera.g5_turret_ultra_medium_resolution_channel
+                      state: idle
+                      options:
+                        type: picture-entity
+                        entity: camera.g5_turret_ultra_high_resolution_channel
+                        camera_image: camera.g5_turret_ultra_medium_resolution_channel
+                        camera_view: live
+                        name: Outside
+                        show_state: false
+                        tap_action: { action: more-info }
+                    - entity_id: camera.g5_turret_ultra_high_resolution_channel
+                      state: unavailable
+                      options:
+                        type: custom:button-card
+                        template: family_camera_offline
+                        name: Outside
+                show_empty: false
                 visibility:
                   - condition: user
                     users: !include ../access/generated/camera-outside-users.json
-              - type: picture-entity
-                entity: camera.hallway_high_resolution_channel
-                camera_image: camera.hallway_medium_resolution_channel
-                camera_view: live
-                name: Kitchen Balcony
-                show_state: false
-                tap_action: { action: more-info }
+              - type: custom:auto-entities
+                card:
+                  type: grid
+                  square: false
+                  columns: 1
+                card_param: cards
+                filter:
+                  include:
+                    - entity_id: camera.hallway_medium_resolution_channel
+                      state: idle
+                      options:
+                        type: picture-entity
+                        entity: camera.hallway_high_resolution_channel
+                        camera_image: camera.hallway_medium_resolution_channel
+                        camera_view: live
+                        name: Kitchen Balcony
+                        show_state: false
+                        tap_action: { action: more-info }
+                    - entity_id: camera.hallway_high_resolution_channel
+                      state: unavailable
+                      options:
+                        type: custom:button-card
+                        template: family_camera_offline
+                        name: Kitchen Balcony
+                show_empty: false
                 visibility:
                   - condition: user
                     users: !include ../access/generated/camera-hallway-users.json

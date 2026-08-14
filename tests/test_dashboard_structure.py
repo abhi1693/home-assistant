@@ -731,6 +731,28 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn(".open { width: 44px; height: 44px", seerr)
         self.assertIn(".action { width: 48px; height: 44px", seerr)
 
+    def test_camera_cards_do_not_request_missing_medium_streams(self):
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+
+        self.assertNotIn(
+            "type: picture-entity\n"
+            "                entity: camera.g5_turret_ultra_high_resolution_channel\n"
+            "                camera_image: camera.g5_turret_ultra_medium_resolution_channel",
+            home,
+        )
+        self.assertNotIn(
+            "type: picture-entity\n"
+            "                entity: camera.hallway_high_resolution_channel\n"
+            "                camera_image: camera.hallway_medium_resolution_channel",
+            home,
+        )
+        self.assertGreaterEqual(home.count("template: family_camera_offline"), 8)
+
+    def test_dashboard_avoids_ambiguous_flow_style_css_values(self):
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+
+        self.assertNotIn("color: rgba(0, 0, 0, 0.65) },", home)
+
 
 if __name__ == "__main__":
     unittest.main()
