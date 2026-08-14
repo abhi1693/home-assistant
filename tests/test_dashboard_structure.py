@@ -95,24 +95,35 @@ class DashboardStructureTests(unittest.TestCase):
             "  - title: Rooms", 1
         )[0]
 
-        self.assertIn('"weather presence today activity attention alarm"', home_view)
-        self.assertIn('"weather presence today activity attention"', home_view)
+        self.assertIn(
+            '"weather presence today activity humidity air_quality attention alarm"',
+            home_view,
+        )
+        self.assertIn(
+            '"weather presence today activity humidity air_quality attention"',
+            home_view,
+        )
         self.assertIn("heading: Coming up", home_view)
         self.assertIn("type: custom:family-agenda-card", home_view)
         self.assertIn("days: 14", home_view)
         self.assertIn("max_events: 4", home_view)
         self.assertIn("calendar-owner-users.json", home_view)
         self.assertIn("calendar-household-users.json", home_view)
-        self.assertEqual(home_view.count("template: family_air_quality"), 1)
+        self.assertEqual(home_view.count("template: family_ribbon_air_quality"), 1)
+        self.assertIn("template: family_ribbon_humidity", home_view)
         self.assertIn("entity: sensor.home_naqi_in_aqi", home)
-        air_quality = home.split("  family_air_quality:", 1)[1].split(
-            "\nviews:", 1
+        air_quality = home.split("  family_ribbon_air_quality:", 1)[1].split(
+            "\n  family_ribbon_presence:", 1
         )[0]
         self.assertIn("sensor.home_naqi_in_category", air_quality)
-        self.assertIn("sensor.home_naqi_in_dominant_pollutant", air_quality)
-        self.assertIn("AQI ${Math.round(value)}", air_quality)
-        self.assertIn("pm10: 'PM10'", air_quality)
+        self.assertIn("`${category} · ${Math.round(value)}`", air_quality)
+        self.assertIn("poor_air_quality: 'Poor'", air_quality)
         self.assertIn("value <= 100", air_quality)
+        self.assertIn("var(--red)", air_quality)
+        self.assertLess(
+            home_view.index("template: family_ribbon_humidity"),
+            home_view.index("template: family_ribbon_air_quality"),
+        )
         self.assertEqual(
             home_view.count("type: custom:family-announcements-card"), 2
         )
@@ -324,10 +335,13 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("? 'sensor.pixel_10_pro_next_alarm'", home)
         self.assertIn("8117b77542614a06b4672a8ae1a979b5", home)
         self.assertIn("return 'No alarm';", home)
-        self.assertIn('"weather presence today activity attention alarm"', home)
+        self.assertIn(
+            '"weather presence today activity humidity air_quality attention alarm"',
+            home,
+        )
         self.assertIn("template: family_ribbon_alarm", home)
 
-    def test_family_phone_batteries_use_visual_state(self):
+    def test_family_cards_merge_presence_location_and_phone_battery(self):
         access = (ROOT / "access/family-dashboard.json").read_text()
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
         home_view = home.split("  - title: Home", 1)[1].split(
@@ -344,16 +358,21 @@ class DashboardStructureTests(unittest.TestCase):
         ):
             self.assertIn(entity_id, access)
             self.assertIn(entity_id, home_view)
-        self.assertIn("family_phone_battery:", home)
-        self.assertIn("heading: Phones", home_view)
+        self.assertNotIn("family_phone_battery:", home)
+        self.assertNotIn("heading: Phones", home_view)
+        self.assertEqual(home_view.count("battery_entity:"), 3)
+        self.assertEqual(home_view.count("battery_state_entity:"), 3)
+        family_template = home.split("  family_presence_likelihood:", 1)[1].split(
+            "\n  family_ribbon_activity:", 1
+        )[0]
+        self.assertIn("action: more-info", family_template)
+        self.assertIn('custom_fields:\n      indicator:', family_template)
+        self.assertIn("      battery: |", family_template)
         self.assertIn("mdi:battery-charging", home)
         self.assertIn("var(--red)", home)
         self.assertIn("var(--yellow)", home)
         self.assertIn("var(--green)", home)
         self.assertNotIn("On battery", home_view)
-        self.assertLess(
-            home_view.index("heading: Phones"), home_view.index("type: conditional")
-        )
 
     def test_commute_shows_shared_homeward_arrivals_and_owner_work_route(self):
         access = (ROOT / "access/family-dashboard.json").read_text()
@@ -443,7 +462,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("sensor.home_protect_storage_storage_utilization", shared)
         self.assertIn("sensor.home_protect_storage_storage_utilization", maintenance)
         self.assertIn("entity: binary_sensor.vacation_ready", home)
-        self.assertIn("entity: input_button.household_good_night", home)
+        self.assertNotIn("household_good_night", home)
+        self.assertNotIn("household_good_night", package)
         self.assertIn("household_automation_stage:", package)
         self.assertLess(package.index("- Shadow"), package.index("- Active"))
         self.assertIn("schedule:\n  quiet_hours:", package)
@@ -479,6 +499,9 @@ class DashboardStructureTests(unittest.TestCase):
             self.assertIn(f"sensor.{name}_home_likelihood", home)
         self.assertIn("template: family_presence_likelihood", home)
         self.assertIn("show_entity_picture: true", home)
+        self.assertIn("action: more-info", home.split(
+            "  family_presence_likelihood:", 1
+        )[1].split("\n  family_ribbon_activity:", 1)[0])
 
     def test_recorder_excludes_raw_location_and_health_history(self):
         configuration = (ROOT / "configuration.yaml").read_text()
@@ -620,7 +643,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('\"weather presence\" \"today activity\"', home)
         self.assertIn("repeat(2, minmax(0, 1fr))", home)
         self.assertIn("min_width: 280", home)
-        self.assertEqual(home.count("min_width: 150"), 4)
+        self.assertEqual(home.count("min_width: 150"), 3)
+        self.assertEqual(home.count("min_width: 180"), 1)
         self.assertIn("--todo-swipe-card-item-height: 48px", home)
         self.assertIn("@media (max-width: 899px)", navigation)
         self.assertIn("env(safe-area-inset-bottom)", navigation)

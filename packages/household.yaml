@@ -24,15 +24,7 @@ input_boolean:
     name: Empty home confirmed
     icon: mdi:home-export-outline
 
-  good_night:
-    name: Good night
-    icon: mdi:weather-night
-
 input_button:
-  household_good_night:
-    name: Good night
-    icon: mdi:weather-night
-
   request_vacation_mode:
     name: Check Vacation readiness
     icon: mdi:airplane-check
@@ -796,47 +788,6 @@ automation:
           title: Phone battery is low
           message: "{{ trigger.to_state.state }}% remaining while away from Home."
           url: /home-tablet/people
-
-  - id: household_good_night
-    alias: Household · Prepare Good Night
-    description: One explicit action prepares choices without claiming that anyone is asleep.
-    mode: restart
-    triggers:
-      - trigger: state
-        entity_id: input_button.household_good_night
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ trigger.to_state.context.user_id in [
-            '9302d11f48c64fe796a3c9e5cb563650',
-            '8117b77542614a06b4672a8ae1a979b5',
-            '734722ec932a41a68d47553b6c2f7f5d'
-          ] }}
-      - condition: state
-        entity_id: binary_sensor.house_occupied
-        state: "on"
-    actions:
-      - action: input_boolean.turn_on
-        target: { entity_id: input_boolean.good_night }
-      - action: script.family_household_incident
-        data:
-          recipient: family
-          severity: informational
-          fingerprint: good-night-ready
-          title: Good night is ready
-          message: Review security, active media, tomorrow's first event, and fan Sleep or Timer choices.
-          url: /home-tablet/home
-
-  - id: household_reset_good_night
-    alias: Household · End Good Night period
-    description: Clear the explicit night intent after sunrise.
-    mode: single
-    triggers:
-      - trigger: sun
-        event: sunrise
-    actions:
-      - action: input_boolean.turn_off
-        target: { entity_id: input_boolean.good_night }
 
   - id: household_vacation_preflight
     alias: Household · Check Vacation readiness

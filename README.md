@@ -100,8 +100,8 @@ playback controls remain extension points for later phases.
 
 The shared overview favors household decisions over system telemetry. Its
 single-screen desktop composition has a personalized greeting, compact weather
-and household ribbon, a single family-wide India NAQI card, account-filtered
-camera wall, adaptive Music
+and household ribbon with adjacent humidity and color-coded India NAQI status,
+account-filtered camera wall, adaptive Music
 Assistant/Jellyfin activity, a narrow Coming up rail, and account-specific area
 summaries ordered for each person's routine. Abhimanyu sees Office, Bedroom and
 Living Room; Krishna sees Master
@@ -123,13 +123,18 @@ tiles in one double-width card; the other rooms form a two-column desktop grid.
 Selecting a speed while off turns the fan on at that speed with one combined
 Atomberg command. An immediate action first cancels an active conflicting timer
 so it cannot unexpectedly reverse the fan later.
-The greeting ends with one prioritized
+The family row combines each person's avatar, approximate home/away likelihood,
+and color-coded phone battery state. Tapping a person opens Home Assistant's
+location panel without publishing coordinates on the shared card. The greeting ends with one prioritized
 household message: laundry completion, a current or next-day family event,
 unsafe air, significant heat or storms, shopping needs, or a time-appropriate
 all-clear. The context line always gives the current translated air-quality
-category when available; the card adds only the AQI and dominant pollutant.
+category when available; the compact summary shows its plain-language severity
+and AQI value in the corresponding color.
 Its context line includes the weekday, day part and current time, and its weather
-advice changes between morning, afternoon, evening and night. A Git-owned family
+advice changes between morning, afternoon, evening and night. The former
+Good Night action was removed because it only recorded an abstract intent and
+did not perform a useful, predictable household action. A Git-owned family
 bulletin in the household rail groups independent, account-attributed household
 updates above Shopping. Its Add action opens a focused composer; each
 message remains until its sender or an administrator removes it, or disappears
@@ -152,7 +157,7 @@ Rack health remains confined to the admin-only dashboard.
 The household package supplies restart-safe Normal, Guest, Vacation and
 Maintenance intent, quiet hours, a default `Shadow` safety stage,
 confidence-aware phone presence, five-minute empty-home dwell, camera outage
-timers, one notification router, Vacation preflight, Good Night, washer, fan,
+timers, one notification router, Vacation preflight, washer, fan,
 travel-battery, perimeter and Protect-storage workflows. Shadow mode records
 decisions but does not send mobile alerts or control devices. Hardware-dependent
 contact, leak, certified smoke/CO, indoor-air and wellbeing capabilities remain

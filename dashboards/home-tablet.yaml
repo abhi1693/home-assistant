@@ -197,6 +197,61 @@ button_card_templates:
         return `${celsius.toFixed(precision)}°C`;
       ]]]
 
+  family_ribbon_humidity:
+    template: family_ribbon
+    entity: sensor.home_humidity
+    name: Humidity
+    icon: mdi:water-percent
+    label: |
+      [[[
+        const value = Number(entity?.state);
+        return Number.isFinite(value) ? `${Math.round(value)}%` : 'Unavailable';
+      ]]]
+    styles:
+      icon:
+        - color: var(--blue)
+
+  family_ribbon_air_quality:
+    template: family_ribbon
+    entity: sensor.home_naqi_in_aqi
+    name: Air quality
+    icon: mdi:air-filter
+    label: |
+      [[[
+        const value = Number(entity?.state);
+        const categoryState = states['sensor.home_naqi_in_category']?.state;
+        const categories = {
+          good_air_quality: 'Good',
+          satisfactory_air_quality: 'Fair',
+          moderate_air_quality: 'Moderate',
+          poor_air_quality: 'Poor',
+          very_poor_air_quality: 'Very poor',
+          severe_air_quality: 'Severe'
+        };
+        const category = categories[categoryState]
+          || (!Number.isFinite(value) ? 'Unavailable'
+            : value <= 50 ? 'Good'
+              : value <= 100 ? 'Fair'
+                : value <= 200 ? 'Moderate'
+                  : value <= 300 ? 'Poor'
+                    : value <= 400 ? 'Very poor' : 'Severe');
+        return Number.isFinite(value) ? `${category} · ${Math.round(value)}` : category;
+      ]]]
+    styles:
+      icon:
+        - color: &air_quality_color |
+            [[[
+              const value = Number(entity?.state);
+              if (!Number.isFinite(value)) return 'var(--contrast10)';
+              if (value <= 50) return 'var(--green)';
+              if (value <= 100) return 'var(--teal)';
+              if (value <= 200) return 'var(--yellow)';
+              if (value <= 300) return 'var(--orange)';
+              return 'var(--red)';
+            ]]]
+      label:
+        - color: *air_quality_color
+
   family_ribbon_presence:
     template: family_ribbon
     entity: person.abhimanyu_saharan
@@ -286,14 +341,31 @@ button_card_templates:
             : 'var(--yellow)';
           return `<span style="display:block;width:12px;height:12px;border-radius:50%;background:${color};box-shadow:0 0 0 4px color-mix(in srgb, ${color} 18%, transparent)"></span>`;
         ]]]
+      battery: |
+        [[[
+          const level = Number(states[variables.battery_entity]?.state);
+          const batteryState = String(states[variables.battery_state_entity]?.state || '').toLowerCase();
+          const charging = batteryState === 'charging';
+          const full = batteryState === 'full' || (Number.isFinite(level) && level >= 95);
+          const color = charging || full ? 'var(--green)'
+            : Number.isFinite(level) && level <= 20 ? 'var(--red)'
+            : Number.isFinite(level) && level <= 40 ? 'var(--yellow)'
+            : Number.isFinite(level) ? 'var(--blue)'
+            : 'var(--contrast8)';
+          const icon = charging ? 'mdi:battery-charging'
+            : full ? 'mdi:battery'
+            : !Number.isFinite(level) ? 'mdi:battery-unknown'
+            : `mdi:battery-${Math.max(10, Math.min(90, Math.ceil(level / 10) * 10))}`;
+          const value = Number.isFinite(level) ? `${Math.round(level)}%` : '—';
+          return `<span style="display:flex;align-items:center;gap:4px;color:${color};white-space:nowrap"><ha-icon icon="${icon}" style="width:18px;height:18px"></ha-icon><strong style="font-size:12px">${value}</strong></span>`;
+        ]]]
     tap_action:
-      action: navigate
-      navigation_path: /home-tablet/people
+      action: more-info
     hold_action: { action: none }
     styles:
       grid:
-        - grid-template-areas: '"i n indicator" "i l indicator"'
-        - grid-template-columns: 48px minmax(0, 1fr) 18px
+        - grid-template-areas: '"i n indicator battery" "i l indicator battery"'
+        - grid-template-columns: 48px minmax(0, 1fr) 18px min-content
         - grid-template-rows: min-content min-content
         - column-gap: 12px
       card:
@@ -323,6 +395,9 @@ button_card_templates:
         - color: var(--contrast10)
       custom_fields:
         indicator:
+          - align-self: center
+          - justify-self: end
+        battery:
           - align-self: center
           - justify-self: end
 
@@ -469,70 +544,6 @@ button_card_templates:
     styles:
       icon:
         - color: var(--purple)
-
-  family_phone_battery:
-    show_icon: true
-    show_name: true
-    show_state: false
-    show_label: true
-    icon: |
-      [[[
-        const level = Number(entity?.state);
-        const batteryState = String(states[variables.state_entity]?.state || '').toLowerCase();
-        if (batteryState === 'charging') return 'mdi:battery-charging';
-        if (batteryState === 'full' || (Number.isFinite(level) && level >= 95)) {
-          return 'mdi:battery';
-        }
-        if (!Number.isFinite(level)) return 'mdi:battery-unknown';
-        const bucket = Math.max(10, Math.min(90, Math.ceil(level / 10) * 10));
-        return `mdi:battery-${bucket}`;
-      ]]]
-    label: |
-      [[[
-        const level = Number(entity?.state);
-        return Number.isFinite(level) ? `${Math.round(level)}%` : '—';
-      ]]]
-    tap_action:
-      action: more-info
-    hold_action:
-      action: none
-    styles:
-      grid:
-        - grid-template-areas: '"i" "n" "l"'
-        - grid-template-columns: 1fr
-        - grid-template-rows: 28px 16px 22px
-        - justify-items: center
-      card:
-        - height: 86px
-        - padding: 8px 6px
-        - border-radius: 18px
-        - background: var(--contrast2)
-        - border: 1px solid rgba(var(--rgb-primary-text-color), 0.06)
-        - box-shadow: none
-      img_cell:
-        - width: 28px
-        - height: 28px
-      icon:
-        - width: 24px
-        - color: |
-            [[[
-              const level = Number(entity?.state);
-              const batteryState = String(states[variables.state_entity]?.state || '').toLowerCase();
-              if (batteryState === 'charging' || batteryState === 'full'
-                  || (Number.isFinite(level) && level >= 95)) return 'var(--green)';
-              if (Number.isFinite(level) && level <= 20) return 'var(--red)';
-              if (Number.isFinite(level) && level <= 40) return 'var(--yellow)';
-              if (Number.isFinite(level)) return 'var(--blue)';
-              return 'var(--contrast8)';
-            ]]]
-      name:
-        - color: var(--contrast11)
-        - font-size: 11px
-        - font-weight: 600
-      label:
-        - color: var(--contrast20)
-        - font-size: 16px
-        - font-weight: 750
 
   family_commute:
     show_icon: true
@@ -1160,68 +1171,6 @@ button_card_templates:
                 : 'var(--contrast20)';
             ]]]
 
-  family_air_quality:
-    template: family_status
-    entity: sensor.home_naqi_in_aqi
-    name: Air quality
-    icon: mdi:air-filter
-    show_state: true
-    show_label: true
-    state_display: |
-      [[[
-        const value = Number(entity?.state);
-        return Number.isFinite(value) ? `AQI ${Math.round(value)}` : 'Unavailable';
-      ]]]
-    label: |
-      [[[
-        const categoryState = states['sensor.home_naqi_in_category']?.state;
-        const pollutantState = states['sensor.home_naqi_in_dominant_pollutant']?.state;
-        const categories = {
-          good_air_quality: 'Good',
-          satisfactory_air_quality: 'Satisfactory',
-          moderate_air_quality: 'Moderate',
-          poor_air_quality: 'Poor',
-          very_poor_air_quality: 'Very poor',
-          severe_air_quality: 'Severe'
-        };
-        const category = categories[categoryState]
-          || (categoryState && !['unknown', 'unavailable'].includes(categoryState)
-            ? categoryState.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
-            : 'Waiting for an update');
-        if (!pollutantState || ['unknown', 'unavailable'].includes(pollutantState)) {
-          return category;
-        }
-        const pollutants = {
-          co: 'CO', no2: 'NO₂', o3: 'O₃', pm10: 'PM10',
-          pm2_5: 'PM2.5', so2: 'SO₂', nh3: 'NH₃'
-        };
-        return `${category} · ${pollutants[pollutantState] || pollutantState.toUpperCase()}`;
-      ]]]
-    styles:
-      grid:
-        - grid-template-areas: '"i n" "i s" "i l"'
-        - grid-template-rows: min-content min-content min-content
-      card:
-        - height: 82px
-        - --status-accent: |
-            [[[
-              const value = Number(entity?.state);
-              if (!Number.isFinite(value)) return 'var(--contrast10)';
-              if (value <= 50) return 'var(--green)';
-              if (value <= 100) return 'var(--teal)';
-              if (value <= 200) return 'var(--yellow)';
-              if (value <= 300) return 'var(--orange)';
-              return 'var(--red)';
-            ]]]
-      state:
-        - color: var(--status-accent)
-      label:
-        - align-self: start
-        - justify-self: start
-        - color: var(--contrast10)
-        - font-size: 11px
-        - line-height: 14px
-
 views:
   - title: Home
     path: home
@@ -1286,12 +1235,12 @@ views:
                         '8117b77542614a06b4672a8ae1a979b5'].includes(user?.id);
                       if (window.matchMedia('(max-width: 639px)').matches) {
                         return alarm
-                          ? '"weather presence" "today activity" "attention alarm"'
-                          : '"weather presence" "today activity" "attention attention"';
+                          ? '"weather presence" "today activity" "humidity air_quality" "attention alarm"'
+                          : '"weather presence" "today activity" "humidity air_quality" "attention attention"';
                       }
                       return alarm
-                        ? '"weather presence today activity attention alarm"'
-                        : '"weather presence today activity attention"';
+                        ? '"weather presence today activity humidity air_quality attention alarm"'
+                        : '"weather presence today activity humidity air_quality attention"';
                     ]]]
                 - grid-template-columns: |
                     [[[
@@ -1300,8 +1249,8 @@ views:
                       }
                       return ['9302d11f48c64fe796a3c9e5cb563650',
                         '8117b77542614a06b4672a8ae1a979b5'].includes(user?.id)
-                        ? 'repeat(6, minmax(0, 1fr))'
-                        : 'repeat(5, minmax(0, 1fr))';
+                        ? 'repeat(8, minmax(0, 1fr))'
+                        : 'repeat(7, minmax(0, 1fr))';
                     ]]]
               card:
                 - width: 100%
@@ -1319,6 +1268,8 @@ views:
                 presence: [{ width: 100% }]
                 today: [{ width: 100% }]
                 activity: [{ width: 100% }]
+                humidity: [{ width: 100% }]
+                air_quality: [{ width: 100% }]
                 attention: [{ width: 100% }]
                 alarm:
                   - width: 100%
@@ -1347,6 +1298,14 @@ views:
                 card:
                   type: custom:button-card
                   template: family_ribbon_activity
+              humidity:
+                card:
+                  type: custom:button-card
+                  template: family_ribbon_humidity
+              air_quality:
+                card:
+                  type: custom:button-card
+                  template: family_ribbon_air_quality
               attention:
                 card:
                   type: custom:button-card
@@ -1364,7 +1323,7 @@ views:
             icon: mdi:account-group-outline
             grid_options: { columns: 36, rows: 1 }
           - type: custom:family-responsive-grid-card
-            min_width: 150
+            min_width: 180
             cards:
               - type: custom:button-card
                 template: family_presence_likelihood
@@ -1372,18 +1331,24 @@ views:
                 name: Abhimanyu
                 variables:
                   likelihood_entity: sensor.abhimanyu_home_likelihood
+                  battery_entity: sensor.pixel_8_battery_level
+                  battery_state_entity: sensor.pixel_8_battery_state
               - type: custom:button-card
                 template: family_presence_likelihood
                 entity: person.krishna
                 name: Krishna
                 variables:
                   likelihood_entity: sensor.krishna_home_likelihood
+                  battery_entity: sensor.pixel_10_pro_battery_level
+                  battery_state_entity: sensor.pixel_10_pro_battery_state
               - type: custom:button-card
                 template: family_presence_likelihood
                 entity: person.manisha
                 name: Manisha
                 variables:
                   likelihood_entity: sensor.manisha_home_likelihood
+                  battery_entity: sensor.iphone_battery_level
+                  battery_state_entity: sensor.iphone_battery_state
             grid_options: { columns: 36, rows: auto }
           - type: custom:button-card
             entity: binary_sensor.rack_ups_on_battery
@@ -1797,8 +1762,6 @@ views:
             visibility:
               - condition: user
                 users: !include ../access/generated/calendar-household-users.json
-          - type: custom:button-card
-            template: family_air_quality
           - type: heading
             heading: Coming home
             heading_style: subtitle
@@ -1869,32 +1832,6 @@ views:
               - condition: state
                 entity: person.abhimanyu_saharan
                 state_not: Work
-          - type: heading
-            heading: Phones
-            heading_style: subtitle
-            icon: mdi:cellphone
-          - type: grid
-            square: false
-            columns: 3
-            cards:
-              - type: custom:button-card
-                template: family_phone_battery
-                entity: sensor.pixel_8_battery_level
-                name: Abhimanyu
-                variables:
-                  state_entity: sensor.pixel_8_battery_state
-              - type: custom:button-card
-                template: family_phone_battery
-                entity: sensor.pixel_10_pro_battery_level
-                name: Krishna
-                variables:
-                  state_entity: sensor.pixel_10_pro_battery_state
-              - type: custom:button-card
-                template: family_phone_battery
-                entity: sensor.iphone_battery_level
-                name: Manisha
-                variables:
-                  state_entity: sensor.iphone_battery_state
           - type: conditional
             conditions:
               - condition: state
@@ -1935,12 +1872,6 @@ views:
                   - justify-self: start
                   - color: var(--contrast10)
                   - font-size: 11px
-          - type: tile
-            entity: input_button.household_good_night
-            name: Good night
-            icon: mdi:weather-night
-            color: purple
-            tap_action: { action: toggle }
           - type: custom:family-announcements-card
             entity: sensor.family_announcements
             visibility:
