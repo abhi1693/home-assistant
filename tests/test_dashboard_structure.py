@@ -455,6 +455,38 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("mdi:briefcase-clock", home)
         self.assertNotIn("28.4114532", home)
 
+    def test_abhimanyu_journey_announcements_are_fresh_and_idempotent(self):
+        commute = (ROOT / "packages/commute.yaml").read_text()
+        automation = commute.split(
+            "  - id: household_announce_abhimanyu_homeward_journey", 1
+        )[1].split("\ntemplate:", 1)[0]
+
+        self.assertIn("abhimanyu_homeward_journey_active:", commute)
+        helper = commute.split(
+            "  abhimanyu_homeward_journey_active:", 1
+        )[1].split("\nautomation:", 1)[0]
+        self.assertNotIn("initial:", helper)
+        self.assertIn("mode: queued", automation)
+        self.assertIn("to: towards", automation)
+        self.assertIn("condition: zone.not_in_zone", automation)
+        self.assertIn("trigger: zone.entered", automation)
+        self.assertIn('for: "00:00:30"', automation)
+        self.assertEqual(
+            automation.count("action: google_travel_time.get_travel_times"), 1
+        )
+        self.assertIn("response_variable: departure_travel_home", automation)
+        self.assertIn("origin: device_tracker.abhimanyu_pixel_8_2", automation)
+        self.assertIn("destination: zone.home", automation)
+        self.assertIn("notify.abhimanyu_s_echo_dot_announce", automation)
+        self.assertIn("Abhimanyu has left for home.", automation)
+        self.assertIn("Abhimanyu is home.", automation)
+        self.assertIn("person.krishna", automation)
+        self.assertIn("person.manisha", automation)
+        self.assertGreaterEqual(
+            automation.count("input_boolean.abhimanyu_homeward_journey_active"),
+            5,
+        )
+
     def test_camera_wall_applies_each_camera_user_gate(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
         camera_view = home.split("  - title: Cameras", 1)[1].split(

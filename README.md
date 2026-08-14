@@ -59,6 +59,14 @@ repository. Home routes call Google only while Proximity reports `towards` and
 valid GPS coordinates are available; they refresh every 20 minutes during that
 journey and immediately when homeward travel is first detected.
 
+When Abhimanyu's direction first changes to `towards` outside Home, a persistent
+journey helper suppresses duplicate announcements. If Krishna or Manisha is home,
+Home Assistant requests one fresh traffic-aware route and the Kitchen Echo Dot
+announces the approximate travel time. A native Home-zone entry trigger requires
+Abhimanyu to remain inside for 30 seconds before announcing his arrival and
+resetting the helper. The restored helper and startup reconciliation prevent a
+Home Assistant restart from duplicating or permanently stranding a journey.
+
 ## Dashboards
 
 - **Home** is family-facing and responsive. Its seven views cover the household
