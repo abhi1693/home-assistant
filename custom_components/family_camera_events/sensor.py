@@ -459,6 +459,7 @@ class FamilyCameraActivitySensor(SensorEntity):
         self._camera = camera
         self._attr_name = f"{camera['name']} camera activity"
         self._attr_unique_id = f"family_camera_events_{key}"
+        self.entity_id = camera["activity_entity_id"]
         self._attr_suggested_object_id = camera["activity_entity_id"].removeprefix(
             "sensor."
         )

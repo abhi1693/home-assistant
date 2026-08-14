@@ -1280,6 +1280,51 @@ class BootstrapTests(unittest.TestCase):
         bootstrap.reconcile_google_translate_tts(self.source, self.config)
         self.assertEqual(json.loads(entries_path.read_text()), document)
 
+    def test_camera_activity_entity_ids_are_migrated_to_policy_ids(self):
+        storage = self.config / ".storage"
+        storage.mkdir()
+        registry_path = storage / "core.entity_registry"
+        registry = {
+            "data": {
+                "entities": [
+                    {
+                        "entity_id": "sensor.master_bedroom_camera_activity",
+                        "platform": "family_camera_events",
+                        "unique_id": "family_camera_events_master-bedroom",
+                    },
+                    {
+                        "entity_id": "sensor.unrelated",
+                        "platform": "test",
+                        "unique_id": "unrelated",
+                    },
+                ]
+            }
+        }
+        registry_path.write_text(json.dumps(registry))
+        streams = {
+            "cameras": {
+                "master-bedroom": {
+                    "activity_entity_id": "sensor.family_camera_master_bedroom_activity"
+                }
+            }
+        }
+
+        bootstrap.reconcile_camera_activity_entity_ids(
+            streams, registry_path, registry
+        )
+
+        migrated = json.loads(registry_path.read_text())
+        self.assertEqual(
+            migrated["data"]["entities"][0]["entity_id"],
+            "sensor.family_camera_master_bedroom_activity",
+        )
+        self.assertTrue(
+            (self.config / "backups/core.entity_registry.pre-family-camera-activity-ids").exists()
+        )
+        bootstrap.reconcile_camera_activity_entity_ids(
+            streams, registry_path, migrated
+        )
+
     def test_home_location_reconciles_weather_and_preserves_credentials(self):
         self.write(
             "location/home.json",

@@ -742,6 +742,52 @@ def _camera_keys_for_profile(
     return allowed_keys
 
 
+def reconcile_camera_activity_entity_ids(
+    streams: dict, entity_path: Path, entity_registry: dict
+) -> None:
+    """Keep source-owned Protect activity entities on policy-stable IDs."""
+    entries = entity_registry.get("data", {}).get("entities", [])
+    by_entity_id = {entry.get("entity_id"): entry for entry in entries}
+    changed = False
+    for camera_key, stream in streams.get("cameras", {}).items():
+        expected = stream.get("activity_entity_id")
+        if not expected:
+            continue
+        matches = [
+            entry
+            for entry in entries
+            if entry.get("platform") == "family_camera_events"
+            and entry.get("unique_id") == f"family_camera_events_{camera_key}"
+        ]
+        if len(matches) > 1:
+            raise RuntimeError(
+                f"Camera {camera_key} has duplicate source-owned activity entities"
+            )
+        if not matches or matches[0].get("entity_id") == expected:
+            continue
+        collision = by_entity_id.get(expected)
+        if collision is not None and collision is not matches[0]:
+            raise RuntimeError(
+                f"Camera {camera_key} activity entity ID is already in use"
+            )
+        old_entity_id = matches[0].get("entity_id")
+        matches[0]["entity_id"] = expected
+        by_entity_id.pop(old_entity_id, None)
+        by_entity_id[expected] = matches[0]
+        changed = True
+
+    if not changed:
+        return
+    backup = entity_path.parent.parent / (
+        "backups/core.entity_registry.pre-family-camera-activity-ids"
+    )
+    backup.parent.mkdir(parents=True, exist_ok=True)
+    if not backup.exists():
+        shutil.copy2(entity_path, backup)
+    atomic_json(entity_path, entity_registry)
+    print("Reconciled source-owned camera activity entity IDs")
+
+
 def reconcile_family_access(source: Path, config: Path) -> None:
     """Validate and reconcile Git-owned dashboard users and camera access."""
     access_path = source / "access/family-dashboard.json"
@@ -762,6 +808,10 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     auth = json.loads(auth_path.read_text())
     person = json.loads(person_path.read_text())
     entity_registry = json.loads(entity_path.read_text())
+    if enhanced_camera_policy:
+        reconcile_camera_activity_entity_ids(
+            streams, entity_path, entity_registry
+        )
     users = {item["id"]: item for item in auth["data"]["users"]}
     usernames = {}
     for credential in auth["data"].get("credentials", []):
