@@ -636,7 +636,7 @@ button_card_templates:
     show_label: true
     name: |
       [[[
-        if (variables.traveler) return `${variables.traveler} → Home`;
+        if (variables.traveler) return `${variables.traveler} → ${variables.destination || 'Home'}`;
         return variables.destination || 'Commute';
       ]]]
     icon: |
@@ -1859,7 +1859,7 @@ views:
               - condition: user
                 users: !include ../access/generated/calendar-household-users.json
           - type: heading
-            heading: Coming home
+            heading: Travel times
             heading_style: subtitle
             icon: mdi:home-import-outline
             visibility:
@@ -1876,11 +1876,21 @@ views:
                   - condition: state
                     entity: sensor.family_arrivals_manisha_direction_of_travel
                     state: towards
+                  - condition: state
+                    entity: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
+                    state: towards
+                  - condition: state
+                    entity: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
+                    state: towards
+                  - condition: state
+                    entity: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
+                    state: towards
           - type: custom:button-card
             template: family_commute
             entity: sensor.abhimanyu_to_home
             variables:
               traveler: Abhimanyu
+              destination: Home
               icon: mdi:car-clock
               arrival_eta: true
             visibility:
@@ -1894,6 +1904,7 @@ views:
             entity: sensor.krishna_to_home
             variables:
               traveler: Krishna
+              destination: Home
               icon: mdi:car-clock
               arrival_eta: true
             visibility:
@@ -1907,6 +1918,7 @@ views:
             entity: sensor.manisha_to_home
             variables:
               traveler: Manisha
+              destination: Home
               icon: mdi:car-clock
               arrival_eta: true
             visibility:
@@ -1914,6 +1926,48 @@ views:
                 users: !include ../access/generated/family-members-users.json
               - condition: state
                 entity: sensor.family_arrivals_manisha_direction_of_travel
+                state: towards
+          - type: custom:button-card
+            template: family_commute
+            entity: sensor.abhimanyu_to_manzil_apartment
+            variables:
+              traveler: Abhimanyu
+              destination: Manzil Apartment
+              icon: mdi:home-heart
+              arrival_eta: true
+            visibility:
+              - condition: user
+                users: !include ../access/generated/family-members-users.json
+              - condition: state
+                entity: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
+                state: towards
+          - type: custom:button-card
+            template: family_commute
+            entity: sensor.krishna_to_manzil_apartment
+            variables:
+              traveler: Krishna
+              destination: Manzil Apartment
+              icon: mdi:home-heart
+              arrival_eta: true
+            visibility:
+              - condition: user
+                users: !include ../access/generated/family-members-users.json
+              - condition: state
+                entity: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
+                state: towards
+          - type: custom:button-card
+            template: family_commute
+            entity: sensor.manisha_to_manzil_apartment
+            variables:
+              traveler: Manisha
+              destination: Manzil Apartment
+              icon: mdi:home-heart
+              arrival_eta: true
+            visibility:
+              - condition: user
+                users: !include ../access/generated/family-members-users.json
+              - condition: state
+                entity: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
                 state: towards
           - type: custom:button-card
             template: family_commute
@@ -1928,6 +1982,41 @@ views:
               - condition: state
                 entity: person.abhimanyu_saharan
                 state_not: Work
+              - condition: state
+                entity: binary_sensor.abhimanyu_work_commute_window
+                state: "on"
+          - type: custom:button-card
+            template: family_commute
+            entity: sensor.krishna_to_work
+            variables:
+              destination: Work
+              icon: mdi:briefcase-clock
+              arrival_eta: false
+            visibility:
+              - condition: user
+                users: !include ../access/generated/profile-krishna-users.json
+              - condition: state
+                entity: person.krishna
+                state_not: Krishna Work
+              - condition: state
+                entity: binary_sensor.krishna_work_commute_window
+                state: "on"
+          - type: custom:button-card
+            template: family_commute
+            entity: sensor.manisha_to_work
+            variables:
+              destination: Work
+              icon: mdi:briefcase-clock
+              arrival_eta: false
+            visibility:
+              - condition: user
+                users: !include ../access/generated/profile-manisha-users.json
+              - condition: state
+                entity: person.manisha
+                state_not: Manisha Work
+              - condition: state
+                entity: binary_sensor.manisha_work_commute_window
+                state: "on"
           - type: conditional
             conditions:
               - condition: state
@@ -2416,7 +2505,7 @@ views:
                   label: [{ color: var(--contrast10) }]
             grid_options: { columns: 36, rows: auto }
           - type: heading
-            heading: Coming home
+            heading: Travel times
             heading_style: subtitle
             icon: mdi:home-import-outline
             visibility:
@@ -2431,6 +2520,15 @@ views:
                   - condition: state
                     entity: sensor.family_arrivals_manisha_direction_of_travel
                     state: towards
+                  - condition: state
+                    entity: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
+                    state: towards
+                  - condition: state
+                    entity: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
+                    state: towards
+                  - condition: state
+                    entity: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
+                    state: towards
           - type: grid
             columns: 3
             square: false
@@ -2438,7 +2536,7 @@ views:
               - type: custom:button-card
                 template: family_commute
                 entity: sensor.abhimanyu_to_home
-                variables: { traveler: Abhimanyu, icon: mdi:car-clock, arrival_eta: true }
+                variables: { traveler: Abhimanyu, destination: Home, icon: mdi:car-clock, arrival_eta: true }
                 visibility:
                   - condition: state
                     entity: sensor.family_arrivals_abhimanyu_direction_of_travel
@@ -2446,7 +2544,7 @@ views:
               - type: custom:button-card
                 template: family_commute
                 entity: sensor.manisha_to_home
-                variables: { traveler: Manisha, icon: mdi:car-clock, arrival_eta: true }
+                variables: { traveler: Manisha, destination: Home, icon: mdi:car-clock, arrival_eta: true }
                 visibility:
                   - condition: state
                     entity: sensor.family_arrivals_manisha_direction_of_travel
@@ -2454,10 +2552,34 @@ views:
               - type: custom:button-card
                 template: family_commute
                 entity: sensor.krishna_to_home
-                variables: { traveler: Krishna, icon: mdi:car-clock, arrival_eta: true }
+                variables: { traveler: Krishna, destination: Home, icon: mdi:car-clock, arrival_eta: true }
                 visibility:
                   - condition: state
                     entity: sensor.family_arrivals_krishna_direction_of_travel
+                    state: towards
+              - type: custom:button-card
+                template: family_commute
+                entity: sensor.abhimanyu_to_manzil_apartment
+                variables: { traveler: Abhimanyu, destination: Manzil Apartment, icon: mdi:home-heart, arrival_eta: true }
+                visibility:
+                  - condition: state
+                    entity: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
+                    state: towards
+              - type: custom:button-card
+                template: family_commute
+                entity: sensor.manisha_to_manzil_apartment
+                variables: { traveler: Manisha, destination: Manzil Apartment, icon: mdi:home-heart, arrival_eta: true }
+                visibility:
+                  - condition: state
+                    entity: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
+                    state: towards
+              - type: custom:button-card
+                template: family_commute
+                entity: sensor.krishna_to_manzil_apartment
+                variables: { traveler: Krishna, destination: Manzil Apartment, icon: mdi:home-heart, arrival_eta: true }
+                visibility:
+                  - condition: state
+                    entity: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
                     state: towards
             grid_options: { columns: 36, rows: auto }
           - type: markdown

@@ -38,36 +38,42 @@ and red communicate full/charging, normal, low and critical levels. The Pixel 8,
 Pixel 10 Pro and iPhone level/state entity pairs are recorded in the Git-owned
 family access matrix.
 
-The sidebar has a shared **Coming home** surface for Abhimanyu, Krishna and
+The sidebar has a shared **Travel times** surface for Abhimanyu, Krishna and
 Manisha. Home Assistant's native Proximity integration watches each person's
-GPS direction and only reveals an arrival card while that person is actually
-moving toward Home. Each card shows both remaining traffic-aware drive time and
-the calculated arrival clock; stationary, away-bound and already-home people
-do not produce misleading arrival claims. Abhimanyu additionally sees
-`sensor.abhimanyu_home_to_work`, hidden while his phone is inside the private
-Work zone. Krishna and Manisha also receive private named Work zones so their
-presence state is useful without exposing either workplace location in source.
+GPS direction toward both the primary Home and **Manzil Apartment**, without
+replacing `zone.home`. Destination-labelled cards show remaining traffic-aware
+drive time and the calculated arrival clock only while the person is moving
+toward that residence. If movement initially points toward both homes, both
+route options can remain visible but no destination announcement is made until
+the route unambiguously points to one of them.
+
+Each signed-in family member also gets a private route to their own Work zone.
+Work routes are visible only while the sun is above the horizon, Monday through
+Friday for Abhimanyu and Manisha and Monday through Saturday for Krishna, and
+are hidden while that person is already at Work. Workplace coordinates remain
+runtime-only even though the route cards and schedules are Git-owned.
 
 The Git-owned bootstrap converts the existing Google Travel Time origin to the
 Pixel 8 Companion App tracker, disables duplicate automatic polling, creates
-the family Proximity entry, and derives Abhimanyu's runtime-only Work zone from
-the integration's existing destination. Krishna and Manisha's coordinates are
-supplied to bootstrap by encrypted deployment secrets. The same private Google
-configuration is reused for all three home routes. Its API key and all Work
-coordinates remain in private storage and are never copied into this public
-repository. Home routes call Google only while Proximity reports `towards` and
-valid GPS coordinates are available; they refresh every 20 minutes during that
-journey and immediately when homeward travel is first detected.
+one family Proximity entry per residence, and derives Abhimanyu's runtime-only
+Work zone from the integration's existing destination. Krishna and Manisha's
+coordinates are supplied to bootstrap by encrypted deployment secrets. The
+same private Google configuration is reused for all Home, Manzil Apartment and
+Work routes. Its API key and all Work coordinates remain in private storage and
+are never copied into this public repository. Residence routes call Google
+only while their Proximity entry reports `towards` and valid GPS coordinates
+are available; they refresh every 20 minutes during that journey and
+immediately when travel toward a residence is first detected.
 
-When Abhimanyu's direction first changes to `towards` outside Home, a persistent
-journey helper suppresses duplicate announcements. Home Assistant requests one
-fresh traffic-aware route for every journey. If Krishna or Manisha is home, the
-Kitchen Echo Dot announces the approximate travel time; each family member who
-is away receives the same ETA on their own phone. A native Home-zone entry
-trigger requires Abhimanyu to remain inside for 30 seconds before announcing
-his arrival at home, replacing the ETA notification on away family phones, and
-resetting the helper. The restored helper and startup reconciliation prevent a
-Home Assistant restart from duplicating or permanently stranding a journey.
+When a family member's route unambiguously turns toward either residence, a
+persistent per-person, per-destination helper suppresses duplicate
+announcements and Home Assistant requests a fresh traffic-aware ETA. Other
+family members who are not at that destination receive the ETA through their
+Companion App; arrival after a 30-second zone dwell replaces the journey alert
+under the same notification tag. The Kitchen Echo Dot additionally announces
+journeys to the primary Home when another family member is there. Restored
+helpers and startup reconciliation prevent a restart from duplicating or
+permanently stranding an active journey.
 
 ## Dashboards
 

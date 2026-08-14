@@ -23,18 +23,27 @@
     "home_arrivals": {
       "abhimanyu-saharan": {
         "person_entity_id": "person.abhimanyu_saharan",
+        "to_work_entity_id": "sensor.abhimanyu_home_to_work",
         "to_home_entity_id": "sensor.abhimanyu_to_home",
-        "direction_entity_id": "sensor.family_arrivals_abhimanyu_direction_of_travel"
+        "direction_entity_id": "sensor.family_arrivals_abhimanyu_direction_of_travel",
+        "to_manzil_entity_id": "sensor.abhimanyu_to_manzil_apartment",
+        "manzil_direction_entity_id": "sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel"
       },
       "krishna": {
         "person_entity_id": "person.krishna",
+        "to_work_entity_id": "sensor.krishna_to_work",
         "to_home_entity_id": "sensor.krishna_to_home",
-        "direction_entity_id": "sensor.family_arrivals_krishna_direction_of_travel"
+        "direction_entity_id": "sensor.family_arrivals_krishna_direction_of_travel",
+        "to_manzil_entity_id": "sensor.krishna_to_manzil_apartment",
+        "manzil_direction_entity_id": "sensor.manzil_apartment_arrivals_krishna_direction_of_travel"
       },
       "manisha": {
         "person_entity_id": "person.manisha",
+        "to_work_entity_id": "sensor.manisha_to_work",
         "to_home_entity_id": "sensor.manisha_to_home",
-        "direction_entity_id": "sensor.family_arrivals_manisha_direction_of_travel"
+        "direction_entity_id": "sensor.family_arrivals_manisha_direction_of_travel",
+        "to_manzil_entity_id": "sensor.manisha_to_manzil_apartment",
+        "manzil_direction_entity_id": "sensor.manzil_apartment_arrivals_manisha_direction_of_travel"
       }
     }
   },

@@ -407,15 +407,15 @@ class DashboardStructureTests(unittest.TestCase):
         home_view = home.split("  - title: Home", 1)[1].split(
             "  - title: Rooms", 1
         )[0]
-        commute_work = home_view.rsplit("template: family_commute", 1)[1].split(
-            "          - type: heading", 1
-        )[0]
+        commute_work = home_view.split(
+            "entity: sensor.abhimanyu_home_to_work", 1
+        )[1].split("          - type:", 1)[0]
 
         self.assertIn(
             '"owner_to_work_entity_id": "sensor.abhimanyu_home_to_work"', access
         )
         self.assertIn("family_commute:", home)
-        self.assertIn("heading: Coming home", home_view)
+        self.assertIn("heading: Travel times", home_view)
         self.assertIn("arrival_eta: true", home_view)
         self.assertIn("Date.now() + minutes * 60000", home)
         arrivals = {
@@ -423,19 +423,31 @@ class DashboardStructureTests(unittest.TestCase):
                 "Abhimanyu",
                 "sensor.abhimanyu_to_home",
                 "sensor.family_arrivals_abhimanyu_direction_of_travel",
+                "sensor.abhimanyu_to_manzil_apartment",
+                "sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel",
             ),
             "krishna": (
                 "Krishna",
                 "sensor.krishna_to_home",
                 "sensor.family_arrivals_krishna_direction_of_travel",
+                "sensor.krishna_to_manzil_apartment",
+                "sensor.manzil_apartment_arrivals_krishna_direction_of_travel",
             ),
             "manisha": (
                 "Manisha",
                 "sensor.manisha_to_home",
                 "sensor.family_arrivals_manisha_direction_of_travel",
+                "sensor.manisha_to_manzil_apartment",
+                "sensor.manzil_apartment_arrivals_manisha_direction_of_travel",
             ),
         }
-        for profile_key, (name, route_entity, direction_entity) in arrivals.items():
+        for profile_key, (
+            name,
+            route_entity,
+            direction_entity,
+            manzil_entity,
+            manzil_direction,
+        ) in arrivals.items():
             self.assertIn(f'"{profile_key}": {{', access)
             self.assertIn(f'"to_home_entity_id": "{route_entity}"', access)
             self.assertIn(f'"direction_entity_id": "{direction_entity}"', access)
@@ -447,19 +459,74 @@ class DashboardStructureTests(unittest.TestCase):
             self.assertIn("state: towards", route_card)
             self.assertIn("condition: user", route_card)
             self.assertIn("family-members-users.json", route_card)
+            self.assertIn(f'"to_manzil_entity_id": "{manzil_entity}"', access)
+            self.assertIn(
+                f'"manzil_direction_entity_id": "{manzil_direction}"', access
+            )
+            manzil_card = home_view.split(f"entity: {manzil_entity}", 1)[1].split(
+                "          - type:", 1
+            )[0]
+            self.assertIn(f"traveler: {name}", manzil_card)
+            self.assertIn("destination: Manzil Apartment", manzil_card)
+            self.assertIn(f"entity: {manzil_direction}", manzil_card)
+            self.assertIn("state: towards", manzil_card)
 
-        self.assertIn("entity: sensor.abhimanyu_home_to_work", commute_work)
+        self.assertIn("entity: sensor.abhimanyu_home_to_work", home_view)
         self.assertIn("profile-abhimanyu-saharan-users.json", commute_work)
         self.assertIn("state_not: Work", commute_work)
         self.assertIn("destination: Work", commute_work)
         self.assertIn("mdi:briefcase-clock", home)
         self.assertNotIn("28.4114532", home)
+        self.assertIn("heading: Travel times", home_view)
+        self.assertNotIn("heading: Coming home", home_view)
+
+    def test_work_routes_are_personalized_and_daylight_scheduled(self):
+        commute = (ROOT / "packages/commute.yaml").read_text()
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        home_view = home.split("  - title: Home", 1)[1].split(
+            "  - title: Rooms", 1
+        )[0]
+
+        self.assertEqual(
+            commute.count(
+                "now().weekday() in [0, 1, 2, 3, 4]"
+            ),
+            2,
+        )
+        self.assertEqual(
+            commute.count(
+                "now().weekday() in [0, 1, 2, 3, 4, 5]"
+            ),
+            1,
+        )
+        self.assertEqual(commute.count("is_state('sun.sun', 'above_horizon')"), 3)
+        work_routes = {
+            "abhimanyu-saharan": (
+                "sensor.abhimanyu_home_to_work",
+                "binary_sensor.abhimanyu_work_commute_window",
+            ),
+            "krishna": (
+                "sensor.krishna_to_work",
+                "binary_sensor.krishna_work_commute_window",
+            ),
+            "manisha": (
+                "sensor.manisha_to_work",
+                "binary_sensor.manisha_work_commute_window",
+            ),
+        }
+        for profile, (route, window) in work_routes.items():
+            card = home_view.split(f"entity: {route}", 1)[1].split(
+                "          - type:", 1
+            )[0]
+            self.assertIn(f"profile-{profile}-users.json", card)
+            self.assertIn(f"entity: {window}", card)
+            self.assertIn('state: "on"', card)
 
     def test_abhimanyu_journey_announcements_are_fresh_and_idempotent(self):
         commute = (ROOT / "packages/commute.yaml").read_text()
         automation = commute.split(
             "  - id: household_announce_abhimanyu_homeward_journey", 1
-        )[1].split("\ntemplate:", 1)[0]
+        )[1].split("  - id: household_share_family_journeys", 1)[0]
 
         self.assertIn("abhimanyu_homeward_journey_active:", commute)
         helper = commute.split(
@@ -468,6 +535,11 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("initial:", helper)
         self.assertIn("mode: queued", automation)
         self.assertIn("to: towards", automation)
+        self.assertIn(
+            "sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel",
+            automation,
+        )
+        self.assertIn("from: towards", automation)
         self.assertIn("condition: zone.not_in_zone", automation)
         departure_gate = automation.split("          - conditions:", 1)[1].split(
             "            sequence:", 1
@@ -501,6 +573,37 @@ class DashboardStructureTests(unittest.TestCase):
             automation.count("input_boolean.abhimanyu_homeward_journey_active"),
             5,
         )
+
+    def test_dual_home_journeys_are_destination_aware_for_everyone(self):
+        commute = (ROOT / "packages/commute.yaml").read_text()
+        automation = commute.split(
+            "  - id: household_share_family_journeys", 1
+        )[1].split("\ntemplate:", 1)[0]
+
+        self.assertIn("name: Manzil Apartment", commute)
+        self.assertIn("latitude: 28.5815757", commute)
+        self.assertIn("longitude: 77.0663691", commute)
+        self.assertEqual(commute.count("destination: zone.manzil_apartment"), 3)
+        self.assertIn("script.household_share_family_journey", automation)
+        self.assertIn("home_towards and not manzil_towards", automation)
+        self.assertIn("manzil_towards and not home_towards", automation)
+        self.assertIn('for: "00:00:30"', automation)
+        for helper in (
+            "krishna_homeward_journey_active",
+            "manisha_homeward_journey_active",
+            "abhimanyu_manzil_journey_active",
+            "krishna_manzil_journey_active",
+            "manisha_manzil_journey_active",
+        ):
+            self.assertIn(f"{helper}:", commute)
+        for notification in (
+            "notify.abhimanyu_pixel_8",
+            "notify.pixel_10_pro",
+            "notify.iphone",
+        ):
+            self.assertIn(notification, commute)
+        self.assertNotIn("url: /home-tablet/home", commute)
+        self.assertNotIn("clickAction:", commute)
 
     def test_camera_wall_applies_each_camera_user_gate(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()

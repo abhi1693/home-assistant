@@ -1,7 +1,139 @@
+zone:
+  - name: Manzil Apartment
+    latitude: 28.5815757
+    longitude: 77.0663691
+    radius: 150
+    passive: false
+    icon: mdi:home-heart
+
 input_boolean:
   abhimanyu_homeward_journey_active:
     name: Abhimanyu homeward journey active
     icon: mdi:car-arrow-right
+  krishna_homeward_journey_active:
+    name: Krishna homeward journey active
+    icon: mdi:car-arrow-right
+  manisha_homeward_journey_active:
+    name: Manisha homeward journey active
+    icon: mdi:car-arrow-right
+  abhimanyu_manzil_journey_active:
+    name: Abhimanyu Manzil journey active
+    icon: mdi:car-arrow-right
+  krishna_manzil_journey_active:
+    name: Krishna Manzil journey active
+    icon: mdi:car-arrow-right
+  manisha_manzil_journey_active:
+    name: Manisha Manzil journey active
+    icon: mdi:car-arrow-right
+
+script:
+  household_share_family_journey:
+    alias: Household · Share family journey
+    description: Notify family members who are away and announce arrivals to the primary Home speaker.
+    mode: parallel
+    max: 10
+    fields:
+      traveler_key:
+        required: true
+      traveler_name:
+        required: true
+      destination_entity:
+        required: true
+      destination_name:
+        required: true
+      destination_state:
+        required: true
+      destination_slug:
+        required: true
+      stage:
+        required: true
+      minutes:
+        required: false
+    sequence:
+      - variables:
+          journey_title: >-
+            {{ traveler_name ~ (' is coming to ' if stage == 'departure' else ' arrived at ')
+               ~ destination_name }}
+          journey_message: >-
+            {% if stage == 'departure' %}
+              Current travel time is approximately {{ minutes | int }} minutes.
+            {% else %}
+              {{ traveler_name }} is at {{ destination_name }}.
+            {% endif %}
+          journey_spoken: >-
+            {% if stage == 'departure' %}
+              {{ traveler_name }} has left for {{ destination_name }}. Current travel time is
+              approximately {{ minutes | int }} minutes.
+            {% else %}
+              {{ traveler_name }} is at {{ destination_name }}.
+            {% endif %}
+          journey_tag: >-
+            family-journey-{{ traveler_key }}-{{ destination_slug }}
+      - parallel:
+          - if:
+              - condition: template
+                value_template: >-
+                  {{ destination_entity == 'zone.home'
+                     and ((traveler_key != 'abhimanyu-saharan' and is_state('person.abhimanyu_saharan', 'home'))
+                       or (traveler_key != 'krishna' and is_state('person.krishna', 'home'))
+                       or (traveler_key != 'manisha' and is_state('person.manisha', 'home'))) }}
+              - condition: not
+                conditions:
+                  - condition: state
+                    entity_id: notify.abhimanyu_s_echo_dot_announce
+                    state: unavailable
+            then:
+              - action: notify.send_message
+                target:
+                  entity_id: notify.abhimanyu_s_echo_dot_announce
+                data:
+                  message: "{{ journey_spoken }}"
+                continue_on_error: true
+          - if:
+              - condition: template
+                value_template: >-
+                  {{ traveler_key != 'abhimanyu-saharan'
+                     and states('person.abhimanyu_saharan') != destination_state }}
+            then:
+              - action: notify.send_message
+                target:
+                  entity_id: notify.abhimanyu_pixel_8
+                data:
+                  title: "{{ journey_title }}"
+                  message: "{{ journey_message }}"
+                  data:
+                    tag: "{{ journey_tag }}"
+                continue_on_error: true
+          - if:
+              - condition: template
+                value_template: >-
+                  {{ traveler_key != 'krishna'
+                     and states('person.krishna') != destination_state }}
+            then:
+              - action: notify.send_message
+                target:
+                  entity_id: notify.pixel_10_pro
+                data:
+                  title: "{{ journey_title }}"
+                  message: "{{ journey_message }}"
+                  data:
+                    tag: "{{ journey_tag }}"
+                continue_on_error: true
+          - if:
+              - condition: template
+                value_template: >-
+                  {{ traveler_key != 'manisha'
+                     and states('person.manisha') != destination_state }}
+            then:
+              - action: notify.send_message
+                target:
+                  entity_id: notify.iphone
+                data:
+                  title: "{{ journey_title }}"
+                  message: "{{ journey_message }}"
+                  data:
+                    tag: "{{ journey_tag }}"
+                continue_on_error: true
 
 automation:
   - id: household_announce_abhimanyu_homeward_journey
@@ -15,6 +147,11 @@ automation:
         to: towards
         id: departure
         note: A direction change starts the journey only after the outside-Home condition is confirmed.
+      - trigger: state
+        entity_id: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
+        from: towards
+        id: departure
+        note: Re-evaluate Home when a previously ambiguous dual-home direction becomes clear.
       - trigger: zone.entered
         target:
           entity_id: person.abhimanyu_saharan
@@ -37,6 +174,14 @@ automation:
                   entity_id: person.abhimanyu_saharan
                 options:
                   zone: zone.home
+              - condition: state
+                entity_id: sensor.family_arrivals_abhimanyu_direction_of_travel
+                state: towards
+              - condition: not
+                conditions:
+                  - condition: state
+                    entity_id: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
+                    state: towards
               - condition: state
                 entity_id: input_boolean.abhimanyu_homeward_journey_active
                 state: "off"
@@ -261,7 +406,296 @@ automation:
                   entity_id: input_boolean.abhimanyu_homeward_journey_active
                 note: Clear a restored journey after the startup arrival confirmation.
 
+  - id: household_share_family_journeys
+    alias: Household · Share family journeys
+    description: Share unambiguous journeys to either family home and confirm arrival after 30 seconds.
+    mode: queued
+    max: 6
+    triggers:
+      - trigger: state
+        entity_id:
+          - sensor.family_arrivals_abhimanyu_direction_of_travel
+          - sensor.family_arrivals_krishna_direction_of_travel
+          - sensor.family_arrivals_manisha_direction_of_travel
+          - sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
+          - sensor.manzil_apartment_arrivals_krishna_direction_of_travel
+          - sensor.manzil_apartment_arrivals_manisha_direction_of_travel
+        id: departure
+      - trigger: zone.entered
+        target:
+          entity_id: person.krishna
+        options:
+          zone: zone.home
+          for: "00:00:30"
+        id: arrival_krishna_home
+      - trigger: zone.entered
+        target:
+          entity_id: person.manisha
+        options:
+          zone: zone.home
+          for: "00:00:30"
+        id: arrival_manisha_home
+      - trigger: zone.entered
+        target:
+          entity_id: person.abhimanyu_saharan
+        options:
+          zone: zone.manzil_apartment
+          for: "00:00:30"
+        id: arrival_abhimanyu_manzil
+      - trigger: zone.entered
+        target:
+          entity_id: person.krishna
+        options:
+          zone: zone.manzil_apartment
+          for: "00:00:30"
+        id: arrival_krishna_manzil
+      - trigger: zone.entered
+        target:
+          entity_id: person.manisha
+        options:
+          zone: zone.manzil_apartment
+          for: "00:00:30"
+        id: arrival_manisha_manzil
+      - trigger: homeassistant
+        event: start
+        id: reconcile
+    actions:
+      - choose:
+          - conditions:
+              - condition: trigger
+                id: departure
+            sequence:
+              - variables:
+                  traveler_key: >-
+                    {% if 'abhimanyu' in trigger.entity_id %}abhimanyu-saharan
+                    {% elif 'krishna' in trigger.entity_id %}krishna
+                    {% elif 'manisha' in trigger.entity_id %}manisha
+                    {% endif %}
+                  traveler_name: >-
+                    {{ {'abhimanyu-saharan': 'Abhimanyu', 'krishna': 'Krishna',
+                        'manisha': 'Manisha'}.get(traveler_key, '') }}
+                  person_entity: >-
+                    {{ {'abhimanyu-saharan': 'person.abhimanyu_saharan',
+                        'krishna': 'person.krishna', 'manisha': 'person.manisha'}.get(traveler_key, '') }}
+                  origin_entity: >-
+                    {{ {'abhimanyu-saharan': 'device_tracker.abhimanyu_pixel_8_2',
+                        'krishna': 'device_tracker.pixel_10_pro_2',
+                        'manisha': 'device_tracker.iphone'}.get(traveler_key, '') }}
+                  home_direction: >-
+                    {{ {'abhimanyu-saharan': 'sensor.family_arrivals_abhimanyu_direction_of_travel',
+                        'krishna': 'sensor.family_arrivals_krishna_direction_of_travel',
+                        'manisha': 'sensor.family_arrivals_manisha_direction_of_travel'}.get(traveler_key, '') }}
+                  manzil_direction: >-
+                    {{ {'abhimanyu-saharan': 'sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel',
+                        'krishna': 'sensor.manzil_apartment_arrivals_krishna_direction_of_travel',
+                        'manisha': 'sensor.manzil_apartment_arrivals_manisha_direction_of_travel'}.get(traveler_key, '') }}
+              - variables:
+                  destination_slug: >-
+                    {% set home_towards = is_state(home_direction, 'towards') %}
+                    {% set manzil_towards = is_state(manzil_direction, 'towards') %}
+                    {% if home_towards and not manzil_towards and traveler_key != 'abhimanyu-saharan' %}home
+                    {% elif manzil_towards and not home_towards %}manzil-apartment
+                    {% endif %}
+              - condition: template
+                value_template: "{{ destination_slug in ['home', 'manzil-apartment'] }}"
+              - variables:
+                  destination_entity: >-
+                    {{ 'zone.home' if destination_slug == 'home' else 'zone.manzil_apartment' }}
+                  destination_name: >-
+                    {{ 'Home' if destination_slug == 'home' else 'Manzil Apartment' }}
+                  destination_state: >-
+                    {{ 'home' if destination_slug == 'home' else 'Manzil Apartment' }}
+                  journey_helper: >-
+                    {{ {
+                      'krishna:home': 'input_boolean.krishna_homeward_journey_active',
+                      'manisha:home': 'input_boolean.manisha_homeward_journey_active',
+                      'abhimanyu-saharan:manzil-apartment': 'input_boolean.abhimanyu_manzil_journey_active',
+                      'krishna:manzil-apartment': 'input_boolean.krishna_manzil_journey_active',
+                      'manisha:manzil-apartment': 'input_boolean.manisha_manzil_journey_active'
+                    }.get(traveler_key ~ ':' ~ destination_slug, '') }}
+                  other_helper: >-
+                    {{ {
+                      'krishna:home': 'input_boolean.krishna_manzil_journey_active',
+                      'manisha:home': 'input_boolean.manisha_manzil_journey_active',
+                      'abhimanyu-saharan:manzil-apartment': 'input_boolean.abhimanyu_homeward_journey_active',
+                      'krishna:manzil-apartment': 'input_boolean.krishna_homeward_journey_active',
+                      'manisha:manzil-apartment': 'input_boolean.manisha_homeward_journey_active'
+                    }.get(traveler_key ~ ':' ~ destination_slug, '') }}
+              - condition: template
+                value_template: >-
+                  {{ journey_helper != '' and is_state(journey_helper, 'off')
+                     and states(person_entity) != destination_state }}
+              - action: google_travel_time.get_travel_times
+                data:
+                  config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
+                  origin: "{{ origin_entity }}"
+                  destination: "{{ destination_entity }}"
+                  mode: driving
+                  units: metric
+                  traffic_model: best_guess
+                response_variable: departure_travel
+              - variables:
+                  departure_routes: "{{ departure_travel.get('routes', []) }}"
+                  departure_minutes: >-
+                    {{ ((departure_routes[0].duration | float(0)) / 60)
+                       | round(0, 'ceil') | int if departure_routes else 0 }}
+              - condition: template
+                value_template: "{{ departure_minutes | int(0) > 0 }}"
+              - action: input_boolean.turn_off
+                target:
+                  entity_id: "{{ other_helper }}"
+              - action: input_boolean.turn_on
+                target:
+                  entity_id: "{{ journey_helper }}"
+              - action: script.household_share_family_journey
+                data:
+                  traveler_key: "{{ traveler_key }}"
+                  traveler_name: "{{ traveler_name }}"
+                  destination_entity: "{{ destination_entity }}"
+                  destination_name: "{{ destination_name }}"
+                  destination_state: "{{ destination_state }}"
+                  destination_slug: "{{ destination_slug }}"
+                  stage: departure
+                  minutes: "{{ departure_minutes }}"
+          - conditions:
+              - condition: trigger
+                id:
+                  - arrival_krishna_home
+                  - arrival_manisha_home
+                  - arrival_abhimanyu_manzil
+                  - arrival_krishna_manzil
+                  - arrival_manisha_manzil
+            sequence:
+              - variables:
+                  arrival_key: "{{ trigger.id | replace('arrival_', '') }}"
+                  traveler_key: >-
+                    {% if 'abhimanyu' in arrival_key %}abhimanyu-saharan
+                    {% elif 'krishna' in arrival_key %}krishna
+                    {% elif 'manisha' in arrival_key %}manisha
+                    {% endif %}
+                  traveler_name: >-
+                    {{ {'abhimanyu-saharan': 'Abhimanyu', 'krishna': 'Krishna',
+                        'manisha': 'Manisha'}.get(traveler_key, '') }}
+                  destination_slug: >-
+                    {{ 'manzil-apartment' if arrival_key.endswith('_manzil') else 'home' }}
+              - variables:
+                  destination_entity: >-
+                    {{ 'zone.home' if destination_slug == 'home' else 'zone.manzil_apartment' }}
+                  destination_name: >-
+                    {{ 'Home' if destination_slug == 'home' else 'Manzil Apartment' }}
+                  destination_state: >-
+                    {{ 'home' if destination_slug == 'home' else 'Manzil Apartment' }}
+                  journey_helper: >-
+                    {{ {
+                      'krishna:home': 'input_boolean.krishna_homeward_journey_active',
+                      'manisha:home': 'input_boolean.manisha_homeward_journey_active',
+                      'abhimanyu-saharan:manzil-apartment': 'input_boolean.abhimanyu_manzil_journey_active',
+                      'krishna:manzil-apartment': 'input_boolean.krishna_manzil_journey_active',
+                      'manisha:manzil-apartment': 'input_boolean.manisha_manzil_journey_active'
+                    }.get(traveler_key ~ ':' ~ destination_slug, '') }}
+              - condition: template
+                value_template: "{{ journey_helper != '' and is_state(journey_helper, 'on') }}"
+              - action: script.household_share_family_journey
+                data:
+                  traveler_key: "{{ traveler_key }}"
+                  traveler_name: "{{ traveler_name }}"
+                  destination_entity: "{{ destination_entity }}"
+                  destination_name: "{{ destination_name }}"
+                  destination_state: "{{ destination_state }}"
+                  destination_slug: "{{ destination_slug }}"
+                  stage: arrival
+              - action: input_boolean.turn_off
+                target:
+                  entity_id: "{{ journey_helper }}"
+          - conditions:
+              - condition: trigger
+                id: reconcile
+            sequence:
+              - delay: "00:00:30"
+              - repeat:
+                  for_each:
+                    - traveler_key: krishna
+                      traveler_name: Krishna
+                      person_entity: person.krishna
+                      destination_entity: zone.home
+                      destination_name: Home
+                      destination_state: home
+                      destination_slug: home
+                      helper: input_boolean.krishna_homeward_journey_active
+                    - traveler_key: manisha
+                      traveler_name: Manisha
+                      person_entity: person.manisha
+                      destination_entity: zone.home
+                      destination_name: Home
+                      destination_state: home
+                      destination_slug: home
+                      helper: input_boolean.manisha_homeward_journey_active
+                    - traveler_key: abhimanyu-saharan
+                      traveler_name: Abhimanyu
+                      person_entity: person.abhimanyu_saharan
+                      destination_entity: zone.manzil_apartment
+                      destination_name: Manzil Apartment
+                      destination_state: Manzil Apartment
+                      destination_slug: manzil-apartment
+                      helper: input_boolean.abhimanyu_manzil_journey_active
+                    - traveler_key: krishna
+                      traveler_name: Krishna
+                      person_entity: person.krishna
+                      destination_entity: zone.manzil_apartment
+                      destination_name: Manzil Apartment
+                      destination_state: Manzil Apartment
+                      destination_slug: manzil-apartment
+                      helper: input_boolean.krishna_manzil_journey_active
+                    - traveler_key: manisha
+                      traveler_name: Manisha
+                      person_entity: person.manisha
+                      destination_entity: zone.manzil_apartment
+                      destination_name: Manzil Apartment
+                      destination_state: Manzil Apartment
+                      destination_slug: manzil-apartment
+                      helper: input_boolean.manisha_manzil_journey_active
+                  sequence:
+                    - if:
+                        - condition: template
+                          value_template: >-
+                            {{ is_state(repeat.item.helper, 'on')
+                               and is_state(repeat.item.person_entity,
+                                            repeat.item.destination_state) }}
+                      then:
+                        - action: script.household_share_family_journey
+                          data:
+                            traveler_key: "{{ repeat.item.traveler_key }}"
+                            traveler_name: "{{ repeat.item.traveler_name }}"
+                            destination_entity: "{{ repeat.item.destination_entity }}"
+                            destination_name: "{{ repeat.item.destination_name }}"
+                            destination_state: "{{ repeat.item.destination_state }}"
+                            destination_slug: "{{ repeat.item.destination_slug }}"
+                            stage: arrival
+                        - action: input_boolean.turn_off
+                          target:
+                            entity_id: "{{ repeat.item.helper }}"
+
 template:
+  - binary_sensor:
+      - name: Abhimanyu work commute window
+        unique_id: abhimanyu_work_commute_window
+        default_entity_id: binary_sensor.abhimanyu_work_commute_window
+        icon: mdi:briefcase-clock
+        state: >-
+          {{ is_state('sun.sun', 'above_horizon') and now().weekday() in [0, 1, 2, 3, 4] }}
+      - name: Krishna work commute window
+        unique_id: krishna_work_commute_window
+        default_entity_id: binary_sensor.krishna_work_commute_window
+        icon: mdi:briefcase-clock
+        state: >-
+          {{ is_state('sun.sun', 'above_horizon') and now().weekday() in [0, 1, 2, 3, 4, 5] }}
+      - name: Manisha work commute window
+        unique_id: manisha_work_commute_window
+        default_entity_id: binary_sensor.manisha_work_commute_window
+        icon: mdi:briefcase-clock
+        state: >-
+          {{ is_state('sun.sun', 'above_horizon') and now().weekday() in [0, 1, 2, 3, 4] }}
+
   - triggers:
       - trigger: homeassistant
         event: start
@@ -292,6 +726,9 @@ template:
               - condition: state
                 entity_id: person.abhimanyu_saharan
                 state: Work
+          - condition: state
+            entity_id: binary_sensor.abhimanyu_work_commute_window
+            state: "on"
         then:
           - action: homeassistant.update_entity
             target:
@@ -359,6 +796,255 @@ template:
             {{ routes[0].duration_text if routes else none }}
           static_time: >-
             {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+            {{ routes[0].static_duration_text if routes else none }}
+
+  - triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: time_pattern
+        minutes: "/20"
+      - trigger: state
+        entity_id: person.abhimanyu_saharan
+        from: Manzil Apartment
+      - trigger: state
+        entity_id: person.abhimanyu_saharan
+        to: Manzil Apartment
+      - trigger: state
+        entity_id: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
+        to: towards
+      - trigger: state
+        entity_id: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
+        from: towards
+    actions:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: person.abhimanyu_saharan
+                state: Manzil Apartment
+            sequence:
+              - variables:
+                  travel_manzil:
+                    routes:
+                      - duration: 0
+                        duration_text: 0 min
+                        static_duration_text: 0 min
+                        distance_meters: 0
+                        distance_text: 0 km
+          - conditions:
+              - condition: state
+                entity_id: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
+                state: towards
+              - condition: numeric_state
+                entity_id: device_tracker.abhimanyu_pixel_8_2
+                attribute: latitude
+                above: -91
+                below: 91
+              - condition: numeric_state
+                entity_id: device_tracker.abhimanyu_pixel_8_2
+                attribute: longitude
+                above: -181
+                below: 181
+            sequence:
+              - action: google_travel_time.get_travel_times
+                data:
+                  config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
+                  origin: device_tracker.abhimanyu_pixel_8_2
+                  destination: zone.manzil_apartment
+                  mode: driving
+                  units: metric
+                  traffic_model: best_guess
+                response_variable: travel_manzil
+        default:
+          - variables:
+              travel_manzil:
+                routes: []
+    sensor:
+      - name: Abhimanyu to Manzil Apartment
+        unique_id: abhimanyu_to_manzil_apartment
+        default_entity_id: sensor.abhimanyu_to_manzil_apartment
+        device_class: duration
+        state_class: measurement
+        unit_of_measurement: min
+        availability: >-
+          {{ travel_manzil is defined and travel_manzil.get('routes', []) | count > 0 }}
+        state: >-
+          {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
+          {{ (routes[0].duration | float(0) / 60) | round(1) if routes else none }}
+        attributes:
+          distance: >-
+            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
+            {{ routes[0].distance_text if routes else none }}
+          traffic_time: >-
+            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
+            {{ routes[0].duration_text if routes else none }}
+          static_time: >-
+            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
+            {{ routes[0].static_duration_text if routes else none }}
+
+  - triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: time_pattern
+        minutes: "/20"
+      - trigger: state
+        entity_id: person.krishna
+        from: Manzil Apartment
+      - trigger: state
+        entity_id: person.krishna
+        to: Manzil Apartment
+      - trigger: state
+        entity_id: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
+        to: towards
+      - trigger: state
+        entity_id: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
+        from: towards
+    actions:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: person.krishna
+                state: Manzil Apartment
+            sequence:
+              - variables:
+                  travel_manzil:
+                    routes:
+                      - duration: 0
+                        duration_text: 0 min
+                        static_duration_text: 0 min
+                        distance_meters: 0
+                        distance_text: 0 km
+          - conditions:
+              - condition: state
+                entity_id: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
+                state: towards
+              - condition: numeric_state
+                entity_id: device_tracker.pixel_10_pro_2
+                attribute: latitude
+                above: -91
+                below: 91
+              - condition: numeric_state
+                entity_id: device_tracker.pixel_10_pro_2
+                attribute: longitude
+                above: -181
+                below: 181
+            sequence:
+              - action: google_travel_time.get_travel_times
+                data:
+                  config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
+                  origin: device_tracker.pixel_10_pro_2
+                  destination: zone.manzil_apartment
+                  mode: driving
+                  units: metric
+                  traffic_model: best_guess
+                response_variable: travel_manzil
+        default:
+          - variables:
+              travel_manzil:
+                routes: []
+    sensor:
+      - name: Krishna to Manzil Apartment
+        unique_id: krishna_to_manzil_apartment
+        default_entity_id: sensor.krishna_to_manzil_apartment
+        device_class: duration
+        state_class: measurement
+        unit_of_measurement: min
+        availability: >-
+          {{ travel_manzil is defined and travel_manzil.get('routes', []) | count > 0 }}
+        state: >-
+          {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
+          {{ (routes[0].duration | float(0) / 60) | round(1) if routes else none }}
+        attributes:
+          distance: >-
+            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
+            {{ routes[0].distance_text if routes else none }}
+          traffic_time: >-
+            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
+            {{ routes[0].duration_text if routes else none }}
+          static_time: >-
+            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
+            {{ routes[0].static_duration_text if routes else none }}
+
+  - triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: time_pattern
+        minutes: "/20"
+      - trigger: state
+        entity_id: person.manisha
+        from: Manzil Apartment
+      - trigger: state
+        entity_id: person.manisha
+        to: Manzil Apartment
+      - trigger: state
+        entity_id: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
+        to: towards
+      - trigger: state
+        entity_id: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
+        from: towards
+    actions:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: person.manisha
+                state: Manzil Apartment
+            sequence:
+              - variables:
+                  travel_manzil:
+                    routes:
+                      - duration: 0
+                        duration_text: 0 min
+                        static_duration_text: 0 min
+                        distance_meters: 0
+                        distance_text: 0 km
+          - conditions:
+              - condition: state
+                entity_id: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
+                state: towards
+              - condition: numeric_state
+                entity_id: device_tracker.iphone
+                attribute: latitude
+                above: -91
+                below: 91
+              - condition: numeric_state
+                entity_id: device_tracker.iphone
+                attribute: longitude
+                above: -181
+                below: 181
+            sequence:
+              - action: google_travel_time.get_travel_times
+                data:
+                  config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
+                  origin: device_tracker.iphone
+                  destination: zone.manzil_apartment
+                  mode: driving
+                  units: metric
+                  traffic_model: best_guess
+                response_variable: travel_manzil
+        default:
+          - variables:
+              travel_manzil:
+                routes: []
+    sensor:
+      - name: Manisha to Manzil Apartment
+        unique_id: manisha_to_manzil_apartment
+        default_entity_id: sensor.manisha_to_manzil_apartment
+        device_class: duration
+        state_class: measurement
+        unit_of_measurement: min
+        availability: >-
+          {{ travel_manzil is defined and travel_manzil.get('routes', []) | count > 0 }}
+        state: >-
+          {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
+          {{ (routes[0].duration | float(0) / 60) | round(1) if routes else none }}
+        attributes:
+          distance: >-
+            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
+            {{ routes[0].distance_text if routes else none }}
+          traffic_time: >-
+            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
+            {{ routes[0].duration_text if routes else none }}
+          static_time: >-
+            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
             {{ routes[0].static_duration_text if routes else none }}
 
   - triggers:
@@ -525,4 +1211,162 @@ template:
             {{ routes[0].duration_text if routes else none }}
           static_time: >-
             {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
+            {{ routes[0].static_duration_text if routes else none }}
+
+  - triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: time_pattern
+        minutes: "/20"
+      - trigger: state
+        entity_id: binary_sensor.krishna_work_commute_window
+      - trigger: state
+        entity_id: person.krishna
+        to: Krishna Work
+      - trigger: state
+        entity_id: person.krishna
+        from: Krishna Work
+    actions:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: person.krishna
+                state: Krishna Work
+            sequence:
+              - variables:
+                  travel_work:
+                    routes:
+                      - duration: 0
+                        duration_text: 0 min
+                        static_duration_text: 0 min
+                        distance_meters: 0
+                        distance_text: 0 km
+          - conditions:
+              - condition: state
+                entity_id: binary_sensor.krishna_work_commute_window
+                state: "on"
+              - condition: numeric_state
+                entity_id: device_tracker.pixel_10_pro_2
+                attribute: latitude
+                above: -91
+                below: 91
+              - condition: numeric_state
+                entity_id: device_tracker.pixel_10_pro_2
+                attribute: longitude
+                above: -181
+                below: 181
+            sequence:
+              - action: google_travel_time.get_travel_times
+                data:
+                  config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
+                  origin: device_tracker.pixel_10_pro_2
+                  destination: zone.krishna_work
+                  mode: driving
+                  units: metric
+                  traffic_model: best_guess
+                response_variable: travel_work
+        default:
+          - variables:
+              travel_work:
+                routes: []
+    sensor:
+      - name: Krishna to Work
+        unique_id: krishna_to_work
+        default_entity_id: sensor.krishna_to_work
+        device_class: duration
+        state_class: measurement
+        unit_of_measurement: min
+        availability: >-
+          {{ travel_work is defined and travel_work.get('routes', []) | count > 0 }}
+        state: >-
+          {% set routes = travel_work.get('routes', []) if travel_work is defined else [] %}
+          {{ (routes[0].duration | float(0) / 60) | round(1) if routes else none }}
+        attributes:
+          distance: >-
+            {% set routes = travel_work.get('routes', []) if travel_work is defined else [] %}
+            {{ routes[0].distance_text if routes else none }}
+          traffic_time: >-
+            {% set routes = travel_work.get('routes', []) if travel_work is defined else [] %}
+            {{ routes[0].duration_text if routes else none }}
+          static_time: >-
+            {% set routes = travel_work.get('routes', []) if travel_work is defined else [] %}
+            {{ routes[0].static_duration_text if routes else none }}
+
+  - triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: time_pattern
+        minutes: "/20"
+      - trigger: state
+        entity_id: binary_sensor.manisha_work_commute_window
+      - trigger: state
+        entity_id: person.manisha
+        to: Manisha Work
+      - trigger: state
+        entity_id: person.manisha
+        from: Manisha Work
+    actions:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: person.manisha
+                state: Manisha Work
+            sequence:
+              - variables:
+                  travel_work:
+                    routes:
+                      - duration: 0
+                        duration_text: 0 min
+                        static_duration_text: 0 min
+                        distance_meters: 0
+                        distance_text: 0 km
+          - conditions:
+              - condition: state
+                entity_id: binary_sensor.manisha_work_commute_window
+                state: "on"
+              - condition: numeric_state
+                entity_id: device_tracker.iphone
+                attribute: latitude
+                above: -91
+                below: 91
+              - condition: numeric_state
+                entity_id: device_tracker.iphone
+                attribute: longitude
+                above: -181
+                below: 181
+            sequence:
+              - action: google_travel_time.get_travel_times
+                data:
+                  config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
+                  origin: device_tracker.iphone
+                  destination: zone.manisha_work
+                  mode: driving
+                  units: metric
+                  traffic_model: best_guess
+                response_variable: travel_work
+        default:
+          - variables:
+              travel_work:
+                routes: []
+    sensor:
+      - name: Manisha to Work
+        unique_id: manisha_to_work
+        default_entity_id: sensor.manisha_to_work
+        device_class: duration
+        state_class: measurement
+        unit_of_measurement: min
+        availability: >-
+          {{ travel_work is defined and travel_work.get('routes', []) | count > 0 }}
+        state: >-
+          {% set routes = travel_work.get('routes', []) if travel_work is defined else [] %}
+          {{ (routes[0].duration | float(0) / 60) | round(1) if routes else none }}
+        attributes:
+          distance: >-
+            {% set routes = travel_work.get('routes', []) if travel_work is defined else [] %}
+            {{ routes[0].distance_text if routes else none }}
+          traffic_time: >-
+            {% set routes = travel_work.get('routes', []) if travel_work is defined else [] %}
+            {{ routes[0].duration_text if routes else none }}
+          static_time: >-
+            {% set routes = travel_work.get('routes', []) if travel_work is defined else [] %}
             {{ routes[0].static_duration_text if routes else none }}

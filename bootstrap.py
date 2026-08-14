@@ -1223,14 +1223,14 @@ def reconcile_commute(source: Path, config: Path) -> None:
     """Make the private commute entry follow the owner's GPS tracker."""
     desired_path = source / "location/commute.json"
     desired = json.loads(desired_path.read_text())
-    if desired.get("version") != 1:
+    if desired.get("version") != 2:
         raise RuntimeError("Unsupported commute configuration")
 
     config_entry_id = desired.get("config_entry_id")
     tracker_entity_id = desired.get("tracker_entity_id")
     to_work_entity_id = desired.get("to_work_entity_id")
     home_routes = desired.get("home_routes")
-    proximity = desired.get("proximity", {})
+    proximities = desired.get("proximities", [])
     zone = desired.get("work_zone", {})
     private_work_zones = desired.get("private_work_zones", [])
     if (
@@ -1241,11 +1241,8 @@ def reconcile_commute(source: Path, config: Path) -> None:
         or not to_work_entity_id.startswith("sensor.")
         or not isinstance(home_routes, list)
         or len(home_routes) != 3
-        or not isinstance(proximity.get("entry_id"), str)
-        or proximity.get("title") != "Family arrivals"
-        or proximity.get("zone_entity_id") != "zone.home"
-        or not isinstance(proximity.get("tolerance"), int)
-        or not 1 <= proximity["tolerance"] <= 100
+        or not isinstance(proximities, list)
+        or len(proximities) != 2
         or zone.get("id") != "work"
         or zone.get("name") != "Work"
         or not isinstance(zone.get("radius"), (int, float))
@@ -1255,6 +1252,35 @@ def reconcile_commute(source: Path, config: Path) -> None:
         or len(private_work_zones) != 2
     ):
         raise RuntimeError("Commute configuration is invalid")
+
+    expected_proximities = {
+        "zone.home": "Family arrivals",
+        "zone.manzil_apartment": "Manzil Apartment arrivals",
+    }
+    proximity_ids = set()
+    proximity_zones = set()
+    for proximity in proximities:
+        if (
+            not isinstance(proximity, dict)
+            or not isinstance(proximity.get("entry_id"), str)
+            or not isinstance(proximity.get("title"), str)
+            or not isinstance(proximity.get("zone_entity_id"), str)
+            or not isinstance(proximity.get("tolerance"), int)
+            or not 1 <= proximity["tolerance"] <= 100
+        ):
+            raise RuntimeError("Family proximity configuration is invalid")
+        proximity_ids.add(proximity["entry_id"])
+        proximity_zones.add(proximity["zone_entity_id"])
+        if (
+            expected_proximities.get(proximity["zone_entity_id"])
+            != proximity["title"]
+        ):
+            raise RuntimeError("Family proximity destination is invalid")
+    if (
+        len(proximity_ids) != len(proximities)
+        or proximity_zones != set(expected_proximities)
+    ):
+        raise RuntimeError("Family proximity destinations must be unique")
 
     resolved_private_zones = []
     private_profiles = set()
@@ -1356,6 +1382,8 @@ def reconcile_commute(source: Path, config: Path) -> None:
         route_tracker_id = route.get("tracker_entity_id")
         to_home_entity_id = route.get("to_home_entity_id")
         direction_entity_id = route.get("direction_entity_id")
+        to_manzil_entity_id = route.get("to_manzil_entity_id")
+        manzil_direction_entity_id = route.get("manzil_direction_entity_id")
         route_tracker = entities.get(route_tracker_id)
         person_entity = entities.get(person_entity_id)
         if (
@@ -1372,17 +1400,30 @@ def reconcile_commute(source: Path, config: Path) -> None:
             or not to_home_entity_id.startswith("sensor.")
             or not isinstance(direction_entity_id, str)
             or not direction_entity_id.startswith("sensor.family_arrivals_")
+            or not isinstance(to_manzil_entity_id, str)
+            or not to_manzil_entity_id.startswith("sensor.")
+            or not isinstance(manzil_direction_entity_id, str)
+            or not manzil_direction_entity_id.startswith(
+                "sensor.manzil_apartment_arrivals_"
+            )
         ):
             raise RuntimeError(f"Home commute route {profile_key!r} is invalid")
         route_profiles.add(profile_key)
         route_people.add(person_entity_id)
         route_trackers.add(route_tracker_id)
-        route_sensors.update((to_home_entity_id, direction_entity_id))
+        route_sensors.update(
+            (
+                to_home_entity_id,
+                direction_entity_id,
+                to_manzil_entity_id,
+                manzil_direction_entity_id,
+            )
+        )
     if (
         len(route_profiles) != len(home_routes)
         or len(route_people) != len(home_routes)
         or len(route_trackers) != len(home_routes)
-        or len(route_sensors) != len(home_routes) * 2
+        or len(route_sensors) != len(home_routes) * 4
         or tracker_entity_id not in route_trackers
     ):
         raise RuntimeError("Home commute routes must be unique")
@@ -1395,56 +1436,62 @@ def reconcile_commute(source: Path, config: Path) -> None:
         entry["pref_disable_polling"] = True
         changed = True
 
-    proximity_entries = [
-        item
-        for item in entries_document.get("data", {}).get("entries", [])
-        if item.get("domain") == "proximity"
-        and (
-            item.get("entry_id") == proximity["entry_id"]
-            or item.get("data", {}).get("zone") == proximity["zone_entity_id"]
-        )
-    ]
-    if len(proximity_entries) > 1 or (
-        proximity_entries
-        and proximity_entries[0].get("entry_id") != proximity["entry_id"]
-    ):
-        raise RuntimeError("A different Home proximity entry already exists")
-    proximity_data = {
-        "zone": proximity["zone_entity_id"],
-        "tracked_entities": [route["person_entity_id"] for route in home_routes],
-        "ignored_zones": [],
-        "tolerance": proximity["tolerance"],
-    }
-    if proximity_entries:
-        proximity_entry = proximity_entries[0]
-        if proximity_entry.get("title") != proximity["title"]:
-            proximity_entry["title"] = proximity["title"]
+    for proximity in proximities:
+        proximity_entries = [
+            item
+            for item in entries_document.get("data", {}).get("entries", [])
+            if item.get("domain") == "proximity"
+            and (
+                item.get("entry_id") == proximity["entry_id"]
+                or item.get("data", {}).get("zone")
+                == proximity["zone_entity_id"]
+            )
+        ]
+        if len(proximity_entries) > 1 or (
+            proximity_entries
+            and proximity_entries[0].get("entry_id") != proximity["entry_id"]
+        ):
+            raise RuntimeError(
+                f"A different {proximity['title']} proximity entry already exists"
+            )
+        proximity_data = {
+            "zone": proximity["zone_entity_id"],
+            "tracked_entities": [
+                route["person_entity_id"] for route in home_routes
+            ],
+            "ignored_zones": [],
+            "tolerance": proximity["tolerance"],
+        }
+        if proximity_entries:
+            proximity_entry = proximity_entries[0]
+            if proximity_entry.get("title") != proximity["title"]:
+                proximity_entry["title"] = proximity["title"]
+                changed = True
+            if proximity_entry.get("data") != proximity_data:
+                proximity_entry["data"] = proximity_data
+                changed = True
+        else:
+            entries_document["data"]["entries"].append(
+                {
+                    "created_at": "2026-08-14T00:00:00+00:00",
+                    "data": proximity_data,
+                    "disabled_by": None,
+                    "discovery_keys": {},
+                    "domain": "proximity",
+                    "entry_id": proximity["entry_id"],
+                    "minor_version": 1,
+                    "modified_at": "2026-08-14T00:00:00+00:00",
+                    "options": {},
+                    "pref_disable_new_entities": False,
+                    "pref_disable_polling": False,
+                    "source": "user",
+                    "subentries": [],
+                    "title": proximity["title"],
+                    "unique_id": None,
+                    "version": 1,
+                }
+            )
             changed = True
-        if proximity_entry.get("data") != proximity_data:
-            proximity_entry["data"] = proximity_data
-            changed = True
-    else:
-        entries_document["data"]["entries"].append(
-            {
-                "created_at": "2026-08-14T00:00:00+00:00",
-                "data": proximity_data,
-                "disabled_by": None,
-                "discovery_keys": {},
-                "domain": "proximity",
-                "entry_id": proximity["entry_id"],
-                "minor_version": 1,
-                "modified_at": "2026-08-14T00:00:00+00:00",
-                "options": {},
-                "pref_disable_new_entities": False,
-                "pref_disable_polling": False,
-                "source": "user",
-                "subentries": [],
-                "title": proximity["title"],
-                "unique_id": None,
-                "version": 1,
-            }
-        )
-        changed = True
 
     desired_hash = sha256(desired_path)[:12]
     if changed:
@@ -1478,9 +1525,9 @@ def reconcile_commute(source: Path, config: Path) -> None:
         atomic_json(private_package, private_document, mode=0o600)
 
     if changed or package_changed:
-        print("Reconciled private Work zone and dynamic commute routing")
+        print("Reconciled private Work zones and dual-home commute routing")
     else:
-        print("Private Work zone and dynamic commute routing are already current")
+        print("Private Work zones and dual-home commute routing are already current")
 
 
 def remove_storage_dashboards(config: Path) -> None:
