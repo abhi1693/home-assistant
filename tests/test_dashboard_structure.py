@@ -41,6 +41,7 @@ class DashboardStructureTests(unittest.TestCase):
                 "Cameras",
                 "Security",
                 "People",
+                "More",
                 "Health",
                 "Maintenance",
                 "Rack",
@@ -48,7 +49,11 @@ class DashboardStructureTests(unittest.TestCase):
             ],
         )
         self.assertNotIn("return Boolean(user?.is_admin);", navigation)
-        self.assertEqual(navigation.count("return !user?.is_admin;"), 3)
+        self.assertEqual(
+            navigation.count("return !navbar.isDesktop || !user?.is_admin;"), 3
+        )
+        self.assertIn("action: open-popup", navigation)
+        self.assertIn("return navbar.isDesktop ||", navigation)
 
     def test_washer_card_is_read_only_and_uses_verified_entities(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()

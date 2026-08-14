@@ -6,6 +6,8 @@ desktop:
   position: left
   min_width: 900
   show_labels: true
+mobile:
+  show_labels: false
 routes:
   - icon: mdi:home-outline
     icon_selected: mdi:home-heart
@@ -50,13 +52,65 @@ routes:
     icon_selected: mdi:account-group
     url: /home-tablet/people
     label: People
+  - icon: mdi:dots-horizontal
+    icon_selected: mdi:dots-horizontal-circle
+    label: More
+    tap_action:
+      action: open-popup
+    selected: |
+      [[[
+        return ['/home-tablet/health', '/home-tablet/maintenance',
+          '/rack-admin/overview', '/config/dashboard']
+          .some((path) => window.location.pathname.startsWith(path));
+      ]]]
+    hidden: |
+      [[[
+        return navbar.isDesktop || (!user?.is_admin &&
+          user?.id !== '9302d11f48c64fe796a3c9e5cb563650');
+      ]]]
+    popup: |
+      [[[
+        const items = [];
+        if (user?.id === '9302d11f48c64fe796a3c9e5cb563650') {
+          items.push({
+            icon: 'mdi:heart-pulse',
+            icon_selected: 'mdi:heart',
+            label: 'Health',
+            url: '/home-tablet/health',
+          });
+        }
+        if (user?.is_admin) {
+          items.push(
+            {
+              icon: 'mdi:tools',
+              icon_selected: 'mdi:toolbox',
+              label: 'Maintenance',
+              url: '/home-tablet/maintenance',
+            },
+            {
+              icon: 'mdi:server-network-outline',
+              icon_selected: 'mdi:server-network',
+              label: 'Rack',
+              url: '/rack-admin/overview',
+            },
+            {
+              icon: 'mdi:cog-outline',
+              icon_selected: 'mdi:cog',
+              label: 'Settings',
+              url: '/config/dashboard',
+            },
+          );
+        }
+        return items;
+      ]]]
   - icon: mdi:heart-pulse
     icon_selected: mdi:heart
     url: /home-tablet/health
     label: Health
     hidden: |
       [[[
-        return user?.id !== '9302d11f48c64fe796a3c9e5cb563650';
+        return !navbar.isDesktop ||
+          user?.id !== '9302d11f48c64fe796a3c9e5cb563650';
       ]]]
   - icon: mdi:tools
     icon_selected: mdi:toolbox
@@ -64,7 +118,7 @@ routes:
     label: Maintenance
     hidden: |
       [[[
-        return !user?.is_admin;
+        return !navbar.isDesktop || !user?.is_admin;
       ]]]
   - icon: mdi:server-network-outline
     icon_selected: mdi:server-network
@@ -72,7 +126,7 @@ routes:
     label: Rack
     hidden: |
       [[[
-        return !user?.is_admin;
+        return !navbar.isDesktop || !user?.is_admin;
       ]]]
   - icon: mdi:cog-outline
     icon_selected: mdi:cog
@@ -80,7 +134,7 @@ routes:
     label: Settings
     hidden: |
       [[[
-        return !user?.is_admin;
+        return !navbar.isDesktop || !user?.is_admin;
       ]]]
 styles: |
   .navbar {
