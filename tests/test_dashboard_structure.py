@@ -433,11 +433,14 @@ class DashboardStructureTests(unittest.TestCase):
         ):
             self.assertIn(f"  - title: {title}\n    path: {path}", home)
         maintenance = home.split("  - title: Maintenance", 1)[1]
+        shared = home.split("  - title: Maintenance", 1)[0]
         self.assertIn(
             "visible: !include ../access/generated/profile-abhimanyu-saharan-users.json",
             maintenance,
         )
         self.assertIn("entity: sensor.house_attention_level", home)
+        self.assertNotIn("sensor.home_protect_storage_storage_utilization", shared)
+        self.assertIn("sensor.home_protect_storage_storage_utilization", maintenance)
         self.assertIn("entity: binary_sensor.vacation_ready", home)
         self.assertIn("entity: input_button.household_good_night", home)
         self.assertIn("household_automation_stage:", package)

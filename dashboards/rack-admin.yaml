@@ -229,14 +229,6 @@ views:
                 styles:
                   card:
                     - --metric-accent: var(--teal)
-              - type: custom:button-card
-                template: rack_metric
-                entity: sensor.home_assistant_config_backup
-                name: HA config backup
-                icon: mdi:backup-restore
-                styles:
-                  card:
-                    - --metric-accent: var(--blue)
       - type: grid
         cards:
           - type: heading

@@ -116,34 +116,6 @@ schedule:
       - from: "22:30:00"
         to: "23:59:59"
 
-command_line:
-  - sensor:
-      name: Home Assistant config backup
-      unique_id: home_assistant_config_backup
-      command: >-
-        test -r /config/.config-backup-status.json
-        && cat /config/.config-backup-status.json
-        || echo '{"status":"never","age_hours":9999,"snapshot":"none"}'
-      value_template: "{{ value_json.status }}"
-      json_attributes:
-        - age_hours
-        - snapshot
-        - checked_at
-      scan_interval: 300
-
-  - sensor:
-      name: Home Assistant config restore test
-      unique_id: home_assistant_config_restore_test
-      command: >-
-        test -r /config/.config-restore-status.json
-        && cat /config/.config-restore-status.json
-        || echo '{"status":"never","checked_at":null,"snapshot":"none"}'
-      value_template: "{{ value_json.status }}"
-      json_attributes:
-        - checked_at
-        - snapshot
-      scan_interval: 3600
-
 template:
   - sensor:
       - name: Abhimanyu presence confidence
@@ -231,19 +203,11 @@ template:
         unique_id: house_attention_level
         icon: mdi:home-alert-outline
         state: >-
-          {% set nvr = states('sensor.home_protect_storage_storage_utilization') | float(0) %}
-          {% set disk = is_state('binary_sensor.home_protect_storage_hdd_1', 'on') %}
           {% set cameras_offline = states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] or states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] %}
-          {% set backup = states('sensor.home_assistant_config_backup') %}
-          {% set checked = state_attr('sensor.home_assistant_config_backup', 'checked_at') %}
-          {% set backup_age = (as_timestamp(now()) - as_timestamp(checked)) / 3600 if checked else 9999 %}
-          {% if disk or nvr >= 92 or backup == 'failed' %}critical{% elif cameras_offline or nvr >= 85 or backup in ['never', 'stale', 'unavailable', 'unknown'] or backup_age > 36 %}warning{% elif states('sensor.presence_confidence') in ['low', 'unknown'] %}advisory{% else %}clear{% endif %}
+          {% if cameras_offline %}warning{% elif states('sensor.presence_confidence') in ['low', 'unknown'] %}advisory{% else %}clear{% endif %}
         attributes:
           primary_reason: >-
-            {% set nvr = states('sensor.home_protect_storage_storage_utilization') | float(0) %}
-            {% set checked = state_attr('sensor.home_assistant_config_backup', 'checked_at') %}
-            {% set backup_age = (as_timestamp(now()) - as_timestamp(checked)) / 3600 if checked else 9999 %}
-            {% if is_state('binary_sensor.home_protect_storage_hdd_1', 'on') %}Protect disk reports a problem{% elif nvr >= 92 %}Protect storage is critically full at {{ nvr | round(1) }}%{% elif states('sensor.home_assistant_config_backup') == 'failed' %}Home Assistant config backup failed{% elif states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] or states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] %}Perimeter camera coverage is incomplete{% elif states('sensor.home_assistant_config_backup') in ['never', 'stale', 'unavailable', 'unknown'] or backup_age > 36 %}Config backup is stale or not yet verified{% elif states('sensor.presence_confidence') in ['low', 'unknown'] %}Some family location signals are uncertain{% else %}Nothing needs attention{% endif %}
+            {% if states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] or states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] %}Perimeter camera coverage is incomplete{% elif states('sensor.presence_confidence') in ['low', 'unknown'] %}Some family location signals are uncertain{% else %}Nothing needs attention{% endif %}
 
       - name: Household capability coverage
         unique_id: household_capability_coverage
@@ -279,9 +243,6 @@ template:
              and states('camera.hallway_high_resolution_channel') not in ['unknown', 'unavailable']
              and states('sensor.home_protect_storage_storage_utilization') | float(100) < 92
              and is_state('binary_sensor.home_protect_storage_hdd_1', 'off')
-             and states('sensor.home_assistant_config_backup') == 'ok'
-             and state_attr('sensor.home_assistant_config_backup', 'checked_at')
-             and (as_timestamp(now()) - as_timestamp(state_attr('sensor.home_assistant_config_backup', 'checked_at'))) / 3600 < 36
              and states('sensor.front_load_washer_current_status') | lower in ['off', 'power_off', 'unavailable'] }}
         attributes:
           blockers: >-
@@ -291,8 +252,6 @@ template:
             {% if states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] %}{% set items = items + ['Outside camera'] %}{% endif %}
             {% if states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] %}{% set items = items + ['Kitchen Balcony camera'] %}{% endif %}
             {% if states('sensor.home_protect_storage_storage_utilization') | float(100) >= 92 %}{% set items = items + ['Protect storage'] %}{% endif %}
-            {% set checked = state_attr('sensor.home_assistant_config_backup', 'checked_at') %}
-            {% if states('sensor.home_assistant_config_backup') != 'ok' or not checked or (as_timestamp(now()) - as_timestamp(checked)) / 3600 >= 36 %}{% set items = items + ['config backup'] %}{% endif %}
             {{ items }}
 
 script:
@@ -830,7 +789,7 @@ automation:
                   severity: informational
                   fingerprint: vacation-mode
                   title: Vacation mode is on
-                  message: Camera, recording, location, washer, and config-backup checks passed.
+                  message: Camera, recording, location, and washer checks passed.
                   url: /home-tablet/security
         default:
           - action: script.family_household_incident

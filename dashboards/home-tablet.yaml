@@ -2291,6 +2291,9 @@ views:
               card: [{ min-height: 96px }, { border-radius: 22px }, { background: var(--contrast2) }]
               icon: [{ color: "[[[ return entity?.state === 'on' ? 'var(--green)' : 'var(--orange)'; ]]]" }]
               label: [{ color: var(--contrast10) }, { white-space: normal }]
+            visibility:
+              - condition: user
+                users: !include ../access/generated/profile-abhimanyu-saharan-users.json
           - type: tile
             entity: input_button.request_vacation_mode
             name: Check and start Vacation
@@ -2299,17 +2302,6 @@ views:
             visibility:
               - condition: user
                 users: !include ../access/generated/profile-abhimanyu-saharan-users.json
-          - type: heading
-            heading: Recording
-            heading_style: subtitle
-            icon: mdi:record-rec
-          - type: tile
-            entity: sensor.home_protect_storage_storage_utilization
-            name: Protect storage
-            color: red
-          - type: tile
-            entity: binary_sensor.home_protect_storage_hdd_1
-            name: Protect disk
           - type: markdown
             content: >-
               Future entrance contacts, leak sensors and certified smoke/CO alarms
@@ -2481,11 +2473,11 @@ views:
                 entity: sensor.house_attention_level
                 name: Household attention
               - type: tile
-                entity: sensor.home_assistant_config_backup
-                name: Config backup
-              - type: tile
                 entity: sensor.home_protect_storage_storage_utilization
                 name: NVR storage
+              - type: tile
+                entity: binary_sensor.home_protect_storage_hdd_1
+                name: NVR disk
               - type: tile
                 entity: sensor.camera_coverage
                 name: Camera coverage
