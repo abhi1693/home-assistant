@@ -84,11 +84,10 @@
       "is_owner": true,
       "default_dashboard": "home-tablet",
       "cameras": [
-        "master-bedroom",
         "hallway",
         "outside"
       ],
-      "notes": "Family rooms and cameras are shared for the current rollout. Room occupants are personalization metadata, not access rules."
+      "notes": "Owner profile. Master Bedroom camera is intentionally hidden from the normal dashboard; Home Assistant owner credentials remain a platform-level break-glass override."
     },
     "krishna": {
       "user_id": "8117b77542614a06b4672a8ae1a979b5",
@@ -112,7 +111,7 @@
         "hallway",
         "outside"
       ],
-      "notes": "Mother profile. Family rooms and cameras are shared for the current rollout."
+      "notes": "Mother profile. Sole normal-dashboard and non-owner backend access to the Master Bedroom camera."
     },
     "manisha": {
       "user_id": "734722ec932a41a68d47553b6c2f7f5d",
@@ -130,11 +129,10 @@
       "default_dashboard": "home-tablet",
       "enforce_camera_policy": true,
       "cameras": [
-        "master-bedroom",
         "hallway",
         "outside"
       ],
-      "notes": "Wife profile. Family rooms and cameras are shared for the current rollout."
+      "notes": "Wife profile. Shared cameras exclude the Master Bedroom camera."
     },
     "codex-dashboard-reviewer": {
       "user_id": "2d1be8070c364e6a9ba70103c007d4d0",

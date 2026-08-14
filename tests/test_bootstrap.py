@@ -843,7 +843,7 @@ class BootstrapTests(unittest.TestCase):
             list(people.values()),
         )
 
-    def test_repository_family_access_is_shared_for_family_profiles(self):
+    def test_repository_master_bedroom_camera_is_krishna_only(self):
         access = json.loads(
             (Path(bootstrap.__file__).parent / "access/family-dashboard.json").read_text()
         )
@@ -865,11 +865,14 @@ class BootstrapTests(unittest.TestCase):
             profiles["krishna"]["notify_entity_id"], "notify.pixel_10_pro"
         )
         self.assertEqual(profiles["manisha"]["notify_entity_id"], "notify.iphone")
-        expected_cameras = ["master-bedroom", "hallway", "outside"]
-        self.assertEqual(profiles["manisha"]["cameras"], expected_cameras)
+        shared_cameras = ["hallway", "outside"]
+        self.assertEqual(profiles["abhimanyu-saharan"]["cameras"], shared_cameras)
+        self.assertEqual(profiles["manisha"]["cameras"], shared_cameras)
         self.assertTrue(profiles["manisha"]["enforce_camera_policy"])
-        for profile_key in ("abhimanyu-saharan", "krishna", "manisha"):
-            self.assertEqual(profiles[profile_key]["cameras"], expected_cameras)
+        self.assertEqual(
+            profiles["krishna"]["cameras"],
+            ["master-bedroom", "hallway", "outside"],
+        )
 
     def test_repository_room_model_uses_occupants_only_as_metadata(self):
         source = Path(bootstrap.__file__).parent

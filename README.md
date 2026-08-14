@@ -216,8 +216,11 @@ username and person entity, lists the Protect cameras each account may see,
 records each supported Android phone's next-alarm entity,
 separates shared and owner-only Google calendars, and records each profile's
 default dashboard and whether a non-owner private-entity policy must be
-enforced. The current family profiles all receive the three camera streams;
-room occupant metadata does not restrict access. The same document sets
+enforced. Hallway and Outside are shared family cameras; Master Bedroom is
+visible only to Krishna in the normal dashboard and is granted only to her
+non-owner backend policy. The Home Assistant owner account remains a platform-level
+break-glass override even though that camera is hidden from its dashboard. Room
+occupant metadata does not otherwise restrict access. The same document sets
 `home-tablet` as the system fallback,
 so opening the bare Home Assistant address lands on `/home-tablet/home` instead
 of the removed built-in Home panel. Bootstrap validates
@@ -231,8 +234,8 @@ is GitOps-linked to both the UniFi and Home Assistant Companion App trackers for
 her Pixel 10 Pro; Manisha's person is linked to her iPhone Companion App tracker;
 Abhimanyu's person retains only the Pixel 8 GPS and matching UniFi phone
 trackers; desktop computers are never presence evidence. All three family
-profiles receive Master Bedroom, Kitchen Balcony and Outside during this shared
-rollout. The non-family browser-review profile receives no camera.
+profiles receive Hallway and Outside, while Krishna alone receives Master
+Bedroom. The non-family browser-review profile receives no camera.
 Non-owner family profiles receive both Lovelace filtering and backend camera and
 calendar permissions. Their generated policy explicitly allows every registered
 non-camera/non-calendar domain, only the camera entities granted in the access
