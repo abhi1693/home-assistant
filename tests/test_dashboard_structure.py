@@ -499,6 +499,8 @@ class DashboardStructureTests(unittest.TestCase):
             self.assertIn(f"sensor.{name}_home_likelihood", home)
         self.assertIn("template: family_presence_likelihood", home)
         self.assertIn("show_entity_picture: true", home)
+        self.assertIn("icon: mdi:account-circle", home)
+        self.assertEqual(home.count("avatar_color:"), 3)
         self.assertIn("action: more-info", home.split(
             "  family_presence_likelihood:", 1
         )[1].split("\n  family_ribbon_activity:", 1)[0])

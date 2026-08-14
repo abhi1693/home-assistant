@@ -318,11 +318,12 @@ button_card_templates:
         - color: '[[[ return variables.context.color; ]]]'
 
   family_presence_likelihood:
-    show_icon: false
+    show_icon: true
     show_entity_picture: true
     show_name: true
     show_state: false
     show_label: true
+    icon: mdi:account-circle
     label: |
       [[[
         const likelihood = Number(states[variables.likelihood_entity]?.state);
@@ -380,6 +381,10 @@ button_card_templates:
         - height: 46px
         - border-radius: 50%
         - overflow: hidden
+        - background: var(--contrast4)
+      icon:
+        - width: 30px
+        - color: '[[[ return variables.avatar_color || "var(--blue)"; ]]]'
       entity_picture:
         - width: 46px
         - height: 46px
@@ -1333,6 +1338,7 @@ views:
                   likelihood_entity: sensor.abhimanyu_home_likelihood
                   battery_entity: sensor.pixel_8_battery_level
                   battery_state_entity: sensor.pixel_8_battery_state
+                  avatar_color: var(--blue)
               - type: custom:button-card
                 template: family_presence_likelihood
                 entity: person.krishna
@@ -1341,6 +1347,7 @@ views:
                   likelihood_entity: sensor.krishna_home_likelihood
                   battery_entity: sensor.pixel_10_pro_battery_level
                   battery_state_entity: sensor.pixel_10_pro_battery_state
+                  avatar_color: var(--purple)
               - type: custom:button-card
                 template: family_presence_likelihood
                 entity: person.manisha
@@ -1349,6 +1356,7 @@ views:
                   likelihood_entity: sensor.manisha_home_likelihood
                   battery_entity: sensor.iphone_battery_level
                   battery_state_entity: sensor.iphone_battery_state
+                  avatar_color: var(--pink)
             grid_options: { columns: 36, rows: auto }
           - type: custom:button-card
             entity: binary_sensor.rack_ups_on_battery
