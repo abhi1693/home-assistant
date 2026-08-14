@@ -21,6 +21,12 @@ FAMILY_ACCESS_STATE = ".home-assistant-family-access.json"
 PROTECT_STREAM_QUALITIES = {"high", "medium", "low"}
 PRIVATE_COMMUTE_PACKAGE = "packages/private_commute.yaml"
 HOUSEHOLD_POLICY = "access/household-policy.json"
+LEGACY_HOUSEHOLD_ENTITIES = {
+    "automation.household_end_good_night_period",
+    "automation.household_prepare_good_night",
+    "input_boolean.good_night",
+    "input_button.household_good_night",
+}
 
 
 def sha256(path: Path) -> str:
@@ -175,6 +181,27 @@ def validate_household_policy(source: Path) -> None:
         "bed_occupancy",
     }:
         raise RuntimeError("Household hardware contracts are incomplete")
+
+
+def remove_legacy_household_entities(config: Path) -> None:
+    """Remove exact source-retired entities without touching user-owned entries."""
+    registry_path = config / ".storage/core.entity_registry"
+    if not registry_path.exists():
+        raise RuntimeError("Home Assistant entity registry is missing")
+    document = json.loads(registry_path.read_text())
+    entities = document.get("data", {}).get("entities", [])
+    retained = [
+        entity
+        for entity in entities
+        if entity.get("entity_id") not in LEGACY_HOUSEHOLD_ENTITIES
+    ]
+    removed = len(entities) - len(retained)
+    if not removed:
+        print("Retired household entities are already absent")
+        return
+    document["data"]["entities"] = retained
+    atomic_json(registry_path, document)
+    print(f"Removed {removed} retired household entity registration(s)")
 
 
 def reconcile_nut(source: Path, config: Path) -> None:
@@ -1350,6 +1377,7 @@ def main() -> None:
     install_assets(manifest, config)
     install_custom_integrations(manifest, config)
     migrate_areas(source, config)
+    remove_legacy_household_entities(config)
     reconcile_home_location(source, config)
     reconcile_commute(source, config)
     reconcile_nut(source, config)

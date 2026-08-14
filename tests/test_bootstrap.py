@@ -35,6 +35,40 @@ class BootstrapTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content)
 
+    def test_retired_household_entities_are_removed_exactly(self):
+        storage = self.config / ".storage"
+        storage.mkdir()
+        registry_path = storage / "core.entity_registry"
+        retained = {
+            "entity_id": "input_button.user_owned_good_night",
+            "platform": "input_button",
+        }
+        registry_path.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "data": {
+                        "entities": [
+                            retained,
+                            *[
+                                {"entity_id": entity_id, "platform": "retired"}
+                                for entity_id in sorted(
+                                    bootstrap.LEGACY_HOUSEHOLD_ENTITIES
+                                )
+                            ],
+                        ]
+                    },
+                }
+            )
+        )
+
+        bootstrap.remove_legacy_household_entities(self.config)
+
+        reconciled = json.loads(registry_path.read_text())
+        self.assertEqual(reconciled["data"]["entities"], [retained])
+        bootstrap.remove_legacy_household_entities(self.config)
+        self.assertEqual(json.loads(registry_path.read_text()), reconciled)
+
     def test_household_policy_rejects_non_phone_presence_drift(self):
         access = {
             "profiles": {

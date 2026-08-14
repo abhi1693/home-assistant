@@ -134,7 +134,9 @@ and AQI value in the corresponding color.
 Its context line includes the weekday, day part and current time, and its weather
 advice changes between morning, afternoon, evening and night. The former
 Good Night action was removed because it only recorded an abstract intent and
-did not perform a useful, predictable household action. A Git-owned family
+did not perform a useful, predictable household action. Bootstrap removes its
+four exact retired entity-registry entries without touching user-owned helpers.
+A Git-owned family
 bulletin in the household rail groups independent, account-attributed household
 updates above Shopping. Its Add action opens a focused composer; each
 message remains until its sender or an administrator removes it, or disappears
