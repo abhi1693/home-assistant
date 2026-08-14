@@ -1248,6 +1248,38 @@ class BootstrapTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "invalid qualities"):
             bootstrap.validate_protect_streams(self.source, self.config)
 
+    def test_google_translate_tts_is_reconciled_without_credentials(self):
+        self.write(
+            "access/google-translate-tts.json",
+            json.dumps(
+                {
+                    "version": 1,
+                    "entry_id": "01KQCAMERATTS0000000000000",
+                    "title": "Google Translate text-to-speech",
+                    "language": "en-in",
+                    "tld": "co.in",
+                }
+            ),
+        )
+        storage = self.config / ".storage"
+        storage.mkdir()
+        entries_path = storage / "core.config_entries"
+        entries_path.write_text(json.dumps({"data": {"entries": []}}))
+
+        bootstrap.reconcile_google_translate_tts(self.source, self.config)
+
+        document = json.loads(entries_path.read_text())
+        entry = document["data"]["entries"][0]
+        self.assertEqual(entry["domain"], "google_translate")
+        self.assertEqual(entry["entry_id"], "01KQCAMERATTS0000000000000")
+        self.assertEqual(entry["data"], {"language": "en-in", "tld": "co.in"})
+        self.assertTrue(
+            next((self.config / "backups").glob("core.config_entries.pre-google-translate-tts-*"))
+        )
+
+        bootstrap.reconcile_google_translate_tts(self.source, self.config)
+        self.assertEqual(json.loads(entries_path.read_text()), document)
+
     def test_home_location_reconciles_weather_and_preserves_credentials(self):
         self.write(
             "location/home.json",

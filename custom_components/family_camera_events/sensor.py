@@ -154,11 +154,6 @@ class FamilyCameraEventManager:
     async def _async_attach(self) -> None:
         if self._attached:
             return
-        try:
-            await self._async_ensure_tts()
-        except Exception:
-            _LOGGER.exception("Unable to initialize optional camera speaker TTS")
-
         registry = er.async_get(self.hass)
         for entry in self.hass.config_entries.async_entries("unifiprotect"):
             data = getattr(entry, "runtime_data", None)
@@ -218,18 +213,6 @@ class FamilyCameraEventManager:
         self.hass.async_create_task(
             self._async_attach(), "retry private Protect event feeds"
         )
-
-    async def _async_ensure_tts(self) -> None:
-        """Create the credential-free TTS entry through its supported config flow."""
-        if self.hass.config_entries.async_entries("google_translate"):
-            return
-        result = await self.hass.config_entries.flow.async_init(
-            "google_translate",
-            context={"source": "user"},
-            data={"language": "en-in", "tld": "com"},
-        )
-        if result.get("type") not in {"create_entry", "abort"}:
-            _LOGGER.warning("Google Translate TTS setup did not complete: %s", result)
 
     @callback
     def _event_changed(self, event: ProtectEvent, change: EventChange) -> None:
@@ -586,8 +569,16 @@ async def async_setup_platform(
 ) -> None:
     """Set up private camera activity sensors and actions."""
     del discovery_info
-    access = json.loads(_path(hass, config[CONF_ACCESS_FILE]).read_text())
-    streams = json.loads(_path(hass, config[CONF_STREAMS_FILE]).read_text())
+    access_path = _path(hass, config[CONF_ACCESS_FILE])
+    streams_path = _path(hass, config[CONF_STREAMS_FILE])
+
+    def load_json(path: Path) -> dict[str, Any]:
+        return json.loads(path.read_text())
+
+    access, streams = await asyncio.gather(
+        hass.async_add_executor_job(load_json, access_path),
+        hass.async_add_executor_job(load_json, streams_path),
+    )
     cameras = streams["cameras"]
     profiles = access["profiles"]
     manager = FamilyCameraEventManager(hass, cameras, profiles)

@@ -389,6 +389,81 @@ def reconcile_nut(source: Path, config: Path) -> None:
         print("Read-only Rack UPS integration is already current")
 
 
+def reconcile_google_translate_tts(source: Path, config: Path) -> None:
+    """Install the credential-free camera speaker TTS config entry."""
+    desired_path = source / "access/google-translate-tts.json"
+    desired = json.loads(desired_path.read_text())
+    if (
+        desired.get("version") != 1
+        or not isinstance(desired.get("entry_id"), str)
+        or len(desired["entry_id"]) != 26
+        or desired.get("title") != "Google Translate text-to-speech"
+        or desired.get("language") != "en-in"
+        or desired.get("tld") != "co.in"
+    ):
+        raise RuntimeError("Google Translate TTS configuration is invalid")
+
+    entries_path = config / ".storage/core.config_entries"
+    if not entries_path.exists():
+        raise RuntimeError("Home Assistant config entry storage is missing")
+    document = json.loads(entries_path.read_text())
+    entries = document.get("data", {}).get("entries", [])
+    matches = [
+        entry for entry in entries if entry.get("domain") == "google_translate"
+    ]
+    if len(matches) > 1:
+        raise RuntimeError("Expected at most one Google Translate TTS config entry")
+
+    expected_data = {
+        "language": desired["language"],
+        "tld": desired["tld"],
+    }
+    changed = False
+    if matches:
+        entry = matches[0]
+        if entry.get("title") != desired["title"]:
+            entry["title"] = desired["title"]
+            changed = True
+        if entry.get("data") != expected_data:
+            entry["data"] = expected_data
+            changed = True
+    else:
+        entries.append(
+            {
+                "created_at": "2026-08-14T00:00:00+00:00",
+                "data": expected_data,
+                "disabled_by": None,
+                "discovery_keys": {},
+                "domain": "google_translate",
+                "entry_id": desired["entry_id"],
+                "minor_version": 1,
+                "modified_at": "2026-08-14T00:00:00+00:00",
+                "options": {},
+                "pref_disable_new_entities": False,
+                "pref_disable_polling": False,
+                "source": "user",
+                "subentries": [],
+                "title": desired["title"],
+                "unique_id": None,
+                "version": 1,
+            }
+        )
+        changed = True
+
+    if changed:
+        backup = config / (
+            "backups/core.config_entries.pre-google-translate-tts-"
+            f"{sha256(desired_path)[:12]}"
+        )
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        if not backup.exists():
+            shutil.copy2(entries_path, backup)
+        atomic_json(entries_path, document)
+        print("Reconciled credential-free camera speaker TTS")
+    else:
+        print("Camera speaker TTS is already current")
+
+
 def initialize_mutable_yaml(source: Path, config: Path) -> None:
     reset_marker = config / ".automation-reset-2026-08-13"
     automation_path = config / "automations.yaml"
@@ -1735,6 +1810,7 @@ def main() -> None:
     reconcile_home_location(source, config)
     reconcile_commute(source, config)
     reconcile_nut(source, config)
+    reconcile_google_translate_tts(source, config)
     validate_protect_streams(source, config)
     reconcile_family_access(source, config)
     generate_family_rooms_manifest(source, config)

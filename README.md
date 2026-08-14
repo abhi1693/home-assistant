@@ -136,8 +136,8 @@ the owner's generated grants without weakening another account.
 
 The Master Bedroom G4 Instant speaker has an explicit text composer with useful
 presets. The backend rechecks the caller's camera grant before using the local
-Protect media-player entity, while Google Translate TTS is created through its
-supported zero-credential config flow. Speaker playback requires TCP `7004`
+Protect media-player entity, while bootstrap reconciles the zero-credential
+Google Translate TTS config entry. Speaker playback requires TCP `7004`
 from Home Assistant to the camera. Privacy mode is not surfaced because these
 cameras do not currently expose that entity; Protect Alarm Manager remains an
 administrator concern rather than a family control.
@@ -214,7 +214,7 @@ The configuration also expects existing Home Assistant integrations for the
 devices and services used by the household, such as UniFi Protect, Google
 Calendar, Google Travel Time, Music Assistant, Jellyfin, Home Connect, ThinQ,
 mobile companion apps, weather, and NUT. Google Translate TTS is initialized by
-the camera event integration because it has no credential setup. Other
+bootstrap because it has no credential setup. Other
 credentials and config-entry state are not stored in this repository.
 
 ## Configuration and secrets
