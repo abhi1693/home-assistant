@@ -845,7 +845,7 @@ class BootstrapTests(unittest.TestCase):
             list(people.values()),
         )
 
-    def test_repository_family_access_keeps_master_bedroom_for_krishna(self):
+    def test_repository_family_access_is_shared_for_family_profiles(self):
         access = json.loads(
             (Path(bootstrap.__file__).parent / "access/family-dashboard.json").read_text()
         )
@@ -867,16 +867,55 @@ class BootstrapTests(unittest.TestCase):
             profiles["krishna"]["notify_entity_id"], "notify.pixel_10_pro"
         )
         self.assertEqual(profiles["manisha"]["notify_entity_id"], "notify.iphone")
-        self.assertEqual(profiles["manisha"]["cameras"], ["hallway", "outside"])
+        expected_cameras = ["master-bedroom", "hallway", "outside"]
+        self.assertEqual(profiles["manisha"]["cameras"], expected_cameras)
         self.assertTrue(profiles["manisha"]["enforce_camera_policy"])
+        for profile_key in ("abhimanyu-saharan", "krishna", "manisha"):
+            self.assertEqual(profiles[profile_key]["cameras"], expected_cameras)
+
+    def test_repository_room_model_uses_occupants_only_as_metadata(self):
+        source = Path(bootstrap.__file__).parent
+        rooms = bootstrap.validate_room_model(source)
+        by_slug = {room["slug"]: room for room in rooms["rooms"]}
+
+        self.assertEqual(rooms["access_mode"], "shared")
+        self.assertEqual(by_slug["master-bedroom"]["occupants"], ["krishna"])
         self.assertEqual(
-            [
-                profile_key
-                for profile_key, profile in profiles.items()
-                if "master-bedroom" in profile["cameras"]
-            ],
-            ["krishna"],
+            by_slug["bedroom"]["occupants"], ["asaharan", "manisha"]
         )
+        self.assertEqual(by_slug["office"]["occupants"], ["asaharan"])
+        for slug in ("living-room", "guest-room", "kitchen", "dining-room"):
+            self.assertEqual(by_slug[slug]["occupants"], ["shared"])
+        self.assertEqual(
+            rooms["profiles"]["asaharan"]["favourites"],
+            ["office", "bedroom", "living-room"],
+        )
+        self.assertEqual(
+            rooms["profiles"]["krishna"]["favourites"],
+            ["master-bedroom", "kitchen", "living-room", "dining-room"],
+        )
+        self.assertEqual(
+            rooms["profiles"]["manisha"]["favourites"],
+            ["bedroom", "kitchen", "living-room", "guest-room"],
+        )
+
+    def test_family_room_manifest_maps_user_ids_without_restricting_rooms(self):
+        source = Path(bootstrap.__file__).parent
+        bootstrap.generate_family_rooms_manifest(source, self.config)
+        manifest = json.loads(
+            (self.config / "www/generated/family-rooms.json").read_text()
+        )
+        access = json.loads((source / "access/family-dashboard.json").read_text())
+
+        self.assertEqual(manifest["access_mode"], "shared")
+        self.assertEqual(len(manifest["rooms"]), 7)
+        for profile_key in ("abhimanyu-saharan", "krishna", "manisha"):
+            profile = access["profiles"][profile_key]
+            self.assertIn(profile["user_id"], manifest["profiles"])
+            self.assertEqual(
+                manifest["profiles"][profile["user_id"]]["username"],
+                profile["username"],
+            )
 
     def test_family_access_rejects_owner_policy_enforcement(self):
         self.write(

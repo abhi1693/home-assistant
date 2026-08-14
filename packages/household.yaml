@@ -5,7 +5,6 @@ input_select:
     options:
       - Normal
       - Guest
-      - Vacation
       - Maintenance
 
   household_automation_stage:
@@ -24,30 +23,15 @@ input_boolean:
     name: Empty home confirmed
     icon: mdi:home-export-outline
 
-input_button:
-  request_vacation_mode:
-    name: Check Vacation readiness
-    icon: mdi:airplane-check
-
 input_text:
   last_household_decision:
     name: Last household decision
     max: 255
     icon: mdi:text-box-check-outline
 
-  vacation_preflight_result:
-    name: Vacation check result
-    max: 255
-    icon: mdi:airplane-check
-
 input_datetime:
   last_household_evaluation:
     name: Last household evaluation
-    has_date: true
-    has_time: true
-
-  last_vacation_preflight:
-    name: Last Vacation check
     has_date: true
     has_time: true
 
@@ -287,28 +271,6 @@ template:
              or (is_state('person.manisha', 'home') and states('sensor.manisha_presence_confidence') in ['high', 'medium']) }}
         availability: >-
           {{ states('sensor.presence_confidence') != 'unknown' }}
-
-      - name: Vacation ready
-        unique_id: vacation_ready
-        icon: mdi:airplane-check
-        state: >-
-          {{ is_state('input_boolean.empty_home_confirmed', 'on')
-             and is_state('binary_sensor.house_occupied', 'off')
-             and is_state('sensor.presence_confidence', 'high')
-             and states('camera.g5_turret_ultra_high_resolution_channel') not in ['unknown', 'unavailable']
-             and states('camera.hallway_high_resolution_channel') not in ['unknown', 'unavailable']
-             and states('sensor.home_protect_storage_storage_utilization') | float(100) < 92
-             and is_state('binary_sensor.home_protect_storage_hdd_1', 'off')
-             and states('sensor.front_load_washer_current_status') | lower in ['off', 'power_off', 'unavailable'] }}
-        attributes:
-          blockers: >-
-            {% set items = [] %}
-            {% if not is_state('input_boolean.empty_home_confirmed', 'on') or not is_state('binary_sensor.house_occupied', 'off') %}{% set items = items + ['everyone must be away for five minutes'] %}{% endif %}
-            {% if not is_state('sensor.presence_confidence', 'high') %}{% set items = items + ['location confidence'] %}{% endif %}
-            {% if states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] %}{% set items = items + ['Outside camera'] %}{% endif %}
-            {% if states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] %}{% set items = items + ['Kitchen Balcony camera'] %}{% endif %}
-            {% if states('sensor.home_protect_storage_storage_utilization') | float(100) >= 92 %}{% set items = items + ['Protect storage'] %}{% endif %}
-            {{ items }}
 
 script:
   family_household_notify:
@@ -553,8 +515,6 @@ automation:
       - variables:
           timer_entity: >-
             {{ 'timer.outside_camera_offline' if trigger.id == 'outside' else 'timer.hallway_camera_offline' }}
-          duration: >-
-            {{ '00:05:00' if is_state('input_select.house_mode', 'Vacation') else '00:15:00' }}
       - choose:
           - conditions:
               - condition: template
@@ -562,7 +522,7 @@ automation:
             sequence:
               - action: timer.start
                 target: { entity_id: "{{ timer_entity }}" }
-                data: { duration: "{{ duration }}" }
+                data: { duration: "00:15:00" }
         default:
           - action: timer.cancel
             target: { entity_id: "{{ timer_entity }}" }
@@ -608,9 +568,7 @@ automation:
         then:
           - action: timer.start
             target: { entity_id: timer.outside_camera_offline }
-            data:
-              duration: >-
-                {{ '00:05:00' if is_state('input_select.house_mode', 'Vacation') else '00:15:00' }}
+            data: { duration: "00:15:00" }
       - if:
           - condition: template
             value_template: >-
@@ -618,9 +576,7 @@ automation:
         then:
           - action: timer.start
             target: { entity_id: timer.hallway_camera_offline }
-            data:
-              duration: >-
-                {{ '00:05:00' if is_state('input_select.house_mode', 'Vacation') else '00:15:00' }}
+            data: { duration: "00:15:00" }
 
   - id: household_nvr_storage_incident
     alias: Household · Report Protect storage risk
@@ -765,7 +721,50 @@ automation:
           fingerprint: washer-complete
           title: Laundry is ready
           message: The washer cycle has finished.
-          url: /home-tablet/home
+          url: /home-tablet/rooms/guest-room
+
+  - id: household_dishwasher_complete
+    alias: Household · Dishwasher cycle complete
+    description: Notify the family when Home Connect confirms the program has finished.
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: sensor.dishwasher_program_finished
+        to: present
+    actions:
+      - action: script.family_household_incident
+        data:
+          recipient: family
+          severity: advisory
+          fingerprint: dishwasher-complete
+          title: Dishes are ready
+          message: The dishwasher cycle has finished.
+          url: /home-tablet/rooms/kitchen
+
+  - id: household_dishwasher_supplies
+    alias: Household · Dishwasher supplies low
+    description: Notify once when dishwasher salt or rinse aid needs refilling.
+    mode: queued
+    max: 2
+    triggers:
+      - trigger: state
+        entity_id: sensor.dishwasher_salt_nearly_empty
+        to: present
+        id: salt
+      - trigger: state
+        entity_id: sensor.dishwasher_rinse_aid_nearly_empty
+        to: present
+        id: rinse-aid
+    actions:
+      - action: script.family_household_incident
+        data:
+          recipient: family
+          severity: advisory
+          fingerprint: "dishwasher-{{ trigger.id }}"
+          title: Dishwasher needs a refill
+          message: >-
+            Refill dishwasher {{ 'salt' if trigger.id == 'salt' else 'rinse aid' }} before the next cycle.
+          url: /home-tablet/rooms/kitchen
 
   - id: household_low_travel_battery
     alias: Household · Low battery while away
@@ -798,69 +797,6 @@ automation:
           title: Phone battery is low
           message: "{{ trigger.to_state.state }}% remaining while away from Home."
           url: /home-tablet/people
-
-  - id: household_vacation_preflight
-    alias: Household · Check Vacation readiness
-    description: Vacation remains explicit and cannot silently bypass failed preflight checks.
-    mode: restart
-    triggers:
-      - trigger: state
-        entity_id: input_button.request_vacation_mode
-    actions:
-      - condition: template
-        value_template: >-
-          {{ trigger.to_state.context.user_id == '9302d11f48c64fe796a3c9e5cb563650' }}
-      - variables:
-          preflight_blockers: >-
-            {{ state_attr('binary_sensor.vacation_ready', 'blockers') or [] }}
-          vacation_control_active: >-
-            {{ is_state('input_select.household_automation_stage', 'Active') }}
-          blocker_message: >-
-            {% set items = preflight_blockers | list %}
-            {% if not vacation_control_active %}
-              {% set items = items + ['Vacation setup is still in preview'] %}
-            {% endif %}
-            {{ items | join(' · ') if items else 'house checks did not pass' }}
-      - action: input_datetime.set_datetime
-        target: { entity_id: input_datetime.last_vacation_preflight }
-        data:
-          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
-      - choose:
-          - conditions:
-              - condition: state
-                entity_id: binary_sensor.vacation_ready
-                state: "on"
-              - condition: state
-                entity_id: input_select.household_automation_stage
-                state: Active
-            sequence:
-              - action: input_select.select_option
-                target: { entity_id: input_select.house_mode }
-                data: { option: Vacation }
-              - action: input_text.set_value
-                target: { entity_id: input_text.vacation_preflight_result }
-                data: { value: "Vacation mode started" }
-              - action: script.family_household_notify
-                data:
-                  recipient: family
-                  severity: informational
-                  fingerprint: vacation-mode
-                  title: Vacation mode is on
-                  message: Camera, recording, location, and washer checks passed.
-                  url: /home-tablet/security
-        default:
-          - action: input_text.set_value
-            target: { entity_id: input_text.vacation_preflight_result }
-            data:
-              value: "Not ready · {{ blocker_message }}"
-          - action: script.family_household_incident
-            data:
-              recipient: owner
-              severity: warning
-              fingerprint: vacation-preflight
-              title: Vacation needs attention
-              message: "Blocked by: {{ blocker_message }}."
-              url: /home-tablet/security
 
   - id: household_periodic_health_evaluation
     alias: Household · Evaluate health

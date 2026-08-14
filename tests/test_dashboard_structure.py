@@ -462,36 +462,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("entity: sensor.house_attention_level", home)
         self.assertNotIn("sensor.home_protect_storage_storage_utilization", shared)
         self.assertIn("sensor.home_protect_storage_storage_utilization", maintenance)
-        self.assertIn("entity: binary_sensor.vacation_ready", home)
-        self.assertIn("entity: input_text.vacation_preflight_result", home)
-        self.assertIn("name: Check and start Vacation", home)
-        self.assertIn("name: Check Vacation readiness", home)
-        self.assertEqual(
-            home.count("perform_action: input_button.press"),
-            2,
-        )
-        self.assertIn(
-            "text: Check the house and start Vacation if everything is ready?",
-            home,
-        )
-        vacation_controls = home.split(
-            "entity: binary_sensor.vacation_ready", 1
-        )[1].split("Future entrance contacts", 1)[0]
-        self.assertNotIn("tap_action: { action: toggle }", vacation_controls)
-        self.assertIn("Preview only · checks will not change house mode", home)
-        self.assertIn("vacation_preflight_result:", package)
-        self.assertIn("last_vacation_preflight:", package)
-        self.assertIn(
-            "target: { entity_id: input_datetime.last_vacation_preflight }",
-            package,
-        )
-        self.assertIn(
-            "states['input_datetime.last_vacation_preflight']",
-            home,
-        )
-        self.assertIn("Vacation setup is still in preview", package)
-        self.assertIn('value: "Vacation mode started"', package)
-        self.assertIn('value: "Not ready · {{ blocker_message }}"', package)
+        self.assertNotIn("vacation", home.lower())
+        self.assertNotIn("vacation", package.lower())
         self.assertNotIn("household_good_night", home)
         self.assertNotIn("household_good_night", package)
         self.assertIn("household_automation_stage:", package)
@@ -499,8 +471,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("schedule:\n  quiet_hours:", package)
         self.assertIn("timer.household_startup_settle", package)
         self.assertIn("timer.high_confidence_empty_home", package)
-        self.assertIn("input_boolean.empty_home_confirmed", package)
-        self.assertIn("is_state('input_boolean.empty_home_confirmed', 'on')", package)
+        self.assertGreater(package.count("input_boolean.empty_home_confirmed"), 1)
         self.assertIn("binary_sensor.rack_ups_on_battery", package)
         self.assertIn("entity: binary_sensor.rack_ups_on_battery", home)
         self.assertIn("entity: sensor.ups_status", rack)
@@ -604,28 +575,33 @@ class DashboardStructureTests(unittest.TestCase):
         )[0]
         card = (ROOT / "www/family-fan-card.js").read_text()
         room_card = (ROOT / "www/family-room-card.js").read_text()
+        rooms_card = (ROOT / "www/family-rooms-card.js").read_text()
+        summary_card = (ROOT / "www/family-room-summary-card.js").read_text()
+        appliance_card = (ROOT / "www/family-appliance-card.js").read_text()
+        media_card = (ROOT / "www/family-media-card.js").read_text()
+        room_model = json.loads((ROOT / "access/rooms.json").read_text())
 
         self.assertIn("/local/family-fan-card.js?v=3.3.0", configuration)
-        self.assertIn("/local/family-room-card.js?v=1.1.0", configuration)
+        self.assertIn("/local/family-room-card.js?v=1.2.0", configuration)
+        self.assertIn("/local/family-room-summary-card.js?v=1.0.0", configuration)
+        self.assertIn("/local/family-appliance-card.js?v=1.0.0", configuration)
+        self.assertIn("/local/family-media-card.js?v=1.0.0", configuration)
+        self.assertIn("/local/family-rooms-card.js?v=1.0.0", configuration)
         self.assertLess(
             configuration.index("/local/family-fan-card.js?v=3.3.0"),
-            configuration.index("/local/family-room-card.js?v=1.1.0"),
+            configuration.index("/local/family-room-card.js?v=1.2.0"),
         )
-        self.assertEqual(rooms.count("type: custom:family-room-card"), 7)
-        self.assertEqual(rooms.count("type: custom:family-fan-card"), 7)
-        self.assertEqual(rooms.count("embedded: true"), 7)
+        self.assertEqual(rooms.count("type: custom:family-rooms-card"), 1)
+        self.assertEqual(rooms.count("type: custom:family-room-card"), 0)
+        self.assertIn("/local/generated/family-rooms.json", rooms)
         self.assertNotIn("type: custom:family-fan-summary-card", rooms)
         self.assertIn("max_columns: 3", rooms)
-        self.assertEqual(
-            rooms.count("grid_options: { columns: 36, rows: auto }"), 1
-        )
-        self.assertEqual(
-            rooms.count("grid_options: { columns: 18, rows: auto }"), 6
-        )
-        self.assertIn("light.office_fan_led", rooms)
-        self.assertIn("switch.office_fan_sleep_mode", rooms)
-        self.assertIn("select.office_fan_set_timer", rooms)
-        self.assertIn("sensor.office_fan_timer_elapsed_time", rooms)
+        self.assertEqual(rooms.count("grid_options: { columns: 36, rows: auto }"), 1)
+        serialized_room_model = json.dumps(room_model)
+        self.assertIn("light.office_fan_led", serialized_room_model)
+        self.assertIn("switch.office_fan_sleep_mode", serialized_room_model)
+        self.assertIn("select.office_fan_set_timer", serialized_room_model)
+        self.assertIn("sensor.office_fan_timer_elapsed_time", serialized_room_model)
         self.assertNotIn("button_type: slider", rooms)
         self.assertNotIn("type: custom:bubble-card", rooms)
 
@@ -635,6 +611,16 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("content.append(...cards)", room_card)
         self.assertIn('className = "room-content"', room_card)
         self.assertIn("--room-accent", room_card)
+        self.assertIn('customElements.define("family-rooms-card"', rooms_card)
+        self.assertIn("window.history.replaceState", rooms_card)
+        self.assertIn("window.history.pushState", summary_card)
+        self.assertIn("location-changed", rooms_card)
+        self.assertIn('customElements.define("family-room-summary-card"', summary_card)
+        self.assertIn('customElements.define("family-appliance-card"', appliance_card)
+        self.assertIn("home_connect", appliance_card)
+        self.assertIn("start_selected_program", appliance_card)
+        self.assertIn("b_s_h_common_option_start_in_relative", appliance_card)
+        self.assertIn('customElements.define("family-media-card"', media_card)
 
         self.assertIn('customElements.define("family-fan-card"', card)
         self.assertNotIn('customElements.define("family-fan-summary-card"', card)
@@ -715,7 +701,11 @@ class DashboardStructureTests(unittest.TestCase):
             "/local/family-fan-card.js?v=3.3.0",
             "/local/family-agenda-card.js?v=1.1.0",
             "/local/family-seerr-requests-card.js?v=1.1.0",
-            "/local/family-room-card.js?v=1.1.0",
+            "/local/family-room-card.js?v=1.2.0",
+            "/local/family-room-summary-card.js?v=1.0.0",
+            "/local/family-appliance-card.js?v=1.0.0",
+            "/local/family-media-card.js?v=1.0.0",
+            "/local/family-rooms-card.js?v=1.0.0",
         ):
             self.assertIn(resource, configuration)
 
@@ -728,6 +718,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("--todo-swipe-card-item-height: 48px", home)
         self.assertIn("@media (max-width: 899px)", navigation)
         self.assertIn("env(safe-area-inset-bottom)", navigation)
+        self.assertIn("window.location.pathname.startsWith('/home-tablet/rooms/')", navigation)
 
         for source in (room, fan, announcements, agenda, seerr, responsive_grid):
             self.assertIn("@media (max-width:", source)

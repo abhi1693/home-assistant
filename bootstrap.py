@@ -23,9 +23,14 @@ PRIVATE_COMMUTE_PACKAGE = "packages/private_commute.yaml"
 HOUSEHOLD_POLICY = "access/household-policy.json"
 LEGACY_HOUSEHOLD_ENTITIES = {
     "automation.household_end_good_night_period",
+    "automation.household_check_vacation_readiness",
     "automation.household_prepare_good_night",
+    "binary_sensor.vacation_ready",
     "input_boolean.good_night",
     "input_button.household_good_night",
+    "input_button.request_vacation_mode",
+    "input_datetime.last_vacation_preflight",
+    "input_text.vacation_preflight_result",
 }
 
 
@@ -181,6 +186,112 @@ def validate_household_policy(source: Path) -> None:
         "bed_occupancy",
     }:
         raise RuntimeError("Household hardware contracts are incomplete")
+
+
+def validate_room_model(source: Path) -> dict:
+    """Validate the declarative room graph before it reaches Home Assistant."""
+    room_model = json.loads((source / "access/rooms.json").read_text())
+    if (
+        room_model.get("version") != 1
+        or room_model.get("base_path") != "/home-tablet/rooms"
+        or room_model.get("access_mode") != "shared"
+    ):
+        raise RuntimeError("Family rooms must use the shared version 1 contract")
+
+    rooms = room_model.get("rooms")
+    if not isinstance(rooms, list) or len(rooms) != 7:
+        raise RuntimeError("Family room model must define the seven household rooms")
+    slugs = [room.get("slug") for room in rooms]
+    area_ids = [room.get("area_id") for room in rooms]
+    if len(set(slugs)) != len(slugs) or len(set(area_ids)) != len(area_ids):
+        raise RuntimeError("Family room slugs and area IDs must be unique")
+    if set(slugs) != {
+        "master-bedroom",
+        "bedroom",
+        "guest-room",
+        "office",
+        "kitchen",
+        "dining-room",
+        "living-room",
+    }:
+        raise RuntimeError("Family room model has an unexpected room set")
+
+    known_profiles = set(room_model.get("profiles", {}))
+    for room in rooms:
+        occupants = room.get("occupants")
+        modules = room.get("modules")
+        if (
+            not room.get("name")
+            or not room.get("icon", "").startswith("mdi:")
+            or not isinstance(occupants, list)
+            or not occupants
+            or not isinstance(modules, list)
+            or not modules
+        ):
+            raise RuntimeError(f"Family room {room.get('slug')!r} is incomplete")
+        unknown_occupants = set(occupants) - known_profiles - {"shared"}
+        if unknown_occupants:
+            raise RuntimeError(
+                f"Family room {room['slug']} has unknown occupants: "
+                f"{sorted(unknown_occupants)}"
+            )
+        for module in modules:
+            if module.get("type") not in {"fans", "media", "appliance", "camera"}:
+                raise RuntimeError(
+                    f"Family room {room['slug']} has an unsupported module"
+                )
+            unknown_labels = set(module.get("labels", [])) - set(
+                room_model.get("labels", {})
+            )
+            if unknown_labels:
+                raise RuntimeError(
+                    f"Family room {room['slug']} has unknown labels: "
+                    f"{sorted(unknown_labels)}"
+                )
+
+    for username, profile in room_model.get("profiles", {}).items():
+        favourites = profile.get("favourites", [])
+        if not favourites or set(favourites) - set(slugs):
+            raise RuntimeError(f"Room favourites for {username} are invalid")
+    return room_model
+
+
+def generate_family_rooms_manifest(source: Path, config: Path) -> None:
+    """Render a browser-safe room manifest with stable Home Assistant user IDs."""
+    room_model = validate_room_model(source)
+    access = json.loads((source / "access/family-dashboard.json").read_text())
+    access_profiles = {
+        profile["username"]: profile
+        for profile in access.get("profiles", {}).values()
+        if profile.get("is_family_member")
+    }
+    missing = set(room_model["profiles"]) - set(access_profiles)
+    if missing:
+        raise RuntimeError(f"Room profiles have no family account: {sorted(missing)}")
+
+    profiles = {
+        access_profiles[username]["user_id"]: {
+            "username": username,
+            "name": access_profiles[username].get("person_name", username),
+            "favourites": room_profile["favourites"],
+        }
+        for username, room_profile in room_model["profiles"].items()
+    }
+    manifest = {
+        "version": room_model["version"],
+        "base_path": room_model["base_path"],
+        "access_mode": room_model["access_mode"],
+        "profiles": profiles,
+        "occupant_names": {
+            username: profile.get("person_name", username)
+            for username, profile in access_profiles.items()
+        },
+        "rooms": room_model["rooms"],
+    }
+    atomic_json(
+        config / "www/generated/family-rooms.json", manifest, mode=0o644
+    )
+    print("Generated shared family room dashboard manifest")
 
 
 def remove_legacy_household_entities(config: Path) -> None:
@@ -1414,6 +1525,7 @@ def main() -> None:
 
     manifest = json.loads((source / "bootstrap/manifest.json").read_text())
     validate_household_policy(source)
+    validate_room_model(source)
     sync_source_files(source, config)
     initialize_mutable_yaml(source, config)
     install_hacs(manifest, config)
@@ -1426,6 +1538,7 @@ def main() -> None:
     reconcile_nut(source, config)
     validate_protect_streams(source, config)
     reconcile_family_access(source, config)
+    generate_family_rooms_manifest(source, config)
     reconcile_dashboard_defaults(source, config)
     remove_storage_dashboards(config)
 

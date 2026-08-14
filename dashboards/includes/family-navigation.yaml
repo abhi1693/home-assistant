@@ -15,6 +15,11 @@ routes:
     icon_selected: mdi:sofa
     url: /home-tablet/rooms
     label: Rooms
+    selected: |
+      [[[
+        return window.location.pathname === '/home-tablet/rooms' ||
+          window.location.pathname.startsWith('/home-tablet/rooms/');
+      ]]]
     badge:
       show: |
         [[[

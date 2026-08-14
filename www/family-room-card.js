@@ -64,6 +64,7 @@ class FamilyRoomCard extends HTMLElement {
       }
       * { box-sizing: border-box; }
       ha-card {
+        display: block;
         overflow: hidden;
         border: 1px solid rgba(var(--rgb-primary-text-color), .06);
         border-radius: 28px;
@@ -78,6 +79,19 @@ class FamilyRoomCard extends HTMLElement {
         gap: 12px;
         margin-bottom: 16px;
       }
+      .back {
+        display: grid;
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+        place-items: center;
+        border: 0;
+        border-radius: 14px;
+        background: var(--contrast3);
+        color: var(--contrast13);
+        cursor: pointer;
+      }
+      .back ha-icon { width: 22px; height: 22px; }
       .room-icon {
         display: grid;
         width: 42px;
@@ -98,12 +112,22 @@ class FamilyRoomCard extends HTMLElement {
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+      .room-copy { min-width: 0; flex: 1; }
+      .room-context {
+        display: block;
+        margin-top: 3px;
+        color: var(--contrast10);
+        font-size: 13px;
+        font-weight: 550;
+      }
       .room-content {
         display: grid;
         min-width: 0;
         gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
       .room-content > * { min-width: 0; }
+      .room-content > family-fan-card:first-child { grid-column: 1 / -1; }
       @media (max-width: 639px) {
         ha-card {
           border-radius: 22px;
@@ -121,7 +145,8 @@ class FamilyRoomCard extends HTMLElement {
           border-radius: 14px;
         }
         .room-name { font-size: 18px; }
-        .room-content { gap: 10px; }
+        .room-content { gap: 10px; grid-template-columns: 1fr; }
+        .room-content > family-fan-card:first-child { grid-column: auto; }
       }
     `;
 
@@ -130,7 +155,14 @@ class FamilyRoomCard extends HTMLElement {
     shell.style.setProperty("--fan-accent", accent);
     const heading = document.createElement("header");
     heading.className = "room-heading";
-    heading.innerHTML = `<span class="room-icon"><ha-icon icon="${icon}"></ha-icon></span><strong class="room-name">${name}</strong>`;
+    const occupantText = this._config.occupants?.length
+      ? this._config.occupants.join(" · ")
+      : "Shared room";
+    heading.innerHTML = `${this._config.back_path ? '<button class="back" type="button" aria-label="Back to rooms"><ha-icon icon="mdi:arrow-left"></ha-icon></button>' : ""}<span class="room-icon"><ha-icon icon="${icon}"></ha-icon></span><span class="room-copy"><strong class="room-name">${name}</strong><span class="room-context">${this._escape(occupantText)}</span></span>`;
+    heading.querySelector(".back")?.addEventListener("click", () => {
+      window.history.pushState({}, "", this._config.back_path);
+      window.dispatchEvent(new Event("location-changed"));
+    });
     const content = document.createElement("div");
     content.className = "room-content";
     content.append(...cards);

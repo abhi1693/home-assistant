@@ -8,6 +8,8 @@ const VIEWPORTS = [
   { name: "small", width: 375, height: 812 },
   { name: "large", width: 430, height: 932 },
   { name: "landscape", width: 844, height: 390 },
+  { name: "tablet", width: 1024, height: 768 },
+  { name: "desktop", width: 1440, height: 900 },
 ];
 
 const state = (entity_id, value, attributes = {}) => ({
@@ -49,8 +51,11 @@ async function installComponents(page) {
     </style>
     <main>
       <div id="responsive"></div>
+      <div id="rooms"></div>
       <div id="room"></div>
       <div id="fan"></div>
+      <div id="appliance"></div>
+      <div id="media"></div>
       <div id="agenda"></div>
       <div id="announcements"></div>
       <div id="seerr"></div>
@@ -79,6 +84,10 @@ async function installComponents(page) {
     "family-responsive-grid-card.js",
     "family-fan-card.js",
     "family-room-card.js",
+    "family-room-summary-card.js",
+    "family-appliance-card.js",
+    "family-media-card.js",
+    "family-rooms-card.js",
     "family-agenda-card.js",
     "family-announcements-card.js",
     "family-seerr-requests-card.js",
@@ -106,6 +115,18 @@ async function buildFixture(page) {
     "light.living_2": state("light.living_2", "off"),
     "switch.living_2_sleep": state("switch.living_2_sleep", "off"),
     "select.living_2_timer": state("select.living_2_timer", "Off", { options: ["Off", "1 hour", "2 hours"] }),
+    "binary_sensor.dishwasher_connectivity": state("binary_sensor.dishwasher_connectivity", "on"),
+    "binary_sensor.dishwasher_remote_control": state("binary_sensor.dishwasher_remote_control", "on"),
+    "binary_sensor.dishwasher_remote_start": state("binary_sensor.dishwasher_remote_start", "on"),
+    "sensor.dishwasher_door": state("sensor.dishwasher_door", "closed"),
+    "sensor.dishwasher_operation_state": state("sensor.dishwasher_operation_state", "ready"),
+    "sensor.dishwasher_program_progress": state("sensor.dishwasher_program_progress", "0", { unit_of_measurement:"%" }),
+    "sensor.dishwasher_salt_nearly_empty": state("sensor.dishwasher_salt_nearly_empty", "off"),
+    "sensor.dishwasher_rinse_aid_nearly_empty": state("sensor.dishwasher_rinse_aid_nearly_empty", "off"),
+    "select.dishwasher_selected_program": state("select.dishwasher_selected_program", "dishcare_dishwasher_program_quick_65", { options:["dishcare_dishwasher_program_quick_65","dishcare_dishwasher_program_eco_50"] }),
+    "switch.dishwasher_power": state("switch.dishwasher_power", "on"),
+    "media_player.echo_ma": state("media_player.echo_ma", "playing", { media_title:"Morning music", media_artist:"Family playlist", volume_level:.35 }),
+    "media_player.echo_alexa": state("media_player.echo_alexa", "idle", { volume_level:.35 }),
     "calendar.family": state("calendar.family", "off", { friendly_name: "Family" }),
     "sensor.family_announcements": state("sensor.family_announcements", "1", {
       announcements: [{
@@ -143,6 +164,19 @@ async function buildFixture(page) {
       { name:"Fan 1", fan:"fan.living_1", led:"light.living_1", sleep:"switch.living_1_sleep", timer:"select.living_1_timer" },
       { name:"Fan 2", fan:"fan.living_2", led:"light.living_2", sleep:"switch.living_2_sleep", timer:"select.living_2_timer" },
     ];
+    const dishwasher = {
+      type:"appliance", kind:"dishwasher", name:"Dishwasher", icon:"mdi:dishwasher", device_id:"dishwasher-device",
+      entities:{ connectivity:"binary_sensor.dishwasher_connectivity", remote_control:"binary_sensor.dishwasher_remote_control", remote_start:"binary_sensor.dishwasher_remote_start", operation:"sensor.dishwasher_operation_state", door:"sensor.dishwasher_door", progress:"sensor.dishwasher_program_progress", salt:"sensor.dishwasher_salt_nearly_empty", rinse_aid:"sensor.dishwasher_rinse_aid_nearly_empty", selected_program:"select.dishwasher_selected_program", stop:"button.dishwasher_stop_program", power:"switch.dishwasher_power" },
+    };
+    window.fetch = async () => ({ ok:true, json:async () => ({
+      version:1, base_path:"/home-tablet/rooms", access_mode:"shared",
+      profiles:{ owner:{ username:"asaharan", name:"Abhimanyu", favourites:["office"] } },
+      occupant_names:{ asaharan:"Abhimanyu", krishna:"Krishna", manisha:"Manisha" },
+      rooms:[
+        { slug:"office", name:"Office", icon:"mdi:desk", accent:"teal", occupants:["asaharan"], modules:[{type:"fans",name:"Fan",fans:[office]}] },
+        { slug:"kitchen", name:"Kitchen", icon:"mdi:countertop-outline", accent:"orange", occupants:["shared"], modules:[dishwasher,{type:"media",name:"Kitchen Echo",icon:"mdi:speaker",players:["media_player.echo_ma","media_player.echo_alexa"]}] },
+      ],
+    }) });
     const mount = (target, tag, config) => {
       const element = document.createElement(tag);
       element.setConfig(config);
@@ -151,8 +185,11 @@ async function buildFixture(page) {
       return element;
     };
     mount("#responsive", "family-responsive-grid-card", { cards:[{type:"custom:test-card"},{type:"custom:test-card"},{type:"custom:test-card"}], min_width:150 });
+    mount("#rooms", "family-rooms-card", { manifest_url:"/local/generated/family-rooms.json" });
     mount("#room", "family-room-card", { name:"Living Room", icon:"mdi:sofa", accent:"var(--yellow)", cards:[{type:"custom:family-fan-card", name:"Living Room", embedded:true, fans:living}] });
     mount("#fan", "family-fan-card", { name:"Office", embedded:true, fans:[office] });
+    mount("#appliance", "family-appliance-card", { module:dishwasher });
+    mount("#media", "family-media-card", { module:{type:"media",name:"Kitchen Echo",icon:"mdi:speaker",players:["media_player.echo_ma","media_player.echo_alexa"]} });
     mount("#agenda", "family-agenda-card", { entities:[{entity:"calendar.family", name:"Family", color:"var(--green)"}], days:14, max_events:4 });
     mount("#announcements", "family-announcements-card", { entity:"sensor.family_announcements" });
     mount("#seerr", "family-seerr-requests-card", { entity:"sensor.seerr", url:"http://requests.example.test" });
@@ -189,6 +226,18 @@ async function validate(page, viewport) {
     assert(responsiveCards[2].y > responsiveCards[0].y, "Responsive grid did not wrap its third card");
   }
 
+  const rooms = page.locator("family-rooms-card");
+  await rooms.locator("family-room-summary-card").first().waitFor();
+  const roomSummaries = await boxes(rooms.locator("family-room-summary-card ha-card"));
+  assert.equal(roomSummaries.length, 2, "Room router did not render the shared room list");
+  await assertTargets(rooms.locator("family-room-summary-card ha-card"));
+  await rooms.locator("family-room-summary-card").first().click();
+  await rooms.locator("family-room-card").waitFor();
+  assert.equal(new URL(page.url()).pathname, "/home-tablet/rooms/office");
+  await assertTargets(rooms.locator("family-room-card .back"));
+  await rooms.locator("family-room-card .back").click();
+  await rooms.locator("family-room-summary-card").first().waitFor();
+
   const roomFan = page.locator("#room family-fan-card");
   const tiles = await boxes(roomFan.locator(".fan-tile"));
   assert.equal(tiles.length, 2);
@@ -224,6 +273,15 @@ async function validate(page, viewport) {
   }
   await timer.locator('[data-action="timer-choice"][data-option="1 hour"]').click();
   await page.waitForTimeout(700);
+
+  const appliance = page.locator("family-appliance-card");
+  await appliance.locator("summary").click();
+  await assertTargets(appliance.locator("select,button"));
+  assert(await appliance.locator('[data-action="start"]').isEnabled(), "Dishwasher start should be available only when remote start and the closed door are confirmed");
+
+  const media = page.locator("family-media-card");
+  await assertTargets(media.locator("button"));
+  assert.equal(await media.locator(".name").textContent(), "Morning music");
 
   const announcements = page.locator("family-announcements-card");
   await assertTargets(announcements.locator(".add,.remove"));
@@ -281,7 +339,7 @@ async function validate(page, viewport) {
   }
   assert.deepEqual(errors, []);
   await browser.close();
-  console.log(`Validated ${VIEWPORTS.length} mobile component layouts and interactions.`);
+  console.log(`Validated ${VIEWPORTS.length} responsive component layouts and interactions.`);
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;

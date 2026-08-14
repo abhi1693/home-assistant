@@ -84,10 +84,11 @@
       "is_owner": true,
       "default_dashboard": "home-tablet",
       "cameras": [
+        "master-bedroom",
         "hallway",
         "outside"
       ],
-      "notes": "Master Bedroom is hidden from this dashboard profile. As the Home Assistant owner, Abhimanyu retains administrative entity access."
+      "notes": "Family rooms and cameras are shared for the current rollout. Room occupants are personalization metadata, not access rules."
     },
     "krishna": {
       "user_id": "8117b77542614a06b4672a8ae1a979b5",
@@ -111,7 +112,7 @@
         "hallway",
         "outside"
       ],
-      "notes": "Mother profile. Master Bedroom camera access is exclusive to Krishna among non-owner family accounts."
+      "notes": "Mother profile. Family rooms and cameras are shared for the current rollout."
     },
     "manisha": {
       "user_id": "734722ec932a41a68d47553b6c2f7f5d",
@@ -129,10 +130,11 @@
       "default_dashboard": "home-tablet",
       "enforce_camera_policy": true,
       "cameras": [
+        "master-bedroom",
         "hallway",
         "outside"
       ],
-      "notes": "Wife profile. Master Bedroom camera remains exclusive to Krishna among non-owner family accounts."
+      "notes": "Wife profile. Family rooms and cameras are shared for the current rollout."
     },
     "codex-dashboard-reviewer": {
       "user_id": "2d1be8070c364e6a9ba70103c007d4d0",

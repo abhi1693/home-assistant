@@ -84,6 +84,8 @@ Light, Sleep and Timer into compact icon-led actions. Fan timers and announcemen
 composition open as bottom sheets with large duration choices and controls that
 remain reachable above the phone safe area. Agenda, Seerr and announcement actions
 also use phone-specific spacing without changing account gates or service behavior.
+The same component suite is exercised at phone, landscape, tablet and desktop
+widths.
 
 The current dashboard binds fixed controls only to entities verified in the
 live Home Assistant registry. Auto Entities discovers active Jellyfin and Music
@@ -110,7 +112,13 @@ summaries ordered for each person's routine. Abhimanyu sees Office, Bedroom and
 Living Room; Krishna sees Master
 Bedroom, Kitchen, Living Room and Dining Room; Manisha sees Bedroom, Kitchen,
 Living Room and Guest Room. The browser-review profile sees no favourites.
-The Living Room summary combines both fans. The full Rooms view uses a
+The Living Room summary combines both fans. Rooms is now a source-owned nested
+surface: `/home-tablet/rooms` presents compact, priority-based room summaries,
+while `/home-tablet/rooms/<room-slug>` opens that room's controls. All seven rooms
+are visible and manageable by every authenticated family account in this rollout.
+Primary occupants are metadata used only for context and personalised ordering:
+Krishna for Master Bedroom, Abhimanyu and Manisha for Bedroom, and Abhimanyu for
+Office; the remaining rooms are shared. The full room view uses a
 source-owned, quota-conscious circular control inspired by Atomberg's appliance
 interface. Tapping the large centre starts at the retained speed or turns the
 fan off; the centre shows only On or Off, while six direct speed targets sit
@@ -122,7 +130,9 @@ one lets the fan replace the other with its native command instead of spending a
 extra API call. A fixed centre rotor rotates only while running,
 unavailable fans collapse to a disabled wall-switch message, and one per-fan
 command lock prevents conflicting taps. Living Room presents both fans as equal
-tiles in one double-width card; the other rooms form a two-column desktop grid.
+tiles within its Living Room module; every other fan is similarly contained in
+its room module so media, appliances, cameras and future controls can be added
+without changing the room index.
 Selecting a speed while off sends separate power and speed commands matching
 Atomberg's published API. An immediate action first cancels an active
 conflicting timer so it cannot unexpectedly reverse the fan later.
@@ -138,7 +148,8 @@ Its context line includes the weekday, day part and current time, and its weathe
 advice changes between morning, afternoon, evening and night. The former
 Good Night action was removed because it only recorded an abstract intent and
 did not perform a useful, predictable household action. Bootstrap removes its
-four exact retired entity-registry entries without touching user-owned helpers.
+four retired entity-registry entries together with the five retired Vacation
+entities, without touching user-owned helpers.
 A Git-owned family
 bulletin in the household rail groups independent, account-attributed household
 updates above Shopping. Its Add action opens a focused composer; each
@@ -159,18 +170,14 @@ Home without the native card's large empty state; list contents remain normal
 mutable Home Assistant data while the card and its access policy stay Git-owned.
 Rack health remains confined to the admin-only dashboard.
 
-The household package supplies restart-safe Normal, Guest, Vacation and
-Maintenance intent, quiet hours, a default `Shadow` safety stage,
+The household package supplies restart-safe Normal, Guest and Maintenance
+intent, quiet hours, a default `Shadow` safety stage,
 confidence-aware phone presence, five-minute empty-home dwell, camera outage
-timers, one notification router, Vacation preflight, washer, fan,
+timers, one notification router, washer, dishwasher, fan,
 travel-battery, perimeter and Protect-storage workflows. Shadow mode records
 decisions but does not send mobile alerts or control devices. Hardware-dependent
 contact, leak, certified smoke/CO, indoor-air and wellbeing capabilities remain
 explicitly dormant instead of appearing healthy without sensors or consent.
-Vacation checks always leave an immediate result on the Security view. While the
-household stage is `Shadow`, the control is labelled as a readiness check and
-cannot imply that Vacation mode will start; only an `Active`, fully ready check
-can change house mode.
 Bootstrap also reconciles the existing cluster NUT endpoint as a credential-free,
 read-only `Rack UPS` config entry. Home Assistant can explain battery, load and
 runtime, while Rack Ops remains the only system allowed to stage Kubernetes
@@ -189,8 +196,15 @@ entity policy as well as by account-specific Lovelace rendering, so private
 calendar content is not merely hidden with frontend conditions. A source-owned
 agenda card requests those authorized events through Home Assistant, groups shared
 dates, and gives every event a readable date block, title, time and calendar
-source. The washer is absent while it is off or unavailable and appears only
-when a useful cycle status exists.
+source. The Guest Room presents the washer as read-only cycle status. Kitchen
+presents the Bosch dishwasher with progress, finish time and refill warnings;
+program selection, delayed start, stop and power remain behind an advanced
+section. Starting is enabled only when connectivity, remote control, remote
+start, a closed door and a selected program are all confirmed, and it always
+requires confirmation. Office and Kitchen each merge their Music Assistant and
+Alexa representations into one logical Echo card. The future Bedroom and Guest
+Room televisions are declared as optional placeholders and stay hidden until
+their actual Home Assistant entities are known.
 
 ## Family access
 
@@ -200,7 +214,9 @@ username and person entity, lists the Protect cameras each account may see,
 records each supported Android phone's next-alarm entity,
 separates shared and owner-only Google calendars, and records each profile's
 default dashboard and whether a non-owner private-entity policy must be
-enforced. The same document sets `home-tablet` as the system fallback,
+enforced. The current family profiles all receive the three camera streams;
+room occupant metadata does not restrict access. The same document sets
+`home-tablet` as the system fallback,
 so opening the bare Home Assistant address lands on `/home-tablet/home` instead
 of the removed built-in Home panel. Bootstrap validates
 every account, person link and camera entity against the live registries before
@@ -212,18 +228,16 @@ The managed family profiles are Abhimanyu, Manisha and Krishna. Krishna's person
 is GitOps-linked to both the UniFi and Home Assistant Companion App trackers for
 her Pixel 10 Pro; Manisha's person is linked to her iPhone Companion App tracker;
 Abhimanyu's person retains only the Pixel 8 GPS and matching UniFi phone
-trackers; desktop computers are never presence evidence. The Master
-Bedroom camera is rendered for Krishna but omitted from Manisha, Abhimanyu and
-the browser-review profile. Because Abhimanyu is the Home
-Assistant owner, hiding a camera from that profile can only be a presentation
-rule: owners always retain administrative entity access.
+trackers; desktop computers are never presence evidence. All three family
+profiles receive Master Bedroom, Kitchen Balcony and Outside during this shared
+rollout. The non-family browser-review profile receives no camera.
 Non-owner family profiles receive both Lovelace filtering and backend camera and
 calendar permissions. Their generated policy explicitly allows every registered
 non-camera/non-calendar domain, only the camera entities granted in the access
 matrix, and the shared Birthdays calendar; this avoids Home Assistant's
 unconditional `all` permission fallback.
-Restricted camera cards are omitted and the remaining cards reflow. Unknown
-users receive no cameras by default.
+Camera cards granted by the matrix reflow automatically; unknown and non-family
+review users receive no cameras by default.
 
 Family credentials are never Git-owned. Create each account privately in Home
 Assistant, then add its immutable user ID, login username, person entity, device
@@ -299,6 +313,9 @@ stream quality configuration reproducible without committing Protect secrets.
   Home panel after the frontend integration starts
 - `custom_components/family_camera_streams/`: reconciles Git-owned Protect
   stream tiers and their native Home Assistant entities
+- `custom_components/family_room_registry/`: idempotently reconciles Git-owned
+  room areas and labels through Home Assistant's registries, including the
+  dishwasher, washer, paired Echo devices and corrected camera placement
 - `custom_components/family_jellyfin_sessions/`: exposes viewer-aware Jellyfin
   sessions for concurrent playback cards without another API poll
 - `custom_components/family_music_assistant_sessions/`: mirrors dynamic Music
@@ -313,8 +330,16 @@ stream quality configuration reproducible without committing Protect secrets.
 - `www/family-fan-card.js`: renders senior-friendly, quota-conscious
   fan controls with a fixed-axis SVG rotor that spins cleanly without moving
   the centre hub, plus multi-entity Atomberg room controls
-- `www/family-room-card.js`: owns the reusable room boundary so fan, lighting,
-  climate and media cards can be added independently without redesigning Rooms
+- `www/family-rooms-card.js`: routes the shared room index and nested room paths,
+  applying each account's favourite ordering without hiding any room
+- `www/family-room-summary-card.js`: renders compact room status with attention,
+  appliance, playback and active-fan priority
+- `www/family-room-card.js`: owns the reusable detail boundary so fan, appliance,
+  camera and media modules can evolve independently
+- `www/family-appliance-card.js`: presents read-only washer status and guarded
+  Home Connect dishwasher controls
+- `www/family-media-card.js`: merges duplicate Alexa and Music Assistant entities
+  into one logical room speaker
 - `themes/`: source-owned themes
 - `packages/`: source-owned commute, household state/workflows and normalized
   temperature presentation
@@ -375,11 +400,13 @@ Run the isolated phone component suite with Playwright available on `NODE_PATH`:
 NODE_PATH=/path/to/node_modules node tests/mobile_dashboard_components.js
 ```
 
-The browser suite covers 375px and 430px portrait phones plus an 844px
-landscape viewport. It checks horizontal overflow, responsive grid reflow,
-Living Room fan stacking, dial target separation, 44px touch targets, fan and
-announcement bottom sheets, agenda interaction, and Seerr confirmation actions
-using mocked Home Assistant services so no household device is changed.
+The browser suite covers 375px and 430px portrait phones, 844px landscape,
+1024px tablet and 1440px desktop viewports. It checks horizontal overflow,
+nested room navigation, shared room rendering, responsive grid reflow, Living
+Room fan stacking, dial target separation, 44px touch targets, guarded
+dishwasher controls, merged media playback, fan and announcement bottom sheets,
+agenda interaction, and Seerr confirmation actions using mocked Home Assistant
+services so no household device is changed.
 
 The Kubernetes repository additionally validates the rendered Helm resource and
 the live Fleet rollout that consumes this source.

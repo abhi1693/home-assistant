@@ -1,0 +1,401 @@
+{
+  "version": 1,
+  "base_path": "/home-tablet/rooms",
+  "access_mode": "shared",
+  "labels": {
+    "family_visible": {
+      "name": "Family visible",
+      "icon": "mdi:account-group-outline",
+      "color": "blue"
+    },
+    "primary_control": {
+      "name": "Primary control",
+      "icon": "mdi:gesture-tap-button",
+      "color": "teal"
+    },
+    "appliance": {
+      "name": "Appliance",
+      "icon": "mdi:dishwasher",
+      "color": "orange"
+    },
+    "media": {
+      "name": "Media",
+      "icon": "mdi:play-circle-outline",
+      "color": "purple"
+    },
+    "security_sensitive": {
+      "name": "Security sensitive",
+      "icon": "mdi:shield-lock-outline",
+      "color": "red"
+    },
+    "admin_only": {
+      "name": "Administrator only",
+      "icon": "mdi:shield-account-outline",
+      "color": "grey"
+    },
+    "diagnostic": {
+      "name": "Diagnostic",
+      "icon": "mdi:stethoscope",
+      "color": "grey"
+    }
+  },
+  "profiles": {
+    "asaharan": {
+      "favourites": [
+        "office",
+        "bedroom",
+        "living-room"
+      ]
+    },
+    "krishna": {
+      "favourites": [
+        "master-bedroom",
+        "kitchen",
+        "living-room",
+        "dining-room"
+      ]
+    },
+    "manisha": {
+      "favourites": [
+        "bedroom",
+        "kitchen",
+        "living-room",
+        "guest-room"
+      ]
+    }
+  },
+  "rooms": [
+    {
+      "slug": "living-room",
+      "area_id": "living_room",
+      "name": "Living Room",
+      "icon": "mdi:sofa-outline",
+      "accent": "yellow",
+      "occupants": [
+        "shared"
+      ],
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fans",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "name": "Fan 1",
+              "fan": "fan.living_room_fan_1",
+              "led": "light.living_room_fan_1_led",
+              "sleep": "switch.living_room_fan_1_sleep_mode",
+              "timer": "select.living_room_fan_1_set_timer",
+              "timer_elapsed": "sensor.living_room_fan_1_timer_elapsed_time"
+            },
+            {
+              "name": "Fan 2",
+              "fan": "fan.living_room_fan_2",
+              "led": "light.living_room_fan_2_led",
+              "sleep": "switch.living_room_fan_2_sleep_mode",
+              "timer": "select.living_room_fan_2_set_timer",
+              "timer_elapsed": "sensor.living_room_fan_2_timer_elapsed_time"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "office",
+      "area_id": "computer_room",
+      "name": "Office",
+      "icon": "mdi:desk",
+      "accent": "teal",
+      "occupants": [
+        "asaharan"
+      ],
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fan",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "fan": "fan.office_fan",
+              "led": "light.office_fan_led",
+              "sleep": "switch.office_fan_sleep_mode",
+              "timer": "select.office_fan_set_timer",
+              "timer_elapsed": "sensor.office_fan_timer_elapsed_time"
+            }
+          ]
+        },
+        {
+          "type": "media",
+          "name": "Office Echo",
+          "icon": "mdi:speaker",
+          "labels": [
+            "family_visible",
+            "media"
+          ],
+          "players": [
+            "media_player.abhimanyu_s_echo_2",
+            "media_player.abhimanyu_s_echo"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "master-bedroom",
+      "area_id": "manisha_bedroom",
+      "name": "Master Bedroom",
+      "icon": "mdi:bed-king-outline",
+      "accent": "blue",
+      "occupants": [
+        "krishna"
+      ],
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fan",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "fan": "fan.master_bedroom_fan",
+              "led": "light.master_bedroom_fan_led",
+              "sleep": "switch.master_bedroom_fan_sleep_mode",
+              "timer": "select.master_bedroom_fan_set_timer",
+              "timer_elapsed": "sensor.master_bedroom_fan_timer_elapsed_time"
+            }
+          ]
+        },
+        {
+          "type": "camera",
+          "name": "Master Bedroom",
+          "icon": "mdi:cctv",
+          "entity": "camera.living_room_high_resolution_channel",
+          "preview_entity": "camera.living_room_medium_resolution_channel",
+          "url": "/home-tablet/cameras",
+          "labels": [
+            "family_visible",
+            "security_sensitive"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "bedroom",
+      "area_id": "mummy_bedroom",
+      "name": "Bedroom",
+      "icon": "mdi:bed-outline",
+      "accent": "purple",
+      "occupants": [
+        "asaharan",
+        "manisha"
+      ],
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fan",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "fan": "fan.bedroom_fan",
+              "led": "light.bedroom_fan_led",
+              "sleep": "switch.bedroom_fan_sleep_mode",
+              "timer": "select.bedroom_fan_set_timer",
+              "timer_elapsed": "sensor.bedroom_fan_timer_elapsed_time"
+            }
+          ]
+        },
+        {
+          "type": "media",
+          "name": "Bedroom TV",
+          "icon": "mdi:television",
+          "players": [],
+          "optional": true,
+          "pending": true,
+          "labels": [
+            "family_visible",
+            "media"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "guest-room",
+      "area_id": "guest_bedroom",
+      "name": "Guest Room",
+      "icon": "mdi:bed-single-outline",
+      "accent": "pink",
+      "occupants": [
+        "shared"
+      ],
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fan",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "fan": "fan.guest_fan",
+              "led": "light.guest_fan_led",
+              "sleep": "switch.guest_fan_sleep_mode",
+              "timer": "select.guest_fan_set_timer",
+              "timer_elapsed": "sensor.guest_fan_timer_elapsed_time"
+            }
+          ]
+        },
+        {
+          "type": "appliance",
+          "kind": "washer",
+          "name": "Washer",
+          "icon": "mdi:washing-machine",
+          "read_only": true,
+          "labels": [
+            "family_visible",
+            "appliance"
+          ],
+          "entities": {
+            "status": "sensor.front_load_washer_current_status",
+            "remaining": "sensor.front_load_washer_remaining_time",
+            "total": "sensor.front_load_washer_total_time",
+            "delayed_end": "sensor.front_load_washer_delayed_end",
+            "error": "event.front_load_washer_error",
+            "notification": "event.front_load_washer_notification"
+          }
+        },
+        {
+          "type": "media",
+          "name": "Guest Room TV",
+          "icon": "mdi:television",
+          "players": [],
+          "optional": true,
+          "pending": true,
+          "labels": [
+            "family_visible",
+            "media"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "kitchen",
+      "area_id": "kitchen",
+      "name": "Kitchen",
+      "icon": "mdi:countertop-outline",
+      "accent": "orange",
+      "occupants": [
+        "shared"
+      ],
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fan",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "fan": "fan.kitchen_fan",
+              "led": "light.kitchen_fan_led",
+              "sleep": "switch.kitchen_fan_sleep_mode",
+              "timer": "select.kitchen_fan_set_timer",
+              "timer_elapsed": "sensor.kitchen_fan_timer_elapsed_time"
+            }
+          ]
+        },
+        {
+          "type": "appliance",
+          "kind": "dishwasher",
+          "name": "Dishwasher",
+          "icon": "mdi:dishwasher",
+          "device_id": "caac28eb9c2b60695eb93468fab1c7b8",
+          "labels": [
+            "family_visible",
+            "appliance"
+          ],
+          "entities": {
+            "connectivity": "binary_sensor.dishwasher_connectivity",
+            "remote_control": "binary_sensor.dishwasher_remote_control",
+            "remote_start": "binary_sensor.dishwasher_remote_start",
+            "operation": "sensor.dishwasher_operation_state",
+            "door": "sensor.dishwasher_door",
+            "progress": "sensor.dishwasher_program_progress",
+            "finish_time": "sensor.dishwasher_program_finish_time",
+            "finished": "sensor.dishwasher_program_finished",
+            "salt": "sensor.dishwasher_salt_nearly_empty",
+            "rinse_aid": "sensor.dishwasher_rinse_aid_nearly_empty",
+            "active_program": "select.dishwasher_active_program",
+            "selected_program": "select.dishwasher_selected_program",
+            "start_in": "number.dishwasher_start_in_relative",
+            "stop": "button.dishwasher_stop_program",
+            "power": "switch.dishwasher_power"
+          }
+        },
+        {
+          "type": "media",
+          "name": "Kitchen Echo Dot",
+          "icon": "mdi:speaker",
+          "labels": [
+            "family_visible",
+            "media"
+          ],
+          "players": [
+            "media_player.abhimanyu_s_echo_dot_2",
+            "media_player.abhimanyu_s_echo_dot"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "dining-room",
+      "area_id": "dining_room",
+      "name": "Dining Room",
+      "icon": "mdi:table-furniture",
+      "accent": "green",
+      "occupants": [
+        "shared"
+      ],
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fan",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "fan": "fan.dining_fan",
+              "led": "light.dining_fan_led",
+              "sleep": "switch.dining_fan_sleep_mode",
+              "timer": "select.dining_fan_set_timer",
+              "timer_elapsed": "sensor.dining_fan_timer_elapsed_time"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "device_bindings": [
+    {
+      "entity": "camera.hallway_high_resolution_channel",
+      "area_id": "kitchen",
+      "labels": [
+        "family_visible",
+        "security_sensitive"
+      ]
+    }
+  ]
+}

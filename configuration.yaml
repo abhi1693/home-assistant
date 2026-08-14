@@ -37,6 +37,8 @@ family_dashboard_guard:
 
 family_camera_streams:
 
+family_room_registry:
+
 sensor:
   - platform: family_announcements
     access_file: /config/access/family-dashboard.json
@@ -72,7 +74,15 @@ lovelace:
       type: module
     - url: /local/family-seerr-requests-card.js?v=1.1.0
       type: module
-    - url: /local/family-room-card.js?v=1.1.0
+    - url: /local/family-room-card.js?v=1.2.0
+      type: module
+    - url: /local/family-room-summary-card.js?v=1.0.0
+      type: module
+    - url: /local/family-appliance-card.js?v=1.0.0
+      type: module
+    - url: /local/family-media-card.js?v=1.0.0
+      type: module
+    - url: /local/family-rooms-card.js?v=1.0.0
       type: module
     - url: /local/community/todo-swipe-card/todo-swipe-card.js?v=3.6.0
       type: module

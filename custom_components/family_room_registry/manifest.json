@@ -1,0 +1,10 @@
+{
+  "domain": "family_room_registry",
+  "name": "Family Room Registry",
+  "codeowners": ["@abhi1693"],
+  "config_flow": false,
+  "documentation": "https://github.com/abhi1693/home-assistant",
+  "integration_type": "system",
+  "iot_class": "local_push",
+  "version": "1.0.0"
+}
