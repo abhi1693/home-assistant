@@ -1110,6 +1110,69 @@ class BootstrapTests(unittest.TestCase):
                 True,
             )
 
+    def test_protect_policy_binds_the_whole_camera_device(self):
+        entities = {
+            "camera.master_high": {
+                "platform": "unifiprotect",
+                "device_id": "camera-master",
+                "disabled_by": None,
+            },
+            "camera.master_medium": {
+                "platform": "unifiprotect",
+                "device_id": "camera-master",
+                "disabled_by": None,
+            },
+            "sensor.master_last_motion": {
+                "platform": "unifiprotect",
+                "device_id": "camera-master",
+                "disabled_by": None,
+            },
+            "select.master_recording_mode": {
+                "platform": "unifiprotect",
+                "device_id": "camera-master",
+                "disabled_by": None,
+            },
+            "camera.outside_high": {
+                "platform": "unifiprotect",
+                "device_id": "camera-outside",
+                "disabled_by": None,
+            },
+            "sensor.protect_storage": {
+                "platform": "unifiprotect",
+                "device_id": "protect-nvr",
+                "disabled_by": None,
+            },
+        }
+        streams = {
+            "cameras": {
+                "master": {
+                    "high_entity_id": "camera.master_high",
+                    "medium_entity_id": "camera.master_medium",
+                }
+            }
+        }
+
+        by_camera, private_entities = bootstrap._protect_camera_entity_sets(
+            entities,
+            {"master": "camera.master_high"},
+            streams,
+            {"master": ["sensor.family_camera_master_activity"]},
+            {"sensor.family_camera_master_activity"},
+        )
+
+        self.assertEqual(
+            by_camera["master"],
+            {
+                "camera.master_high",
+                "camera.master_medium",
+                "sensor.master_last_motion",
+                "select.master_recording_mode",
+                "sensor.family_camera_master_activity",
+            },
+        )
+        self.assertIn("sensor.protect_storage", private_entities)
+        self.assertNotIn("camera.outside_high", by_camera["master"])
+
     def test_dashboard_defaults_preserve_existing_frontend_preferences(self):
         owner_id = "owner-user-id"
         reviewer_id = "reviewer-user-id"

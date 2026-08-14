@@ -131,7 +131,8 @@ Camera grants come from the family access policy, and non-owner permissions are
 reconciled in Home Assistant's backend. Streams, event history, motion and smart
 detection entities, recording diagnostics, and camera speakers inherit the
 same grant as their camera, so a restricted room cannot leak metadata or media
-through another entity domain. The Master Bedroom camera and speaker are
+through another entity domain. Protect console and NVR storage entities remain
+administrator-only. The Master Bedroom camera and speaker are
 available to Krishna and the owner; Manisha receives only Outside and Kitchen
 Balcony. An owner-only `all_cameras` capability adds every declared camera to
 the owner's generated grants without weakening another account.

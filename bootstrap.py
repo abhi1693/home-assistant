@@ -742,6 +742,64 @@ def _camera_keys_for_profile(
     return allowed_keys
 
 
+def _protect_camera_entity_sets(
+    entities: dict[str, dict],
+    cameras: dict[str, str],
+    streams: dict,
+    camera_security: dict[str, list[str]],
+    source_owned: set[str],
+) -> tuple[dict[str, set[str]], set[str]]:
+    """Bind every enabled Protect entity to its camera device and keep NVR data private."""
+    protect_entities = {
+        entity_id
+        for entity_id, entity in entities.items()
+        if entity.get("platform") == "unifiprotect"
+    }
+    by_camera: dict[str, set[str]] = {}
+    claimed_devices: dict[str, str] = {}
+
+    for camera_key, high_entity_id in cameras.items():
+        device_id = entities[high_entity_id].get("device_id")
+        if not device_id:
+            raise RuntimeError(f"Camera {camera_key} has no Protect device binding")
+        if device_id in claimed_devices:
+            raise RuntimeError(
+                f"Cameras {claimed_devices[device_id]} and {camera_key} share a device"
+            )
+        claimed_devices[device_id] = camera_key
+
+        native_entities = {
+            entity_id
+            for entity_id in protect_entities
+            if entities[entity_id].get("device_id") == device_id
+        }
+        declared_native = {
+            streams["cameras"][camera_key]["high_entity_id"],
+            streams["cameras"][camera_key]["medium_entity_id"],
+            *(
+                set(camera_security.get(camera_key, []))
+                - source_owned
+            ),
+        }
+        mismatched = {
+            entity_id
+            for entity_id in declared_native
+            if entity_id in entities and entity_id not in native_entities
+        }
+        if mismatched:
+            raise RuntimeError(
+                f"Camera {camera_key} entities do not share its Protect device: "
+                f"{sorted(mismatched)}"
+            )
+        by_camera[camera_key] = (
+            native_entities
+            | declared_native
+            | (set(camera_security.get(camera_key, [])) & source_owned)
+        )
+
+    return by_camera, protect_entities | source_owned
+
+
 def reconcile_camera_activity_entity_ids(
     streams: dict, entity_path: Path, entity_registry: dict
 ) -> None:
@@ -982,6 +1040,27 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                 )
             protected_camera_entities.add(entity_id)
 
+    if enhanced_camera_policy:
+        camera_policy_entities, private_protect_entities = (
+            _protect_camera_entity_sets(
+                entities,
+                cameras,
+                streams,
+                camera_security,
+                source_owned_camera_entities,
+            )
+        )
+        protected_camera_entities = private_protect_entities
+    else:
+        camera_policy_entities = {
+            key: {
+                streams["cameras"][key]["medium_entity_id"],
+                streams["cameras"][key]["high_entity_id"],
+                *camera_security.get(key, []),
+            }
+            for key in cameras
+        }
+
     profile_policies = access.get("profiles", {})
     valid_severities = {"informational", "advisory", "warning", "critical"}
     enhanced_streams = (
@@ -1158,11 +1237,7 @@ def reconcile_family_access(source: Path, config: Path) -> None:
         allowed_entities = [
             entity_id
             for key in allowed_keys
-            for entity_id in (
-                streams["cameras"][key]["medium_entity_id"],
-                streams["cameras"][key]["high_entity_id"],
-                *camera_security.get(key, []),
-            )
+            for entity_id in sorted(camera_policy_entities[key])
         ]
         for camera_key in allowed_keys:
             users_by_camera[camera_key].append(user_id)
