@@ -104,8 +104,6 @@ automation:
                             {{ departure_minutes }} minutes.
                           data:
                             tag: abhimanyu-homeward-journey
-                            url: /home-tablet/home
-                            clickAction: /home-tablet/home
                         continue_on_error: true
                   - if:
                       - condition: zone.not_in_zone
@@ -124,8 +122,6 @@ automation:
                             {{ departure_minutes }} minutes.
                           data:
                             tag: abhimanyu-homeward-journey
-                            url: /home-tablet/home
-                            clickAction: /home-tablet/home
                         continue_on_error: true
           - conditions:
               - condition: trigger
@@ -171,8 +167,6 @@ automation:
                           message: Abhimanyu is home.
                           data:
                             tag: abhimanyu-homeward-journey
-                            url: /home-tablet/home
-                            clickAction: /home-tablet/home
                         continue_on_error: true
                   - if:
                       - condition: zone.not_in_zone
@@ -189,8 +183,6 @@ automation:
                           message: Abhimanyu is home.
                           data:
                             tag: abhimanyu-homeward-journey
-                            url: /home-tablet/home
-                            clickAction: /home-tablet/home
                         continue_on_error: true
               - action: input_boolean.turn_off
                 target:
@@ -247,8 +239,6 @@ automation:
                           message: Abhimanyu is home.
                           data:
                             tag: abhimanyu-homeward-journey
-                            url: /home-tablet/home
-                            clickAction: /home-tablet/home
                         continue_on_error: true
                   - if:
                       - condition: zone.not_in_zone
@@ -265,8 +255,6 @@ automation:
                           message: Abhimanyu is home.
                           data:
                             tag: abhimanyu-homeward-journey
-                            url: /home-tablet/home
-                            clickAction: /home-tablet/home
                         continue_on_error: true
               - action: input_boolean.turn_off
                 target:

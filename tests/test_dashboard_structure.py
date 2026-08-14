@@ -491,6 +491,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("Abhimanyu is coming home", automation)
         self.assertIn("Abhimanyu arrived home", automation)
         self.assertEqual(automation.count("tag: abhimanyu-homeward-journey"), 6)
+        self.assertNotIn("url: /home-tablet/home", automation)
+        self.assertNotIn("clickAction:", automation)
         self.assertEqual(automation.count("condition: zone.not_in_zone"), 7)
         self.assertEqual(automation.count("              - parallel:"), 3)
         self.assertIn("person.krishna", automation)
