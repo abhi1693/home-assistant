@@ -271,6 +271,22 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('callService("family_announcements", "dismiss"', card)
         self.assertFalse((ROOT / "packages/family_console.yaml").exists())
 
+    def test_household_notifications_use_companion_app_actions(self):
+        household = (ROOT / "packages/household.yaml").read_text()
+
+        for action in (
+            "notify.mobile_app_pixel_8",
+            "notify.mobile_app_pixel_10_pro",
+            "notify.mobile_app_iphone",
+        ):
+            self.assertIn(f"action: {action}", household)
+        for entity_id in (
+            "notify.abhimanyu_pixel_8",
+            "notify.pixel_10_pro",
+            "notify.iphone",
+        ):
+            self.assertNotIn(f"action: {entity_id}", household)
+
     def test_seerr_requests_are_admin_gated_and_server_managed(self):
         configuration = (ROOT / "configuration.yaml").read_text()
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()

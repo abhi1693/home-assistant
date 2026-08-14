@@ -318,19 +318,19 @@ script:
           - condition: template
             value_template: "{{ recipient in ['owner', 'abhimanyu', 'family'] }}"
         then:
-          - action: notify.abhimanyu_pixel_8
+          - action: notify.mobile_app_pixel_8
             data: "{{ payload }}"
       - if:
           - condition: template
             value_template: "{{ recipient in ['krishna', 'family'] }}"
         then:
-          - action: notify.pixel_10_pro
+          - action: notify.mobile_app_pixel_10_pro
             data: "{{ payload }}"
       - if:
           - condition: template
             value_template: "{{ recipient in ['manisha', 'family'] }}"
         then:
-          - action: notify.iphone
+          - action: notify.mobile_app_iphone
             data: "{{ payload }}"
 
   family_household_incident:
