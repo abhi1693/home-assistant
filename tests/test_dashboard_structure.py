@@ -468,6 +468,14 @@ class DashboardStructureTests(unittest.TestCase):
             },
         )
 
+        package = (ROOT / "packages/household.yaml").read_text()
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        for name in ("abhimanyu", "krishna", "manisha"):
+            self.assertIn(f"unique_id: {name}_home_likelihood", package)
+            self.assertIn(f"sensor.{name}_home_likelihood", home)
+        self.assertIn("template: family_presence_likelihood", home)
+        self.assertIn("show_entity_picture: true", home)
+
     def test_recorder_excludes_raw_location_and_health_history(self):
         configuration = (ROOT / "configuration.yaml").read_text()
 
@@ -608,7 +616,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('\"weather presence\" \"today activity\"', home)
         self.assertIn("repeat(2, minmax(0, 1fr))", home)
         self.assertIn("min_width: 280", home)
-        self.assertEqual(home.count("min_width: 150"), 3)
+        self.assertEqual(home.count("min_width: 150"), 4)
         self.assertIn("--todo-swipe-card-item-height: 48px", home)
         self.assertIn("@media (max-width: 899px)", navigation)
         self.assertIn("env(safe-area-inset-bottom)", navigation)

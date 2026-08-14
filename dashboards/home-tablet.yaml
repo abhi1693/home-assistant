@@ -262,6 +262,70 @@ button_card_templates:
       icon:
         - color: '[[[ return variables.context.color; ]]]'
 
+  family_presence_likelihood:
+    show_icon: false
+    show_entity_picture: true
+    show_name: true
+    show_state: false
+    show_label: true
+    label: |
+      [[[
+        const likelihood = Number(states[variables.likelihood_entity]?.state);
+        if (!Number.isFinite(likelihood)) return 'Uncertain';
+        if (likelihood >= 70) return `Home · ${Math.round(likelihood)}%`;
+        if (likelihood <= 30) return `Away · ${Math.round(100 - likelihood)}%`;
+        return `Uncertain · ${Math.round(likelihood)}%`;
+      ]]]
+    custom_fields:
+      indicator: |
+        [[[
+          const likelihood = Number(states[variables.likelihood_entity]?.state);
+          const color = !Number.isFinite(likelihood) ? 'var(--contrast8)'
+            : likelihood >= 70 ? 'var(--green)'
+            : likelihood <= 30 ? 'var(--red)'
+            : 'var(--yellow)';
+          return `<span style="display:block;width:12px;height:12px;border-radius:50%;background:${color};box-shadow:0 0 0 4px color-mix(in srgb, ${color} 18%, transparent)"></span>`;
+        ]]]
+    tap_action:
+      action: navigate
+      navigation_path: /home-tablet/people
+    hold_action: { action: none }
+    styles:
+      grid:
+        - grid-template-areas: '"i n indicator" "i l indicator"'
+        - grid-template-columns: 48px minmax(0, 1fr) 18px
+        - grid-template-rows: min-content min-content
+        - column-gap: 12px
+      card:
+        - min-height: 76px
+        - padding: 12px 14px
+        - border-radius: 22px
+        - background: var(--contrast2)
+        - border: 1px solid rgba(var(--rgb-primary-text-color), 0.06)
+        - box-shadow: none
+      img_cell:
+        - width: 46px
+        - height: 46px
+        - border-radius: 50%
+        - overflow: hidden
+      entity_picture:
+        - width: 46px
+        - height: 46px
+        - object-fit: cover
+      name:
+        - justify-self: start
+        - font-size: 15px
+        - font-weight: 700
+        - color: var(--contrast20)
+      label:
+        - justify-self: start
+        - font-size: 12px
+        - color: var(--contrast10)
+      custom_fields:
+        indicator:
+          - align-self: center
+          - justify-self: end
+
   family_ribbon_activity:
     template: family_ribbon
     entity: sensor.jellyfin_5876476948_vc8dc_active_clients
@@ -1294,6 +1358,33 @@ views:
             grid_options:
               columns: 36
               rows: auto
+          - type: heading
+            heading: Family
+            heading_style: subtitle
+            icon: mdi:account-group-outline
+            grid_options: { columns: 36, rows: 1 }
+          - type: custom:family-responsive-grid-card
+            min_width: 150
+            cards:
+              - type: custom:button-card
+                template: family_presence_likelihood
+                entity: person.abhimanyu_saharan
+                name: Abhimanyu
+                variables:
+                  likelihood_entity: sensor.abhimanyu_home_likelihood
+              - type: custom:button-card
+                template: family_presence_likelihood
+                entity: person.krishna
+                name: Krishna
+                variables:
+                  likelihood_entity: sensor.krishna_home_likelihood
+              - type: custom:button-card
+                template: family_presence_likelihood
+                entity: person.manisha
+                name: Manisha
+                variables:
+                  likelihood_entity: sensor.manisha_home_likelihood
+            grid_options: { columns: 36, rows: auto }
           - type: custom:family-announcements-card
             entity: sensor.family_announcements
             visibility:

@@ -166,6 +166,48 @@ template:
           reason: >-
             {% if this.state == 'medium' %}Fresh iPhone location; home Wi-Fi confirmation is not configured{% elif this.state == 'low' %}iPhone location is stale{% else %}iPhone location is unavailable{% endif %}
 
+      - name: Abhimanyu home likelihood
+        unique_id: abhimanyu_home_likelihood
+        unit_of_measurement: "%"
+        icon: mdi:home-account
+        state: >-
+          {% set person = states('person.abhimanyu_saharan') %}
+          {% set confidence = states('sensor.abhimanyu_presence_confidence') %}
+          {% if person in ['unknown', 'unavailable'] or confidence == 'unknown' %}50
+          {% elif confidence == 'high' %}{{ 98 if person == 'home' else 2 }}
+          {% elif confidence == 'medium' %}{{ 80 if person == 'home' else 20 }}
+          {% else %}{{ 60 if person == 'home' else 40 }}{% endif %}
+        attributes:
+          confidence: "{{ states('sensor.abhimanyu_presence_confidence') }}"
+
+      - name: Krishna home likelihood
+        unique_id: krishna_home_likelihood
+        unit_of_measurement: "%"
+        icon: mdi:home-account
+        state: >-
+          {% set person = states('person.krishna') %}
+          {% set confidence = states('sensor.krishna_presence_confidence') %}
+          {% if person in ['unknown', 'unavailable'] or confidence == 'unknown' %}50
+          {% elif confidence == 'high' %}{{ 98 if person == 'home' else 2 }}
+          {% elif confidence == 'medium' %}{{ 80 if person == 'home' else 20 }}
+          {% else %}{{ 60 if person == 'home' else 40 }}{% endif %}
+        attributes:
+          confidence: "{{ states('sensor.krishna_presence_confidence') }}"
+
+      - name: Manisha home likelihood
+        unique_id: manisha_home_likelihood
+        unit_of_measurement: "%"
+        icon: mdi:home-account
+        state: >-
+          {% set person = states('person.manisha') %}
+          {% set confidence = states('sensor.manisha_presence_confidence') %}
+          {% if person in ['unknown', 'unavailable'] or confidence == 'unknown' %}50
+          {% elif confidence == 'high' %}{{ 98 if person == 'home' else 2 }}
+          {% elif confidence == 'medium' %}{{ 80 if person == 'home' else 20 }}
+          {% else %}{{ 60 if person == 'home' else 40 }}{% endif %}
+        attributes:
+          confidence: "{{ states('sensor.manisha_presence_confidence') }}"
+
       - name: Presence confidence
         unique_id: household_presence_confidence
         icon: mdi:account-check-outline
