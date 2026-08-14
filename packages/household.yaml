@@ -246,10 +246,10 @@ template:
         icon: mdi:home-alert-outline
         state: >-
           {% set cameras_offline = states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] or states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] %}
-          {% if cameras_offline %}warning{% elif states('sensor.presence_confidence') in ['low', 'unknown'] %}advisory{% else %}clear{% endif %}
+          {% if is_state('binary_sensor.rack_ups_on_battery', 'on') or cameras_offline %}warning{% elif states('sensor.presence_confidence') in ['low', 'unknown'] %}advisory{% else %}clear{% endif %}
         attributes:
           primary_reason: >-
-            {% if states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] or states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] %}Perimeter camera coverage is incomplete{% elif states('sensor.presence_confidence') in ['low', 'unknown'] %}Some family location signals are uncertain{% else %}Nothing needs attention{% endif %}
+            {% if is_state('binary_sensor.rack_ups_on_battery', 'on') %}Home systems are running on backup power at {{ states('sensor.ups_battery_charge') }}% battery{% elif states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] or states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] %}Perimeter camera coverage is incomplete{% elif states('sensor.presence_confidence') in ['low', 'unknown'] %}Some family location signals are uncertain{% else %}Nothing needs attention{% endif %}
 
       - name: Household capability coverage
         unique_id: household_capability_coverage
@@ -264,6 +264,18 @@ template:
           wellbeing: consent required
 
   - binary_sensor:
+      - name: Rack UPS on battery
+        unique_id: rack_ups_on_battery
+        device_class: power
+        icon: mdi:power-plug-battery-outline
+        state: >-
+          {{ 'OB' in states('sensor.ups_status_data').split() }}
+        availability: >-
+          {{ states('sensor.ups_status_data') not in ['unknown', 'unavailable', ''] }}
+        attributes:
+          charge: "{{ states('sensor.ups_battery_charge') }}"
+          load: "{{ states('sensor.ups_load') }}"
+
       - name: House occupied
         unique_id: house_occupied
         device_class: occupancy
@@ -644,6 +656,30 @@ automation:
           message: >-
             Storage is {{ states('sensor.home_protect_storage_storage_utilization') }}% full{% if is_state('binary_sensor.home_protect_storage_hdd_1', 'on') %} and the disk reports a problem{% endif %}.
           url: /home-tablet/security
+
+  - id: household_ups_on_battery
+    alias: Household · Report backup power
+    description: Share household impact while Rack Ops remains the only infrastructure actuator.
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.rack_ups_on_battery
+        to: "on"
+        for: "00:00:30"
+    conditions:
+      - condition: state
+        entity_id: timer.household_startup_settle
+        state: idle
+    actions:
+      - action: script.family_household_incident
+        data:
+          recipient: family
+          severity: warning
+          fingerprint: rack-ups-on-battery
+          title: Home is on backup power
+          message: >-
+            The rack UPS is at {{ states('sensor.ups_battery_charge') }}% with {{ states('sensor.ups_load') }}% load. Rack protection is automatic.
+          url: /home-tablet/home
 
   - id: household_perimeter_person_event
     alias: Household · Report perimeter person event

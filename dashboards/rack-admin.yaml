@@ -174,6 +174,40 @@ views:
       - type: grid
         cards:
           - type: heading
+            heading: Power
+            heading_style: title
+            icon: mdi:power-plug-battery-outline
+          - type: grid
+            square: false
+            columns: 3
+            cards:
+              - type: custom:button-card
+                template: rack_metric
+                entity: sensor.ups_status
+                name: UPS status
+                icon: mdi:power-plug
+                styles:
+                  card:
+                    - --metric-accent: var(--green)
+              - type: custom:button-card
+                template: rack_metric
+                entity: sensor.ups_battery_charge
+                name: Battery
+                icon: mdi:battery-high
+                styles:
+                  card:
+                    - --metric-accent: var(--blue)
+              - type: custom:button-card
+                template: rack_metric
+                entity: sensor.ups_load
+                name: Load
+                icon: mdi:gauge
+                styles:
+                  card:
+                    - --metric-accent: var(--yellow)
+      - type: grid
+        cards:
+          - type: heading
             heading: Network
             heading_style: title
             icon: mdi:switch

@@ -1385,6 +1385,42 @@ views:
                 variables:
                   likelihood_entity: sensor.manisha_home_likelihood
             grid_options: { columns: 36, rows: auto }
+          - type: custom:button-card
+            entity: binary_sensor.rack_ups_on_battery
+            name: Backup power
+            icon: mdi:power-plug-battery-outline
+            show_state: false
+            show_label: true
+            label: |
+              [[[
+                const charge = states['sensor.ups_battery_charge']?.state;
+                const load = states['sensor.ups_load']?.state;
+                return `${charge || '—'}% battery · ${load || '—'}% load`;
+              ]]]
+            tap_action: { action: none }
+            styles:
+              grid:
+                - grid-template-areas: '"i n" "i l"'
+                - grid-template-columns: 48px minmax(0, 1fr)
+                - column-gap: 12px
+              card:
+                - min-height: 76px
+                - padding: 12px 16px
+                - border-radius: 22px
+                - background: var(--orange)
+              img_cell:
+                - width: 42px
+                - height: 42px
+                - border-radius: 14px
+                - background: rgba(0, 0, 0, 0.12)
+              icon: [{ color: var(--black) }, { width: 24px }]
+              name: [{ justify-self: start }, { color: var(--black) }, { font-size: 16px }, { font-weight: 750 }]
+              label: [{ justify-self: start }, { color: rgba(0, 0, 0, 0.65) }, { font-size: 12px }]
+            visibility:
+              - condition: state
+                entity: binary_sensor.rack_ups_on_battery
+                state: "on"
+            grid_options: { columns: 36, rows: auto }
           - type: custom:family-announcements-card
             entity: sensor.family_announcements
             visibility:

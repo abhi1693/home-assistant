@@ -423,6 +423,7 @@ class DashboardStructureTests(unittest.TestCase):
 
     def test_household_surfaces_are_bounded_and_access_aware(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        rack = (ROOT / "dashboards/rack-admin.yaml").read_text()
         package = (ROOT / "packages/household.yaml").read_text()
         policy = json.loads((ROOT / "access/household-policy.json").read_text())
 
@@ -450,6 +451,9 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("timer.high_confidence_empty_home", package)
         self.assertIn("input_boolean.empty_home_confirmed", package)
         self.assertIn("is_state('input_boolean.empty_home_confirmed', 'on')", package)
+        self.assertIn("binary_sensor.rack_ups_on_battery", package)
+        self.assertIn("entity: binary_sensor.rack_ups_on_battery", home)
+        self.assertIn("entity: sensor.ups_status", rack)
         self.assertIn("mode: queued", package)
         self.assertEqual(policy["automation_stage"], "Shadow")
         self.assertEqual(policy["profiles"]["manisha"]["wifi"], None)
