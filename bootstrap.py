@@ -632,6 +632,41 @@ def _family_entity_policy(
     }
 
 
+def _camera_keys_for_profile(
+    profile_key: str,
+    profile: dict,
+    cameras: dict,
+    is_owner: bool,
+) -> list[str]:
+    """Resolve declarative camera visibility without weakening account policy."""
+    all_cameras = profile.get("all_cameras", False)
+    if not isinstance(all_cameras, bool):
+        raise RuntimeError(
+            f"Family profile {profile_key} all_cameras must be a boolean"
+        )
+    if all_cameras and not is_owner:
+        raise RuntimeError(
+            f"Family profile {profile_key} cannot grant all cameras to a non-owner"
+        )
+
+    allowed_keys = list(cameras) if all_cameras else profile.get("cameras", [])
+    if (
+        not isinstance(allowed_keys, list)
+        or not all(isinstance(item, str) for item in allowed_keys)
+        or len(allowed_keys) != len(set(allowed_keys))
+    ):
+        raise RuntimeError(
+            f"Family profile {profile_key} cameras must be a unique list"
+        )
+    unknown_keys = set(allowed_keys) - set(cameras)
+    if unknown_keys:
+        raise RuntimeError(
+            f"Family profile {profile_key} has unknown cameras: "
+            f"{sorted(unknown_keys)}"
+        )
+    return allowed_keys
+
+
 def reconcile_family_access(source: Path, config: Path) -> None:
     """Validate and reconcile Git-owned dashboard users and camera access."""
     access_path = source / "access/family-dashboard.json"
@@ -909,13 +944,12 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                 "picture": person_entry.get("picture") if person_entry else None,
             }
 
-        allowed_keys = profile.get("cameras", [])
-        unknown_keys = set(allowed_keys) - set(cameras)
-        if unknown_keys:
-            raise RuntimeError(
-                f"Family profile {profile_key} has unknown cameras: "
-                f"{sorted(unknown_keys)}"
-            )
+        allowed_keys = _camera_keys_for_profile(
+            profile_key,
+            profile,
+            cameras,
+            bool(user.get("is_owner")),
+        )
         allowed_entities = [
             entity_id
             for key in allowed_keys

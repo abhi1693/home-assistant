@@ -457,7 +457,8 @@ class BootstrapTests(unittest.TestCase):
                             "person_entity_id": "person.owner",
                             "is_family_member": True,
                             "is_owner": True,
-                            "cameras": ["master-bedroom", "hallway"],
+                            "all_cameras": True,
+                            "cameras": ["hallway"],
                         },
                         "reviewer": {
                             "user_id": reviewer_id,
@@ -892,11 +893,15 @@ class BootstrapTests(unittest.TestCase):
             list(people.values()),
         )
 
-    def test_repository_master_bedroom_camera_is_krishna_only(self):
+    def test_repository_camera_capabilities_preserve_family_boundaries(self):
         access = json.loads(
             (Path(bootstrap.__file__).parent / "access/family-dashboard.json").read_text()
         )
         profiles = access["profiles"]
+        self.assertTrue(profiles["abhimanyu-saharan"]["all_cameras"])
+        self.assertEqual(
+            profiles["abhimanyu-saharan"]["cameras"], ["hallway", "outside"]
+        )
         self.assertEqual(
             profiles["krishna"]["device_trackers"],
             ["device_tracker.pixel_10_pro", "device_tracker.pixel_10_pro_2"],
@@ -1084,6 +1089,26 @@ class BootstrapTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "Cannot enforce camera policy"):
             bootstrap.reconcile_family_access(self.source, self.config)
+
+    def test_camera_capability_rejects_all_cameras_for_non_owner(self):
+        with self.assertRaisesRegex(
+            RuntimeError, "cannot grant all cameras to a non-owner"
+        ):
+            bootstrap._camera_keys_for_profile(
+                "family",
+                {"all_cameras": True, "cameras": []},
+                {"inside": "camera.inside"},
+                False,
+            )
+
+    def test_camera_capability_requires_boolean_flag(self):
+        with self.assertRaisesRegex(RuntimeError, "must be a boolean"):
+            bootstrap._camera_keys_for_profile(
+                "owner",
+                {"all_cameras": "yes", "cameras": []},
+                {"inside": "camera.inside"},
+                True,
+            )
 
     def test_dashboard_defaults_preserve_existing_frontend_preferences(self):
         owner_id = "owner-user-id"

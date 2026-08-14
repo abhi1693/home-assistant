@@ -113,11 +113,12 @@
       "is_family_member": true,
       "is_owner": true,
       "default_dashboard": "home-tablet",
+      "all_cameras": true,
       "cameras": [
         "hallway",
         "outside"
       ],
-      "notes": "Owner profile. Master Bedroom camera is intentionally hidden from the normal dashboard; Home Assistant owner credentials remain a platform-level break-glass override."
+      "notes": "Owner profile. The all_cameras capability makes every declared camera visible while preserving the explicit cameras list as the fallback when the flag is disabled."
     },
     "krishna": {
       "user_id": "8117b77542614a06b4672a8ae1a979b5",

@@ -112,7 +112,10 @@ Camera grants come from the family access policy, and non-owner permissions are
 reconciled in Home Assistant's backend. Motion, person, vehicle, and event
 entities inherit the same grant as their camera, so a restricted room cannot
 leak activity metadata through another entity domain. Protect stream tiers are
-declarative and reconciled without committing Protect credentials.
+declarative and reconciled without committing Protect credentials. An
+owner-only `all_cameras` profile capability adds every declared camera to the
+owner's generated dashboard visibility lists without weakening non-owner
+backend policy.
 
 ### Rack
 
