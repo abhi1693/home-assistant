@@ -6,6 +6,26 @@
     "hallway": "camera.hallway_high_resolution_channel",
     "outside": "camera.g5_turret_ultra_high_resolution_channel"
   },
+  "camera_security_entities": {
+    "master-bedroom": [
+      "event.living_room_living_room_camera_motion_detection",
+      "binary_sensor.living_room_motion",
+      "binary_sensor.living_room_person_detected",
+      "binary_sensor.living_room_vehicle_detected"
+    ],
+    "hallway": [
+      "event.mummy_bedroom_hallway_camera_motion_detection",
+      "binary_sensor.hallway_motion",
+      "binary_sensor.hallway_person_detected",
+      "binary_sensor.hallway_vehicle_detected"
+    ],
+    "outside": [
+      "event.g5_turret_ultra_motion_detection",
+      "binary_sensor.g5_turret_ultra_motion",
+      "binary_sensor.g5_turret_ultra_person_detected",
+      "binary_sensor.g5_turret_ultra_vehicle_detected"
+    ]
+  },
   "calendars": {
     "shared": [
       "calendar.birthdays"

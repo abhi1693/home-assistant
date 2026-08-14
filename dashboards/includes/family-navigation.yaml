@@ -40,10 +40,6 @@ routes:
           return fans.filter((id) => states[id]?.state === 'on').length;
         ]]]
       color: var(--yellow)
-  - icon: mdi:cctv
-    icon_selected: mdi:video
-    url: /home-tablet/cameras
-    label: Cameras
   - icon: mdi:shield-home-outline
     icon_selected: mdi:shield-home
     url: /home-tablet/security

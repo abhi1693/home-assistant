@@ -104,12 +104,15 @@ fans, appliances, cameras, and media devices, allowing the page to grow without
 turning the room index into a control wall. Favorite ordering is personalized,
 while room access is currently shared across authenticated family accounts.
 
-### Cameras
+### Security and cameras
 
-The camera wall uses Home Assistant's live stream proxy for UniFi Protect.
+The combined Security surface presents household attention, camera coverage,
+account-filtered live streams, and recent Protect motion activity in one place.
 Camera grants come from the family access policy, and non-owner permissions are
-reconciled in Home Assistant's backend. Protect stream tiers are declarative and
-reconciled without committing Protect credentials.
+reconciled in Home Assistant's backend. Motion, person, vehicle, and event
+entities inherit the same grant as their camera, so a restricted room cannot
+leak activity metadata through another entity domain. Protect stream tiers are
+declarative and reconciled without committing Protect credentials.
 
 ### Rack
 

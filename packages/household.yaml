@@ -634,7 +634,7 @@ automation:
           fingerprint: "perimeter-person-{{ trigger.id }}"
           title: Person seen outside
           message: "{{ 'Outside' if trigger.id == 'outside' else 'Kitchen Balcony' }} camera detected a person while the home is empty."
-          url: /home-tablet/cameras
+          url: /home-tablet/security
 
   - id: household_fan_guard
     alias: Household · Offer to stop fans after departure

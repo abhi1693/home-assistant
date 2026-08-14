@@ -701,13 +701,6 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     owner_health_domains = {
         entity_id.partition(".")[0] for entity_id in owner_health_entities
     }
-    family_unrestricted_domains = unrestricted_domains - owner_health_domains
-    family_public_entities = sorted(
-        entity_id
-        for entity_id in entities
-        if entity_id.partition(".")[0] in owner_health_domains
-        and entity_id not in owner_health_entities
-    )
 
     calendars = access.get("calendars", {})
     shared_calendars = calendars.get("shared", [])
@@ -752,6 +745,52 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             raise RuntimeError(
                 f"Camera {camera_key} does not match an enabled UniFi Protect entity"
             )
+
+    camera_security = access.get("camera_security_entities", {})
+    unknown_security_cameras = set(camera_security) - set(cameras)
+    if unknown_security_cameras:
+        raise RuntimeError(
+            "Camera security entities reference unknown cameras: "
+            f"{sorted(unknown_security_cameras)}"
+        )
+    protected_camera_entities = set()
+    for camera_key, camera_entities in camera_security.items():
+        if (
+            not isinstance(camera_entities, list)
+            or not camera_entities
+            or len(camera_entities) != len(set(camera_entities))
+        ):
+            raise RuntimeError(
+                f"Camera {camera_key} security entities must be a unique list"
+            )
+        for entity_id in camera_entities:
+            entity = entities.get(entity_id)
+            if (
+                not isinstance(entity_id, str)
+                or entity_id.partition(".")[0] not in {"binary_sensor", "event"}
+                or entity is None
+                or entity.get("platform") != "unifiprotect"
+                or entity.get("disabled_by") is not None
+                or entity_id in protected_camera_entities
+            ):
+                raise RuntimeError(
+                    f"Camera {camera_key} has an invalid Protect security entity: "
+                    f"{entity_id}"
+                )
+            protected_camera_entities.add(entity_id)
+
+    private_domains = owner_health_domains | {
+        entity_id.partition(".")[0]
+        for entity_id in protected_camera_entities
+    }
+    family_unrestricted_domains = unrestricted_domains - private_domains
+    family_public_entities = sorted(
+        entity_id
+        for entity_id in entities
+        if entity_id.partition(".")[0] in private_domains
+        and entity_id not in owner_health_entities
+        and entity_id not in protected_camera_entities
+    )
 
     desired_groups = {}
     generated = config / "access/generated"
@@ -883,6 +922,7 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             for entity_id in (
                 streams["cameras"][key]["medium_entity_id"],
                 streams["cameras"][key]["high_entity_id"],
+                *camera_security.get(key, []),
             )
         ]
         for camera_key in allowed_keys:

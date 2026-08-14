@@ -435,6 +435,13 @@ class BootstrapTests(unittest.TestCase):
                         "master-bedroom": "camera.master_bedroom",
                         "hallway": "camera.hallway",
                     },
+                    "camera_security_entities": {
+                        "master-bedroom": [
+                            "event.master_bedroom_motion",
+                            "binary_sensor.master_bedroom_person",
+                        ],
+                        "hallway": ["event.hallway_motion"],
+                    },
                     "calendars": {
                         "shared": ["calendar.birthdays"],
                         "owner_only": ["calendar.private"],
@@ -556,6 +563,21 @@ class BootstrapTests(unittest.TestCase):
                         "disabled_by": None,
                     },
                     {
+                        "entity_id": "event.master_bedroom_motion",
+                        "platform": "unifiprotect",
+                        "disabled_by": None,
+                    },
+                    {
+                        "entity_id": "binary_sensor.master_bedroom_person",
+                        "platform": "unifiprotect",
+                        "disabled_by": None,
+                    },
+                    {
+                        "entity_id": "event.hallway_motion",
+                        "platform": "unifiprotect",
+                        "disabled_by": None,
+                    },
+                    {
                         "entity_id": "fan.office",
                         "platform": "atomberg",
                         "disabled_by": None,
@@ -604,6 +626,8 @@ class BootstrapTests(unittest.TestCase):
             {
                 "camera.master_bedroom": True,
                 "camera.master_bedroom_medium": True,
+                "event.master_bedroom_motion": True,
+                "binary_sensor.master_bedroom_person": True,
                 "calendar.birthdays": True,
                 "sensor.office_temperature": True,
             },
@@ -616,6 +640,11 @@ class BootstrapTests(unittest.TestCase):
             "sensor.owner_heart_rate", group["policy"]["entities"]["entity_ids"]
         )
         self.assertNotIn("calendar.private", group["policy"]["entities"]["entity_ids"])
+        self.assertNotIn(
+            "event.hallway_motion", group["policy"]["entities"]["entity_ids"]
+        )
+        self.assertNotIn("event", group["policy"]["entities"]["domains"])
+        self.assertNotIn("binary_sensor", group["policy"]["entities"]["domains"])
         self.assertNotIn("calendar", group["policy"]["entities"]["domains"])
         self.assertNotIn("all", group["policy"]["entities"])
         self.assertEqual(
@@ -892,6 +921,16 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(
             profiles["krishna"]["cameras"],
             ["master-bedroom", "hallway", "outside"],
+        )
+        security_entities = access["camera_security_entities"]
+        self.assertEqual(set(security_entities), set(access["cameras"]))
+        self.assertIn(
+            "event.living_room_living_room_camera_motion_detection",
+            security_entities["master-bedroom"],
+        )
+        self.assertEqual(
+            len([entity for values in security_entities.values() for entity in values]),
+            len({entity for values in security_entities.values() for entity in values}),
         )
 
     def test_repository_room_model_uses_occupants_only_as_metadata(self):

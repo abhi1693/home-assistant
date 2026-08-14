@@ -22,7 +22,7 @@ class FamilyRoomsCard extends HTMLElement {
     if(module.type==="fans")return {type:"custom:family-fan-card",name:module.name,embedded:true,fans:module.fans};
     if(module.type==="media")return {type:"custom:family-media-card",module};
     if(module.type==="appliance")return {type:"custom:family-appliance-card",module};
-    if(module.type==="camera")return {type:"picture-entity",entity:module.preview_entity||module.entity,name:module.name,camera_view:"live",show_state:false,show_name:true,tap_action:{action:"navigate",navigation_path:module.url||"/home-tablet/cameras"},hold_action:{action:"more-info",entity:module.entity}};
+    if(module.type==="camera")return {type:"picture-entity",entity:module.preview_entity||module.entity,name:module.name,camera_view:"live",show_state:false,show_name:true,tap_action:{action:"navigate",navigation_path:module.url||"/home-tablet/security"},hold_action:{action:"more-info",entity:module.entity}};
     return null;
   }
   _styles(){return `<style>

@@ -925,7 +925,7 @@ button_card_templates:
       ]]]
     tap_action:
       action: navigate
-      navigation_path: /home-tablet/cameras
+      navigation_path: /home-tablet/security
     styles:
       card:
         - height: 88px
@@ -963,6 +963,86 @@ button_card_templates:
         - color: var(--contrast9)
         - font-size: 11px
         - font-weight: 500
+
+  family_camera_activity:
+    show_icon: true
+    show_name: true
+    show_state: true
+    show_label: true
+    icon: |
+      [[[
+        if (!entity || entity.state === 'unavailable') return 'mdi:video-off-outline';
+        if (states[variables.person_entity]?.state === 'on') return 'mdi:account-alert-outline';
+        if (states[variables.vehicle_entity]?.state === 'on') return 'mdi:car-alert';
+        if (states[variables.motion_entity]?.state === 'on') return 'mdi:motion-sensor';
+        return 'mdi:shield-check-outline';
+      ]]]
+    state_display: |
+      [[[
+        if (!entity || entity.state === 'unavailable') return 'Camera offline';
+        if (states[variables.person_entity]?.state === 'on') return 'Person detected';
+        if (states[variables.vehicle_entity]?.state === 'on') return 'Vehicle detected';
+        if (states[variables.motion_entity]?.state === 'on') return 'Motion detected';
+        if (!entity.state || entity.state === 'unknown') return 'No recent activity';
+        const occurred = new Date(entity.state);
+        if (Number.isNaN(occurred.getTime())) return 'No recent activity';
+        const minutes = Math.max(1, Math.round((Date.now() - occurred.getTime()) / 60000));
+        if (minutes < 60) return `Motion ${minutes} min ago`;
+        const hours = Math.round(minutes / 60);
+        if (hours < 24) return `Motion ${hours} hr ago`;
+        return `Motion ${Math.round(hours / 24)} d ago`;
+      ]]]
+    label: |
+      [[[
+        if (!entity || entity.state === 'unavailable') return 'Check wall power or connection';
+        const type = entity.attributes?.event_type;
+        return type ? `${type.charAt(0).toUpperCase()}${type.slice(1)} event` : 'Protect activity';
+      ]]]
+    tap_action:
+      action: more-info
+    styles:
+      grid:
+        - grid-template-areas: '"i n" "i s" "i l"'
+        - grid-template-columns: 48px minmax(0, 1fr)
+        - grid-template-rows: min-content min-content min-content
+        - column-gap: 13px
+      card:
+        - min-height: 100px
+        - padding: 15px
+        - border-radius: 22px
+        - background: var(--contrast2)
+        - box-shadow: none
+      img_cell:
+        - align-self: center
+        - grid-row: 1 / 4
+        - width: 44px
+        - height: 44px
+        - border-radius: 15px
+        - background: var(--contrast4)
+      icon:
+        - width: 23px
+        - color: |
+            [[[
+              if (!entity || entity.state === 'unavailable') return 'var(--contrast8)';
+              if (states[variables.person_entity]?.state === 'on') return 'var(--red)';
+              if (states[variables.vehicle_entity]?.state === 'on') return 'var(--orange)';
+              if (states[variables.motion_entity]?.state === 'on') return 'var(--yellow)';
+              return 'var(--green)';
+            ]]]
+      name:
+        - justify-self: start
+        - align-self: end
+        - font-size: 15px
+        - font-weight: 700
+      state:
+        - justify-self: start
+        - color: var(--contrast13)
+        - font-size: 13px
+        - font-weight: 600
+      label:
+        - justify-self: start
+        - color: var(--contrast9)
+        - font-size: 11px
 
   family_now_playing:
     show_icon: true
@@ -1512,7 +1592,7 @@ views:
                 color: green
                 tap_action:
                   action: navigate
-                  navigation_path: /home-tablet/cameras
+                  navigation_path: /home-tablet/security
             visibility:
               - condition: user
                 users: !include ../access/generated/camera-any-users.json
@@ -1528,7 +1608,8 @@ views:
                 filter:
                   include:
                     - entity_id: camera.g5_turret_ultra_medium_resolution_channel
-                      state: idle
+                      not:
+                        state: unavailable
                       options:
                         type: picture-entity
                         entity: camera.g5_turret_ultra_high_resolution_channel
@@ -1563,7 +1644,8 @@ views:
                     filter:
                       include:
                         - entity_id: camera.living_room_medium_resolution_channel
-                          state: idle
+                          not:
+                            state: unavailable
                           options:
                             type: picture-entity
                             entity: camera.living_room_high_resolution_channel
@@ -1596,7 +1678,8 @@ views:
                     filter:
                       include:
                         - entity_id: camera.hallway_medium_resolution_channel
-                          state: idle
+                          not:
+                            state: unavailable
                           options:
                             type: picture-entity
                             entity: camera.hallway_high_resolution_channel
@@ -2142,9 +2225,9 @@ views:
         cards:
           - *family_navigation
 
-  - title: Cameras
-    path: cameras
-    icon: mdi:cctv
+  - title: Security
+    path: security
+    icon: mdi:shield-home
     type: sections
     theme: Family Dark
     max_columns: 4
@@ -2156,8 +2239,8 @@ views:
           - type: markdown
             text_only: true
             content: |-
-              # Camera wall
-              Medium-resolution live views assigned to your account. Select a camera for high-resolution playback.
+              # Security
+              Live cameras and recent Protect activity available to your account. Select a camera for high-resolution playback.
             card_mod:
               style: |
                 ha-card { background: transparent; padding: 8px 0 4px; }
@@ -2166,6 +2249,89 @@ views:
             grid_options:
               columns: 48
               rows: 2
+          - type: grid
+            square: false
+            columns: 2
+            cards:
+              - type: custom:button-card
+                entity: sensor.house_attention_level
+                name: Home attention
+                icon: mdi:home-alert-outline
+                show_state: true
+                show_label: true
+                label: |
+                  [[[
+                    return entity?.attributes?.primary_reason || 'No household attention needed';
+                  ]]]
+                tap_action: { action: none }
+                styles:
+                  grid:
+                    - grid-template-areas: '"i n" "i s" "i l"'
+                    - grid-template-columns: 52px 1fr
+                    - grid-template-rows: min-content min-content min-content
+                  card:
+                    - min-height: 106px
+                    - padding: 18px
+                    - border-radius: 24px
+                    - background: var(--contrast2)
+                  icon:
+                    - width: 28px
+                    - color: |
+                        [[[
+                          if (entity?.state === 'critical') return 'var(--red)';
+                          if (entity?.state === 'warning') return 'var(--orange)';
+                          if (entity?.state === 'advisory') return 'var(--yellow)';
+                          return 'var(--green)';
+                        ]]]
+                  name: [{ justify-self: start }, { font-size: 17px }, { font-weight: 700 }]
+                  state: [{ justify-self: start }, { text-transform: capitalize }, { color: var(--contrast14) }]
+                  label: [{ justify-self: start }, { color: var(--contrast10) }, { white-space: normal }]
+              - type: custom:button-card
+                entity: sensor.camera_coverage
+                name: Camera status
+                icon: mdi:cctv
+                show_state: true
+                show_label: true
+                state_display: |
+                  [[[
+                    const match = String(entity?.state || '').match(/^(\d+) of (\d+) online$/);
+                    if (!match) return 'Checking cameras';
+                    const online = Number(match[1]);
+                    const total = Number(match[2]);
+                    const offline = Math.max(0, total - online);
+                    if (offline === 0) return 'All cameras online';
+                    if (online === 0) return 'All cameras offline';
+                    return `${offline} ${offline === 1 ? 'camera' : 'cameras'} offline`;
+                  ]]]
+                label: Live availability across the home
+                tap_action: { action: none }
+                styles:
+                  grid:
+                    - grid-template-areas: '"i n" "i s" "i l"'
+                    - grid-template-columns: 52px 1fr
+                    - grid-template-rows: min-content min-content min-content
+                  card:
+                    - min-height: 106px
+                    - padding: 18px
+                    - border-radius: 24px
+                    - background: var(--contrast2)
+                  icon:
+                    - width: 28px
+                    - color: |
+                        [[[
+                          return entity?.state === '3 of 3 online' ? 'var(--green)' : 'var(--orange)';
+                        ]]]
+                  name: [{ justify-self: start }, { font-size: 17px }, { font-weight: 700 }]
+                  state: [{ justify-self: start }, { color: var(--contrast14) }]
+                  label: [{ justify-self: start }, { color: var(--contrast10) }]
+            grid_options:
+              columns: 48
+              rows: auto
+          - type: heading
+            heading: Live cameras
+            heading_style: title
+            icon: mdi:cctv
+            grid_options: { columns: 48, rows: 1 }
           - type: grid
             square: false
             columns: 3
@@ -2179,7 +2345,8 @@ views:
                 filter:
                   include:
                     - entity_id: camera.g5_turret_ultra_medium_resolution_channel
-                      state: idle
+                      not:
+                        state: unavailable
                       options:
                         type: picture-entity
                         entity: camera.g5_turret_ultra_high_resolution_channel
@@ -2212,7 +2379,8 @@ views:
                 filter:
                   include:
                     - entity_id: camera.living_room_medium_resolution_channel
-                      state: idle
+                      not:
+                        state: unavailable
                       options:
                         type: picture-entity
                         entity: camera.living_room_high_resolution_channel
@@ -2245,7 +2413,8 @@ views:
                 filter:
                   include:
                     - entity_id: camera.hallway_medium_resolution_channel
-                      state: idle
+                      not:
+                        state: unavailable
                       options:
                         type: picture-entity
                         entity: camera.hallway_high_resolution_channel
@@ -2275,171 +2444,55 @@ views:
             grid_options:
               columns: 48
               rows: auto
-      - type: grid
-        column_span: 4
-        cards:
-          - *family_navigation
-
-  - title: Security
-    path: security
-    icon: mdi:shield-home
-    type: sections
-    theme: Family Dark
-    max_columns: 3
-    dense_section_placement: true
-    sections:
-      - type: grid
-        column_span: 2
-        cards:
           - type: heading
-            heading: Security
+            heading: Recent activity
             heading_style: title
-            icon: mdi:shield-home-outline
-            grid_options: { columns: 24, rows: 1 }
-          - type: custom:button-card
-            entity: sensor.house_attention_level
-            name: Home attention
-            icon: mdi:home-alert-outline
-            show_state: true
-            show_label: true
-            label: |
-              [[[
-                return entity?.attributes?.primary_reason || 'Waiting for household state';
-              ]]]
-            tap_action: { action: none }
-            styles:
-              grid:
-                - grid-template-areas: '"i n" "i s" "i l"'
-                - grid-template-columns: 52px 1fr
-                - grid-template-rows: min-content min-content min-content
-              card:
-                - min-height: 106px
-                - padding: 18px
-                - border-radius: 24px
-                - background: var(--contrast2)
-              icon:
-                - width: 28px
-                - color: |
-                    [[[
-                      if (entity?.state === 'critical') return 'var(--red)';
-                      if (entity?.state === 'warning') return 'var(--orange)';
-                      if (entity?.state === 'advisory') return 'var(--yellow)';
-                      return 'var(--green)';
-                    ]]]
-              name: [{ justify-self: start }, { font-size: 17px }, { font-weight: 700 }]
-              state: [{ justify-self: start }, { text-transform: capitalize }, { color: var(--contrast14) }]
-              label: [{ justify-self: start }, { color: var(--contrast10) }, { white-space: normal }]
-            grid_options: { columns: 24, rows: auto }
-          - type: grid
-            columns: 1
-            square: false
+            icon: mdi:motion-sensor
+            grid_options: { columns: 48, rows: 1 }
+          - type: custom:family-responsive-grid-card
+            min_width: 260
             cards:
               - type: custom:button-card
-                entity: sensor.camera_coverage
-                name: Camera coverage
-                icon: mdi:cctv
-                show_state: true
-                tap_action: { action: navigate, navigation_path: /home-tablet/cameras }
-                styles:
-                  card: [{ min-height: 94px }, { border-radius: 22px }, { background: var(--contrast2) }]
-                  icon:
-                    - width: 26px
-                    - color: |
-                        [[[
-                          return entity?.state === '3 of 3 online' ? 'var(--green)' : 'var(--orange)';
-                        ]]]
-            grid_options: { columns: 24, rows: auto }
-          - type: heading
-            heading: Perimeter cameras
-            heading_style: subtitle
-            icon: mdi:cctv
-            grid_options: { columns: 24, rows: 1 }
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: custom:auto-entities
-                card:
-                  type: grid
-                  square: false
-                  columns: 1
-                card_param: cards
-                filter:
-                  include:
-                    - entity_id: camera.g5_turret_ultra_medium_resolution_channel
-                      state: idle
-                      options:
-                        type: picture-entity
-                        entity: camera.g5_turret_ultra_high_resolution_channel
-                        camera_image: camera.g5_turret_ultra_medium_resolution_channel
-                        camera_view: live
-                        name: Outside
-                        show_state: false
-                        tap_action: { action: more-info }
-                    - entity_id: camera.g5_turret_ultra_high_resolution_channel
-                      state: unavailable
-                      options:
-                        type: custom:button-card
-                        template: family_camera_offline
-                        name: Outside
-                show_empty: false
+                template: family_camera_activity
+                entity: event.g5_turret_ultra_motion_detection
+                name: Outside
+                variables:
+                  motion_entity: binary_sensor.g5_turret_ultra_motion
+                  person_entity: binary_sensor.g5_turret_ultra_person_detected
+                  vehicle_entity: binary_sensor.g5_turret_ultra_vehicle_detected
                 visibility:
                   - condition: user
                     users: !include ../access/generated/camera-outside-users.json
-              - type: custom:auto-entities
-                card:
-                  type: grid
-                  square: false
-                  columns: 1
-                card_param: cards
-                filter:
-                  include:
-                    - entity_id: camera.hallway_medium_resolution_channel
-                      state: idle
-                      options:
-                        type: picture-entity
-                        entity: camera.hallway_high_resolution_channel
-                        camera_image: camera.hallway_medium_resolution_channel
-                        camera_view: live
-                        name: Kitchen Balcony
-                        show_state: false
-                        tap_action: { action: more-info }
-                    - entity_id: camera.hallway_high_resolution_channel
-                      state: unavailable
-                      options:
-                        type: custom:button-card
-                        template: family_camera_offline
-                        name: Kitchen Balcony
-                show_empty: false
+              - type: custom:button-card
+                template: family_camera_activity
+                entity: event.living_room_living_room_camera_motion_detection
+                name: Master Bedroom
+                variables:
+                  motion_entity: binary_sensor.living_room_motion
+                  person_entity: binary_sensor.living_room_person_detected
+                  vehicle_entity: binary_sensor.living_room_vehicle_detected
+                visibility:
+                  - condition: user
+                    users: !include ../access/generated/camera-master-bedroom-users.json
+              - type: custom:button-card
+                template: family_camera_activity
+                entity: event.mummy_bedroom_hallway_camera_motion_detection
+                name: Kitchen Balcony
+                variables:
+                  motion_entity: binary_sensor.hallway_motion
+                  person_entity: binary_sensor.hallway_person_detected
+                  vehicle_entity: binary_sensor.hallway_vehicle_detected
                 visibility:
                   - condition: user
                     users: !include ../access/generated/camera-hallway-users.json
-            grid_options: { columns: 24, rows: auto }
+            visibility:
+              - condition: user
+                users: !include ../access/generated/camera-any-users.json
+            grid_options:
+              columns: 48
+              rows: auto
       - type: grid
-        cards:
-          - type: heading
-            heading: House posture
-            heading_style: title
-            icon: mdi:home-switch-outline
-          - type: custom:button-card
-            entity: input_select.house_mode
-            name: House mode
-            icon: mdi:home-switch
-            show_state: true
-            tap_action: { action: none }
-            styles:
-              card: [{ min-height: 88px }, { border-radius: 22px }, { background: var(--contrast2) }]
-              icon: [{ color: var(--purple) }]
-          - type: markdown
-            content: >-
-              Future entrance contacts, leak sensors and certified smoke/CO alarms
-              will appear here after they are installed and tested. Camera sound
-              detection is not treated as a life-safety alarm.
-            card_mod:
-              style: |
-                ha-card { border-radius: 22px; background: var(--contrast2); }
-      - type: grid
-        column_span: 3
+        column_span: 4
         cards:
           - *family_navigation
 

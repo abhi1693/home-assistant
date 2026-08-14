@@ -18,7 +18,7 @@ class DashboardStructureTests(unittest.TestCase):
             ),
             1,
         )
-        self.assertEqual(home.count("- *family_navigation"), 6)
+        self.assertEqual(home.count("- *family_navigation"), 5)
         self.assertEqual(
             rack.count("- !include includes/family-navigation.yaml"), 1
         )
@@ -38,7 +38,6 @@ class DashboardStructureTests(unittest.TestCase):
             [
                 "Home",
                 "Rooms",
-                "Cameras",
                 "Security",
                 "People",
                 "More",
@@ -622,15 +621,28 @@ class DashboardStructureTests(unittest.TestCase):
 
     def test_camera_wall_applies_each_camera_user_gate(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
-        camera_view = home.split("  - title: Cameras", 1)[1].split(
-            "  - title: Security", 1
+        camera_view = home.split("  - title: Security", 1)[1].split(
+            "  - title: People", 1
         )[0]
 
         self.assertEqual(camera_view.count("type: custom:auto-entities"), 3)
         for camera_key in ("outside", "master-bedroom", "hallway"):
             self.assertEqual(
-                camera_view.count(f"camera-{camera_key}-users.json"), 1
+                camera_view.count(f"camera-{camera_key}-users.json"), 2
             )
+        self.assertEqual(home.count("  - title: Security\n    path: security"), 1)
+        self.assertNotIn("  - title: Cameras\n    path: cameras", home)
+        self.assertNotIn("/home-tablet/cameras", home)
+        self.assertIn("heading: Live cameras", camera_view)
+        self.assertIn("heading: Recent activity", camera_view)
+        self.assertEqual(camera_view.count("template: family_camera_activity"), 3)
+        self.assertIn("event.g5_turret_ultra_motion_detection", camera_view)
+        self.assertIn(
+            "event.living_room_living_room_camera_motion_detection", camera_view
+        )
+        self.assertIn(
+            "event.mummy_bedroom_hallway_camera_motion_detection", camera_view
+        )
 
     def test_household_surfaces_are_bounded_and_access_aware(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
@@ -764,7 +776,7 @@ class DashboardStructureTests(unittest.TestCase):
         configuration = (ROOT / "configuration.yaml").read_text()
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
         rooms = home.split("  - title: Rooms", 1)[1].split(
-            "  - title: Cameras", 1
+            "  - title: Security", 1
         )[0]
         card = (ROOT / "www/family-fan-card.js").read_text()
         room_card = (ROOT / "www/family-room-card.js").read_text()
@@ -932,6 +944,9 @@ class DashboardStructureTests(unittest.TestCase):
     def test_camera_cards_do_not_request_missing_medium_streams(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
 
+        self.assertNotIn("state: idle", home)
+        self.assertEqual(home.count("not:\n                        state: unavailable"), 4)
+        self.assertEqual(home.count("not:\n                            state: unavailable"), 2)
         self.assertNotIn(
             "type: picture-entity\n"
             "                entity: camera.g5_turret_ultra_high_resolution_channel\n"
@@ -944,7 +959,7 @@ class DashboardStructureTests(unittest.TestCase):
             "                camera_image: camera.hallway_medium_resolution_channel",
             home,
         )
-        self.assertGreaterEqual(home.count("template: family_camera_offline"), 8)
+        self.assertEqual(home.count("template: family_camera_offline"), 6)
 
     def test_dashboard_avoids_ambiguous_flow_style_css_values(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()

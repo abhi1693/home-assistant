@@ -178,7 +178,7 @@
           "icon": "mdi:cctv",
           "entity": "camera.living_room_high_resolution_channel",
           "preview_entity": "camera.living_room_medium_resolution_channel",
-          "url": "/home-tablet/cameras",
+          "url": "/home-tablet/security",
           "labels": [
             "family_visible",
             "security_sensitive"
