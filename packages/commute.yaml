@@ -95,9 +95,7 @@ script:
                   {{ traveler_key != 'abhimanyu-saharan'
                      and states('person.abhimanyu_saharan') != destination_state }}
             then:
-              - action: notify.send_message
-                target:
-                  entity_id: notify.abhimanyu_pixel_8
+              - action: notify.mobile_app_pixel_8
                 data:
                   title: "{{ journey_title }}"
                   message: "{{ journey_message }}"
@@ -110,9 +108,7 @@ script:
                   {{ traveler_key != 'krishna'
                      and states('person.krishna') != destination_state }}
             then:
-              - action: notify.send_message
-                target:
-                  entity_id: notify.pixel_10_pro
+              - action: notify.mobile_app_pixel_10_pro
                 data:
                   title: "{{ journey_title }}"
                   message: "{{ journey_message }}"
@@ -125,9 +121,7 @@ script:
                   {{ traveler_key != 'manisha'
                      and states('person.manisha') != destination_state }}
             then:
-              - action: notify.send_message
-                target:
-                  entity_id: notify.iphone
+              - action: notify.mobile_app_iphone
                 data:
                   title: "{{ journey_title }}"
                   message: "{{ journey_message }}"
@@ -239,9 +233,7 @@ automation:
                         options:
                           zone: zone.home
                     then:
-                      - action: notify.send_message
-                        target:
-                          entity_id: notify.pixel_10_pro
+                      - action: notify.mobile_app_pixel_10_pro
                         data:
                           title: Abhimanyu is coming home
                           message: >-
@@ -257,9 +249,7 @@ automation:
                         options:
                           zone: zone.home
                     then:
-                      - action: notify.send_message
-                        target:
-                          entity_id: notify.iphone
+                      - action: notify.mobile_app_iphone
                         data:
                           title: Abhimanyu is coming home
                           message: >-
@@ -304,9 +294,7 @@ automation:
                         options:
                           zone: zone.home
                     then:
-                      - action: notify.send_message
-                        target:
-                          entity_id: notify.pixel_10_pro
+                      - action: notify.mobile_app_pixel_10_pro
                         data:
                           title: Abhimanyu arrived home
                           message: Abhimanyu is home.
@@ -320,9 +308,7 @@ automation:
                         options:
                           zone: zone.home
                     then:
-                      - action: notify.send_message
-                        target:
-                          entity_id: notify.iphone
+                      - action: notify.mobile_app_iphone
                         data:
                           title: Abhimanyu arrived home
                           message: Abhimanyu is home.
@@ -376,9 +362,7 @@ automation:
                         options:
                           zone: zone.home
                     then:
-                      - action: notify.send_message
-                        target:
-                          entity_id: notify.pixel_10_pro
+                      - action: notify.mobile_app_pixel_10_pro
                         data:
                           title: Abhimanyu arrived home
                           message: Abhimanyu is home.
@@ -392,9 +376,7 @@ automation:
                         options:
                           zone: zone.home
                     then:
-                      - action: notify.send_message
-                        target:
-                          entity_id: notify.iphone
+                      - action: notify.mobile_app_iphone
                         data:
                           title: Abhimanyu arrived home
                           message: Abhimanyu is home.

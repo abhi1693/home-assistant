@@ -67,6 +67,11 @@ class FamilyFanCard extends HTMLElement {
     return this._available(unit) && this._state(unit.fan)?.state === "on";
   }
 
+  _entityAvailable(entityId) {
+    const state = this._state(entityId);
+    return Boolean(state && !["unknown", "unavailable"].includes(state.state));
+  }
+
   _timerActive(unit) {
     const state = this._state(unit.timer)?.state;
     return Boolean(state && !["Off", "unknown", "unavailable"].includes(state));
@@ -228,7 +233,9 @@ class FamilyFanCard extends HTMLElement {
         : `Turn ${this._escape(fanName)} sleep mode on`;
     const timerHint = timerOn ? this._timerLabel(unit) : sleepOn ? "Replaces sleep mode" : timerAction;
     const spin = Math.max(0.55, 2.2 - speed * 0.25);
-    const featureDisabled = busy || !running;
+    const ledAvailable = this._entityAvailable(unit.led);
+    const ledDisabled = busy || !ledAvailable;
+    const sleepDisabled = busy || !running;
 
     return `
       <section class="fan-tile${running ? " running" : ""}${busy ? " busy" : ""}" style="--fan-spin:${spin}s">
@@ -246,11 +253,11 @@ class FamilyFanCard extends HTMLElement {
           </button>
         </div>
         <div class="feature-row">
-          <button class="feature${running && ledOn ? " active led" : ""}" data-action="led" data-index="${index}"${this._disabled(featureDisabled)} aria-label="${running ? `Turn ${this._escape(fanName)} light ${ledOn ? "off" : "on"}` : `${this._escape(fanName)} light. Turn fan on first`}" aria-pressed="${running && ledOn ? "true" : "false"}">
+          <button class="feature${ledOn ? " active led" : ""}" data-action="led" data-index="${index}"${this._disabled(ledDisabled)} aria-label="${ledAvailable ? `Turn ${this._escape(fanName)} light ${ledOn ? "off" : "on"}` : `${this._escape(fanName)} light unavailable`}" aria-pressed="${ledOn ? "true" : "false"}">
             <span class="feature-icon"><ha-icon icon="${ledOn ? "mdi:lightbulb-on-outline" : "mdi:lightbulb-outline"}"></ha-icon></span>
-            <span class="feature-copy"><strong>Light</strong><small>${running ? (ledOn ? "On" : "Off") : "Fan is off"}</small></span>
+            <span class="feature-copy"><strong>Light</strong><small>${ledAvailable ? (ledOn ? "On" : "Off") : "Unavailable"}</small></span>
           </button>
-          <button class="feature${running && sleepOn ? " active sleep" : ""}" data-action="sleep" data-index="${index}"${this._disabled(featureDisabled)} aria-label="${running ? sleepLabel : `${this._escape(fanName)} sleep mode. Turn fan on first`}" aria-pressed="${running && sleepOn ? "true" : "false"}">
+          <button class="feature${running && sleepOn ? " active sleep" : ""}" data-action="sleep" data-index="${index}"${this._disabled(sleepDisabled)} aria-label="${running ? sleepLabel : `${this._escape(fanName)} sleep mode. Turn fan on first`}" aria-pressed="${running && sleepOn ? "true" : "false"}">
             <span class="feature-icon"><ha-icon icon="mdi:weather-night"></ha-icon></span>
             <span class="feature-copy"><strong>Sleep</strong><small>${running ? (sleepOn ? "On · slows gradually" : timerOn ? "Replaces timer" : "Off") : "Fan is off"}</small></span>
           </button>
@@ -512,7 +519,7 @@ class FamilyFanCard extends HTMLElement {
           );
         }
       });
-    } else if (action === "led" && this._running(unit)) {
+    } else if (action === "led" && this._entityAvailable(unit.led)) {
       const service = this._state(unit.led)?.state === "on" ? "turn_off" : "turn_on";
       await this._runUnit(index, () => this._callService("light", service, {}, unit.led));
     } else if (action === "sleep" && this._running(unit)) {

@@ -141,9 +141,10 @@ source-owned, quota-conscious circular control inspired by Atomberg's appliance
 interface. Tapping the large centre starts at the retained speed or turns the
 fan off; the centre shows only On or Off, while six direct speed targets sit
 around it and Boost uses a fan icon. Light, Sleep
-and the 1/2/3/6-hour timer remain subordinate below the dial. Light and Sleep
-stay visible but require the fan to be running, while the timer changes between
-Turn on later and Turn off later. Sleep and Timer are mutually exclusive; choosing
+and the 1/2/3/6-hour timer remain subordinate below the dial. Light can be
+controlled whenever the fan is reachable, even while its motor is off; Sleep
+requires the motor to be running, while the timer changes between Turn on later
+and Turn off later. Sleep and Timer are mutually exclusive; choosing
 one lets the fan replace the other with its native command instead of spending an
 extra API call. A fixed centre rotor rotates only while running,
 unavailable fans collapse to a disabled wall-switch message, and one per-fan

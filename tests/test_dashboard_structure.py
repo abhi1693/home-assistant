@@ -563,8 +563,10 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("origin: device_tracker.abhimanyu_pixel_8_2", automation)
         self.assertIn("destination: zone.home", automation)
         self.assertIn("notify.abhimanyu_s_echo_dot_announce", automation)
-        self.assertEqual(automation.count("notify.pixel_10_pro"), 3)
-        self.assertEqual(automation.count("notify.iphone"), 3)
+        self.assertEqual(automation.count("action: notify.mobile_app_pixel_10_pro"), 3)
+        self.assertEqual(automation.count("action: notify.mobile_app_iphone"), 3)
+        self.assertNotIn("entity_id: notify.pixel_10_pro", automation)
+        self.assertNotIn("entity_id: notify.iphone", automation)
         self.assertIn("Abhimanyu has left for home.", automation)
         self.assertIn("Abhimanyu is home.", automation)
         self.assertIn("Abhimanyu is coming home", automation)
@@ -603,12 +605,18 @@ class DashboardStructureTests(unittest.TestCase):
             "manisha_manzil_journey_active",
         ):
             self.assertIn(f"{helper}:", commute)
-        for notification in (
+        for notification_action in (
+            "notify.mobile_app_pixel_8",
+            "notify.mobile_app_pixel_10_pro",
+            "notify.mobile_app_iphone",
+        ):
+            self.assertIn(f"action: {notification_action}", commute)
+        for entity_notification in (
             "notify.abhimanyu_pixel_8",
             "notify.pixel_10_pro",
             "notify.iphone",
         ):
-            self.assertIn(notification, commute)
+            self.assertNotIn(f"entity_id: {entity_notification}", commute)
         self.assertNotIn("url: /home-tablet/home", commute)
         self.assertNotIn("clickAction:", commute)
 
@@ -829,6 +837,11 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("Turn on the wall switch", card)
         self.assertIn("Controls will appear automatically.", card)
         self.assertIn("Fan is off", card)
+        self.assertIn('action === "led" && this._entityAvailable(unit.led)', card)
+        self.assertNotIn('action === "led" && this._running(unit)', card)
+        self.assertIn('const ledDisabled = busy || !ledAvailable;', card)
+        self.assertIn('const sleepDisabled = busy || !running;', card)
+        self.assertIn('${ledAvailable ? (ledOn ? "On" : "Off") : "Unavailable"}', card)
         self.assertIn("_exclusiveModes(unit)", card)
         self.assertIn("sleepUpdated > timerUpdated", card)
         self.assertIn("Replaces timer", card)
