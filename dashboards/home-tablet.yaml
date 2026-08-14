@@ -2453,6 +2453,7 @@ views:
               target: { entity_id: input_button.request_vacation_mode }
               confirmation:
                 text: Check the house and start Vacation if everything is ready?
+            grid_options: { columns: 12, rows: 1 }
             visibility:
               - condition: user
                 users: !include ../access/generated/profile-abhimanyu-saharan-users.json
@@ -2467,6 +2468,7 @@ views:
               action: perform-action
               perform_action: input_button.press
               target: { entity_id: input_button.request_vacation_mode }
+            grid_options: { columns: 12, rows: 1 }
             visibility:
               - condition: user
                 users: !include ../access/generated/profile-abhimanyu-saharan-users.json
@@ -2490,10 +2492,31 @@ views:
             tap_action: { action: none }
             hold_action: { action: none }
             styles:
-              card: [{ min-height: 88px }, { border-radius: 22px }, { background: var(--contrast2) }]
-              icon: [{ color: var(--orange) }]
-              state: [{ white-space: normal }, { text-align: left }]
-              label: [{ color: var(--contrast10) }]
+              grid:
+                - grid-template-areas: '"i n" "i s" "i l"'
+                - grid-template-columns: 44px minmax(0, 1fr)
+                - grid-template-rows: min-content min-content min-content
+                - column-gap: 12px
+              card:
+                - min-height: 104px
+                - padding: 14px 16px
+                - border-radius: 22px
+                - background: var(--contrast2)
+              img_cell:
+                - width: 40px
+                - height: 40px
+                - border-radius: 14px
+                - background: color-mix(in srgb, var(--orange) 14%, transparent)
+              icon: [{ width: 22px }, { color: var(--orange) }]
+              name: [{ justify-self: start }, { font-size: 13px }]
+              state:
+                - justify-self: start
+                - white-space: normal
+                - text-align: left
+                - font-size: 13px
+                - line-height: 18px
+              label: [{ justify-self: start }, { color: var(--contrast10) }, { font-size: 11px }]
+            grid_options: { columns: 12, rows: auto }
             visibility:
               - condition: user
                 users: !include ../access/generated/profile-abhimanyu-saharan-users.json
