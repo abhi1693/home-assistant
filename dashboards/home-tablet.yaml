@@ -1328,7 +1328,7 @@ views:
             icon: mdi:account-group-outline
             grid_options: { columns: 36, rows: 1 }
           - type: custom:family-responsive-grid-card
-            min_width: 180
+            min_width: 240
             cards:
               - type: custom:button-card
                 template: family_presence_likelihood

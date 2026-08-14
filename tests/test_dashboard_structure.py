@@ -646,7 +646,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("repeat(2, minmax(0, 1fr))", home)
         self.assertIn("min_width: 280", home)
         self.assertEqual(home.count("min_width: 150"), 3)
-        self.assertEqual(home.count("min_width: 180"), 1)
+        self.assertEqual(home.count("min_width: 240"), 1)
         self.assertIn("--todo-swipe-card-item-height: 48px", home)
         self.assertIn("@media (max-width: 899px)", navigation)
         self.assertIn("env(safe-area-inset-bottom)", navigation)
