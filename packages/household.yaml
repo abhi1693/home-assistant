@@ -46,6 +46,11 @@ input_datetime:
     has_date: true
     has_time: true
 
+  last_vacation_preflight:
+    name: Last Vacation check
+    has_date: true
+    has_time: true
+
 counter:
   household_shadow_decisions:
     name: Shadow decisions
@@ -816,6 +821,10 @@ automation:
               {% set items = items + ['Vacation setup is still in preview'] %}
             {% endif %}
             {{ items | join(' · ') if items else 'house checks did not pass' }}
+      - action: input_datetime.set_datetime
+        target: { entity_id: input_datetime.last_vacation_preflight }
+        data:
+          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
       - choose:
           - conditions:
               - condition: state

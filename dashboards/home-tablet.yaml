@@ -2483,7 +2483,8 @@ views:
             show_label: true
             label: |
               [[[
-                const changed = new Date(entity?.last_changed || 0).getTime();
+                const checked = states['input_datetime.last_vacation_preflight'];
+                const changed = new Date(checked?.last_changed || 0).getTime();
                 const minutes = Math.max(0, Math.floor((Date.now() - changed) / 60000));
                 if (minutes < 2) return 'Checked just now';
                 if (minutes < 60) return `Checked ${minutes} min ago`;

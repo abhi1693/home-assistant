@@ -480,6 +480,15 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("tap_action: { action: toggle }", vacation_controls)
         self.assertIn("Preview only · checks will not change house mode", home)
         self.assertIn("vacation_preflight_result:", package)
+        self.assertIn("last_vacation_preflight:", package)
+        self.assertIn(
+            "target: { entity_id: input_datetime.last_vacation_preflight }",
+            package,
+        )
+        self.assertIn(
+            "states['input_datetime.last_vacation_preflight']",
+            home,
+        )
         self.assertIn("Vacation setup is still in preview", package)
         self.assertIn('value: "Vacation mode started"', package)
         self.assertIn('value: "Not ready · {{ blocker_message }}"', package)
