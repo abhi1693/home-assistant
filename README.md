@@ -83,7 +83,8 @@ The family-facing dashboard combines:
 - A personalized greeting and prioritized household briefing.
 - Weather, humidity, color-coded air quality, presence, playback, alarms, and
   phone battery status.
-- Account-filtered live cameras.
+- A fixed live Home camera wall showing Outside, Living Room, and Kitchen to
+  every family account.
 - Active Music Assistant and Jellyfin sessions.
 - Upcoming calendar events, announcements, shopping, and media requests.
 - A three-person daily steps leaderboard beneath Shopping.

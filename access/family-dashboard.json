@@ -8,6 +8,11 @@
     "master-bedroom": "camera.living_room_high_resolution_channel",
     "outside": "camera.g5_turret_ultra_high_resolution_channel"
   },
+  "home_camera_wall": [
+    "outside",
+    "living-room",
+    "kitchen"
+  ],
   "camera_security_entities": {
     "kitchen": [
       "event.g5_turret_ultra_motion_detection_2",

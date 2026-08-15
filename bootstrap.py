@@ -1055,6 +1055,31 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     camera_entities = set(cameras.values())
     if len(camera_entities) != len(cameras):
         raise RuntimeError("Family dashboard camera entities must be unique")
+    home_camera_wall = access.get("home_camera_wall", [])
+    if home_camera_wall and (
+        not isinstance(home_camera_wall, list)
+        or len(home_camera_wall) != 3
+        or len(home_camera_wall) != len(set(home_camera_wall))
+        or set(home_camera_wall) - set(cameras)
+    ):
+        raise RuntimeError(
+            "Home camera wall must contain three unique declared cameras"
+        )
+    for profile_key in family_profile_keys:
+        profile = profiles[profile_key]
+        missing_home_cameras = set(home_camera_wall) - set(
+            _camera_keys_for_profile(
+                profile_key,
+                profile,
+                cameras,
+                bool(profile.get("is_owner")),
+            )
+        )
+        if missing_home_cameras:
+            raise RuntimeError(
+                f"Family profile {profile_key} cannot see Home cameras: "
+                f"{sorted(missing_home_cameras)}"
+            )
     source_owned_camera_entities = set()
     for camera_key, entity_id in cameras.items():
         stream = streams.get("cameras", {}).get(camera_key)

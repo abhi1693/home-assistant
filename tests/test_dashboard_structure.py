@@ -172,9 +172,9 @@ class DashboardStructureTests(unittest.TestCase):
             "entities: [fan.living_room_fan_1, fan.living_room_fan_2]",
             home_view,
         )
-        self.assertIn('aspect_ratio: "32:9"', home_view)
-        self.assertIn("- height: 88px", home)
-        self.assertIn("camera-outside-users.json", home_view)
+        self.assertEqual(home_view.count('aspect_ratio: "16:9"'), 3)
+        self.assertNotIn("template: family_camera_offline", home)
+        self.assertNotIn("camera-outside-users.json", home_view)
         self.assertIn("camera.g5_turret_ultra_high_resolution_channel", home_view)
         self.assertIn("user?.id === '9302d11f48c64fe796a3c9e5cb563650'", home)
         self.assertIn("user?.id === '8117b77542614a06b4672a8ae1a979b5'", home)
@@ -200,6 +200,54 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("path: music", home)
         self.assertNotIn("/home-tablet/music", navigation)
         self.assertNotIn("label: Music", navigation)
+
+    def test_home_camera_wall_is_fixed_to_three_shared_cameras(self):
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        access = json.loads((ROOT / "access/family-dashboard.json").read_text())
+        home_view = home.split("  - title: Home", 1)[1].split(
+            "  - title: Rooms", 1
+        )[0]
+        camera_wall = home_view.split("heading: Cameras", 1)[1].split(
+            "heading: Media", 1
+        )[0]
+
+        self.assertEqual(
+            access["home_camera_wall"],
+            ["outside", "living-room", "kitchen"],
+        )
+        for profile in access["profiles"].values():
+            if profile.get("is_family_member"):
+                self.assertTrue(
+                    set(access["home_camera_wall"]) <= set(profile["cameras"])
+                )
+        self.assertEqual(camera_wall.count("type: picture-entity"), 3)
+        self.assertNotIn("type: custom:auto-entities", camera_wall)
+        self.assertNotIn("state: unavailable", camera_wall)
+        self.assertNotIn("camera-hallway-users.json", camera_wall)
+        self.assertNotIn("camera-master-bedroom-users.json", camera_wall)
+        self.assertNotIn("name: Hallway", camera_wall)
+        self.assertNotIn("name: Master Bedroom", camera_wall)
+        self.assertEqual(camera_wall.count("family-members-users.json"), 2)
+        expected = (
+            (
+                "name: Outside",
+                "camera_image: camera.g5_turret_ultra_medium_resolution_channel",
+            ),
+            (
+                "name: Living Room",
+                "camera_image: camera.living_room_camera_medium_resolution_channel",
+            ),
+            (
+                "name: Kitchen",
+                "camera_image: camera.kitchen_medium_resolution_channel",
+            ),
+        )
+        positions = []
+        for name, image in expected:
+            self.assertIn(name, camera_wall)
+            self.assertIn(image, camera_wall)
+            positions.append(camera_wall.index(name))
+        self.assertEqual(positions, sorted(positions))
 
     def test_favourite_rooms_are_personalized_by_account(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
@@ -1112,23 +1160,11 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn(".open { width: 44px; height: 44px", seerr)
         self.assertIn(".action { width: 48px; height: 44px", seerr)
 
-    def test_camera_cards_select_available_adaptive_streams(self):
+    def test_security_camera_cards_select_available_adaptive_streams(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
         camera_wall = (ROOT / "www/family-camera-wall-card.js").read_text()
 
         self.assertNotIn("state: idle", home)
-        self.assertNotIn(
-            "type: picture-entity\n"
-            "                entity: camera.g5_turret_ultra_high_resolution_channel\n"
-            "                camera_image: camera.g5_turret_ultra_medium_resolution_channel",
-            home,
-        )
-        self.assertNotIn(
-            "type: picture-entity\n"
-            "                entity: camera.hallway_high_resolution_channel\n"
-            "                camera_image: camera.hallway_medium_resolution_channel",
-            home,
-        )
         self.assertIn('["unknown", "unavailable"].includes(state.state)', camera_wall)
         self.assertIn("this._mobileQuery.matches", camera_wall)
         self.assertIn("return camera.high_entity", camera_wall)
@@ -1140,7 +1176,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('wall.dataset.gridSlots = String(grid.slots)', camera_wall)
         self.assertNotIn('document.createElement("hui-picture-entity-card")', camera_wall)
         self.assertEqual(camera_wall.count("this.shadowRoot.innerHTML ="), 1)
-        self.assertEqual(home.count("template: family_camera_offline"), 3)
+        self.assertEqual(home.count("template: family_camera_offline"), 0)
 
     def test_camera_backend_is_bounded_private_and_presence_aware(self):
         access = json.loads((ROOT / "access/family-dashboard.json").read_text())
