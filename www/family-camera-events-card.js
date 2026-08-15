@@ -72,21 +72,78 @@ class FamilyCameraEventsCard extends HTMLElement {
     </div>`;
   }
 
+  async _signedPath(path, expires = 90) {
+    if (!path?.startsWith("/api/family_camera_events/")) return path;
+    const signed = await this._hass.callWS({
+      type: "auth/sign_path",
+      path,
+      expires,
+    });
+    return signed.path;
+  }
+
+  async _hydrateThumbnails(generation) {
+    const images = [...this.shadowRoot.querySelectorAll("img[data-source]")];
+    await Promise.all(images.map(async (image) => {
+      const source = image.dataset.source;
+      try {
+        const signed = await this._signedPath(source);
+        if (generation !== this._mediaGeneration || !image.isConnected) return;
+        image.src = signed;
+      } catch (_error) {
+        if (image.isConnected) image.classList.add("failed");
+      }
+    }));
+  }
+
+  _closeClip() {
+    const dialog = this.shadowRoot.querySelector("dialog.clip-dialog");
+    const video = dialog?.querySelector("video");
+    if (video) {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    }
+    if (dialog?.open) dialog.close();
+  }
+
+  async _openClip(button) {
+    const dialog = this.shadowRoot.querySelector("dialog.clip-dialog");
+    const video = dialog?.querySelector("video");
+    const message = dialog?.querySelector(".clip-message");
+    if (!dialog || !video || !message) return;
+    button.disabled = true;
+    message.textContent = "Preparing clip…";
+    try {
+      video.src = await this._signedPath(button.dataset.video, 120);
+      video.poster = await this._signedPath(button.dataset.thumbnail, 120);
+      message.textContent = button.dataset.title;
+      dialog.showModal();
+    } catch (_error) {
+      message.textContent = "Clip could not be opened. Try again.";
+      dialog.showModal();
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   _render(force = false) {
     if (!this.shadowRoot || !this._hass) return;
     const cameras = this._visible();
     const signature = JSON.stringify({
       user: this._hass.user?.id,
-      states: cameras.flatMap((camera) => [
-        camera.high_entity,
-        camera.activity_entity,
-        camera.recording_entity,
-        camera.dark_entity,
-        camera.microphone_entity,
-      ].map((entityId) => {
-        const state = this._hass.states[entityId];
-        return [entityId, state?.state, state?.last_updated];
-      })),
+      cameras: cameras.map((camera) => {
+        const activity = this._hass.states[camera.activity_entity];
+        return {
+          key: camera.key,
+          high: this._hass.states[camera.high_entity]?.state,
+          recording: this._hass.states[camera.recording_entity]?.state,
+          dark: this._hass.states[camera.dark_entity]?.state,
+          microphone: this._hass.states[camera.microphone_entity]?.state,
+          last_event: activity?.attributes?.last_event,
+          events: activity?.attributes?.events,
+        };
+      }),
     });
     if (!force && signature === this._signature) return;
     this._signature = signature;
@@ -98,13 +155,12 @@ class FamilyCameraEventsCard extends HTMLElement {
     const timeline = events.length ? events.map((event) => {
       const primary = event.types?.find((type) => type !== "motion") || event.types?.[0] || "motion";
       const [icon, label] = CAMERA_EVENT_META[primary] || ["mdi:cctv", primary.replaceAll("_", " ")];
-      const href = event.active ? "#" : event.video;
       const action = event.active ? "Live" : "Play clip";
       return `<article class="event ${event.active ? "active" : ""}" data-camera="${cameraEventsEscape(event.camera.high_entity)}">
-        <div class="thumb"><img loading="lazy" src="${cameraEventsEscape(event.thumbnail)}" alt="${cameraEventsEscape(event.camera.name)} event"><ha-icon icon="${icon}"></ha-icon></div>
+        <div class="thumb"><img loading="lazy" data-source="${cameraEventsEscape(event.thumbnail)}" alt="${cameraEventsEscape(event.camera.name)} event"><ha-icon icon="${icon}"></ha-icon></div>
         <div class="event-copy"><div class="event-title">${cameraEventsEscape(label)} · ${cameraEventsEscape(event.camera.name)}</div>
           <div class="event-meta">${this._relative(event.start)}${event.active ? " · happening now" : ""}</div></div>
-        <a class="event-action" href="${cameraEventsEscape(href)}" ${event.active ? "data-live=\"true\"" : 'target="_blank" rel="noopener"'}>${action}<ha-icon icon="mdi:chevron-right"></ha-icon></a>
+        <button type="button" class="event-action" ${event.active ? 'data-live="true"' : `data-video="${cameraEventsEscape(event.video)}" data-thumbnail="${cameraEventsEscape(event.thumbnail)}" data-title="${cameraEventsEscape(`${label} · ${event.camera.name}`)}"`}>${action}<ha-icon icon="mdi:chevron-right"></ha-icon></button>
       </article>`;
     }).join("") : '<div class="empty"><ha-icon icon="mdi:shield-check-outline"></ha-icon><strong>No recorded activity yet</strong><span>New Protect events will appear here automatically.</span></div>';
 
@@ -127,11 +183,19 @@ class FamilyCameraEventsCard extends HTMLElement {
         .event.active { border-color:color-mix(in srgb,var(--pink) 55%,transparent); }
         .thumb { position:relative; height:62px; border-radius:13px; overflow:hidden; background:var(--contrast4); }
         .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+        .thumb img.failed { display:none; }
         .thumb ha-icon { position:absolute; left:7px; bottom:7px; width:18px; height:18px; color:white; filter:drop-shadow(0 1px 3px #000); }
         .event-title { font-size:14px; font-weight:700; color:var(--contrast18); }
         .event-meta { margin-top:4px; color:var(--contrast9); font-size:11px; }
-        .event-action { display:flex; align-items:center; gap:2px; min-height:44px; color:var(--pink); text-decoration:none; font-size:12px; font-weight:700; padding:10px; }
+        .event-action { display:flex; align-items:center; gap:2px; min-height:44px; border:0; background:transparent; color:var(--pink); text-decoration:none; font:inherit; font-size:12px; font-weight:700; padding:10px; cursor:pointer; }
+        .event-action:disabled { opacity:.55; cursor:wait; }
         .event-action ha-icon { width:18px; height:18px; }
+        .clip-dialog { width:min(920px,calc(100vw - 32px)); padding:0; border:1px solid var(--contrast5); border-radius:24px; color:var(--contrast18); background:var(--contrast2); }
+        .clip-dialog::backdrop { background:rgba(0,0,0,.78); backdrop-filter:blur(6px); }
+        .clip-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; }
+        .clip-message { font-size:14px; font-weight:700; }
+        .clip-close { width:44px; height:44px; display:grid; place-items:center; border:0; border-radius:50%; color:var(--contrast18); background:var(--contrast4); cursor:pointer; }
+        .clip-dialog video { display:block; width:100%; max-height:72vh; background:#000; }
         .empty { min-height:120px; display:grid; place-items:center; align-content:center; gap:6px; color:var(--contrast9); text-align:center; }
         .empty ha-icon { color:var(--green); width:30px; height:30px; }
         .empty strong { color:var(--contrast16); }
@@ -145,17 +209,25 @@ class FamilyCameraEventsCard extends HTMLElement {
           .thumb { height:66px; grid-row:1 / 3; }
         }
       </style>
-      <ha-card><div class="health-grid cols-${Math.min(3, cameras.length)}">${health}</div><div class="timeline">${timeline}</div></ha-card>`;
-    this.shadowRoot.querySelectorAll('a[data-live="true"]').forEach((link) => {
-      link.addEventListener("click", (event) => {
+      <ha-card><div class="health-grid cols-${Math.min(3, cameras.length)}">${health}</div><div class="timeline">${timeline}</div></ha-card>
+      <dialog class="clip-dialog"><div class="clip-head"><div class="clip-message">Recorded activity</div><button type="button" class="clip-close" aria-label="Close clip"><ha-icon icon="mdi:close"></ha-icon></button></div><video controls playsinline preload="none"></video></dialog>`;
+    this.shadowRoot.querySelectorAll('button[data-live="true"]').forEach((button) => {
+      button.addEventListener("click", (event) => {
         event.preventDefault();
-        const entityId = link.closest("article")?.dataset.camera;
+        const entityId = button.closest("article")?.dataset.camera;
         if (!entityId) return;
         const detail = { entityId };
         this.dispatchEvent(new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail }));
       });
     });
-    this.shadowRoot.querySelectorAll("img").forEach((image) => image.addEventListener("error", () => image.style.display = "none"));
+    this.shadowRoot.querySelectorAll("button[data-video]").forEach((button) => {
+      button.addEventListener("click", () => this._openClip(button));
+    });
+    const dialog = this.shadowRoot.querySelector("dialog.clip-dialog");
+    dialog.querySelector(".clip-close").addEventListener("click", () => this._closeClip());
+    dialog.addEventListener("close", () => this._closeClip());
+    this._mediaGeneration = (this._mediaGeneration || 0) + 1;
+    void this._hydrateThumbnails(this._mediaGeneration);
   }
 
   getCardSize() { return 6; }

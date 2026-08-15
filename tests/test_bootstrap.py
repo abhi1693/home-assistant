@@ -900,7 +900,8 @@ class BootstrapTests(unittest.TestCase):
         profiles = access["profiles"]
         self.assertTrue(profiles["abhimanyu-saharan"]["all_cameras"])
         self.assertEqual(
-            profiles["abhimanyu-saharan"]["cameras"], ["hallway", "outside"]
+            profiles["abhimanyu-saharan"]["cameras"],
+            ["hallway", "kitchen", "living-room", "outside"],
         )
         self.assertEqual(
             profiles["krishna"]["device_trackers"],
@@ -919,13 +920,13 @@ class BootstrapTests(unittest.TestCase):
             profiles["krishna"]["notify_entity_id"], "notify.pixel_10_pro"
         )
         self.assertEqual(profiles["manisha"]["notify_entity_id"], "notify.iphone")
-        shared_cameras = ["hallway", "outside"]
+        shared_cameras = ["hallway", "kitchen", "living-room", "outside"]
         self.assertEqual(profiles["abhimanyu-saharan"]["cameras"], shared_cameras)
         self.assertEqual(profiles["manisha"]["cameras"], shared_cameras)
         self.assertTrue(profiles["manisha"]["enforce_camera_policy"])
         self.assertEqual(
             profiles["krishna"]["cameras"],
-            ["master-bedroom", "hallway", "outside"],
+            ["master-bedroom", "hallway", "kitchen", "living-room", "outside"],
         )
         security_entities = access["camera_security_entities"]
         self.assertEqual(set(security_entities), set(access["cameras"]))
@@ -1299,6 +1300,16 @@ class BootstrapTests(unittest.TestCase):
             (self.source / "access/protect-streams.json").read_text()
         )
         desired["version"] = 2
+        (self.source / "access/protect-streams.json").write_text(
+            json.dumps(desired)
+        )
+        bootstrap.validate_protect_streams(self.source, self.config)
+
+        desired["version"] = 3
+        desired["cameras"]["inside"]["low_entity_id"] = (
+            "camera.inside_low_resolution_channel"
+        )
+        desired["cameras"]["inside"]["qualities"].append("low")
         (self.source / "access/protect-streams.json").write_text(
             json.dumps(desired)
         )

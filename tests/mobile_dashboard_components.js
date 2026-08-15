@@ -70,6 +70,7 @@ async function installComponents(page) {
     class HuiPictureEntityCard extends HTMLElement {
       setConfig(config) {
         this._config = config;
+        this._configCalls = (this._configCalls || 0) + 1;
         this.innerHTML = `<ha-card style="display:grid;place-items:center;min-height:210px">${config.name}</ha-card>`;
       }
       set hass(value) { this._hass = value; }
@@ -115,6 +116,7 @@ async function buildFixture(page) {
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
   tomorrow.setHours(10, 30, 0, 0);
+  const previous = new Date(now.getTime() - 60000);
   const hassStates = {
     "fan.office": state("fan.office", "on", { percentage: 66 }),
     "light.office": state("light.office", "on"),
@@ -158,6 +160,7 @@ async function buildFixture(page) {
     }),
     "camera.outside_high": state("camera.outside_high", "recording"),
     "camera.outside_medium": state("camera.outside_medium", "recording"),
+    "camera.outside_low": state("camera.outside_low", "recording"),
     "camera.private_high": state("camera.private_high", "recording"),
     "camera.private_medium": state("camera.private_medium", "recording"),
     "sensor.outside_activity": state("sensor.outside_activity", "1", {
@@ -167,6 +170,11 @@ async function buildFixture(page) {
         types:["person"], start:now.toISOString(), end:null, active:true,
         thumbnail:"data:image/gif;base64,R0lGODlhAQABAAAAACw=",
         video:"/api/family_camera_events/outside/camera-event/video",
+      }, {
+        id:"camera-clip", camera_key:"outside", camera_name:"Outside",
+        types:["motion"], start:previous.toISOString(), end:now.toISOString(), active:false,
+        thumbnail:"data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+        video:"/api/family_camera_events/outside/camera-clip/video",
       }],
     }),
     "sensor.outside_recording": state("sensor.outside_recording", "detections"),
@@ -177,19 +185,26 @@ async function buildFixture(page) {
   };
   await page.evaluate(({ hassStates, eventStart }) => {
     window.__calls = [];
+    window.__wsCalls = [];
     const hass = {
       states: hassStates,
       user: { id: "owner", name: "Abhimanyu", is_admin: true },
       callService: async (domain, service, data, target) => {
         window.__calls.push({ domain, service, data, target });
       },
-      callWS: async () => ({
-        response: {
-          "calendar.family": {
-            events: [{ summary: "Dentist appointment", start: { dateTime: eventStart } }],
+      callWS: async (message) => {
+        window.__wsCalls.push(message);
+        if (message.type === "auth/sign_path") {
+          return { path:`${message.path}?authSig=test` };
+        }
+        return {
+          response: {
+            "calendar.family": {
+              events: [{ summary: "Dentist appointment", start: { dateTime: eventStart } }],
+            },
           },
-        },
-      }),
+        };
+      },
     };
     const office = { fan:"fan.office", led:"light.office", sleep:"switch.office_sleep", timer:"select.office_timer", timer_elapsed:"sensor.office_timer_elapsed" };
     const living = [
@@ -227,7 +242,8 @@ async function buildFixture(page) {
     mount("#seerr", "family-seerr-requests-card", { entity:"sensor.seerr", url:"http://requests.example.test" });
     const cameraConfig = {
       key:"outside", name:"Outside", high_entity:"camera.outside_high",
-      medium_entity:"camera.outside_medium", activity_entity:"sensor.outside_activity",
+      medium_entity:"camera.outside_medium", low_entity:"camera.outside_low",
+      activity_entity:"sensor.outside_activity",
       detectors:["binary_sensor.outside_person"], users:["owner"],
     };
     mount("#camera-wall", "family-camera-wall-card", { cameras:[
@@ -363,11 +379,46 @@ async function validate(page, viewport) {
   const cameraWall = page.locator("family-camera-wall-card");
   assert.equal(await cameraWall.locator(".camera").count(), 1, "Camera wall leaked a camera outside the signed-in account policy");
   assert.equal(await cameraWall.locator("hui-picture-entity-card").count(), 1);
+  const ambientQuality = await cameraWall.locator("hui-picture-entity-card").evaluate((element) => element._config.camera_image);
+  assert.equal(ambientQuality, viewport.width <= 767 ? "camera.outside_low" : "camera.outside_medium");
+  const stablePlayer = await cameraWall.locator("hui-picture-entity-card").evaluate(async (element) => {
+    const wall = element.getRootNode().host;
+    const hass = wall._hass;
+    const original = element;
+    const changed = (value) => ({
+      ...hass.states["binary_sensor.outside_person"],
+      state:value,
+      last_updated:new Date().toISOString(),
+    });
+    hass.states["binary_sensor.outside_person"] = changed("off");
+    wall.hass = hass;
+    hass.states["binary_sensor.outside_person"] = changed("on");
+    wall.hass = hass;
+    const current = wall.shadowRoot.querySelector("hui-picture-entity-card");
+    return {
+      same: original === current,
+      image: current._config.camera_image,
+      calls: current._configCalls,
+      focused: current.closest(".camera").classList.contains("focused"),
+    };
+  });
+  assert(stablePlayer.same, "Camera player DOM was replaced during a state update");
+  assert.equal(stablePlayer.image, "camera.outside_high", "Activity did not promote the camera to high resolution");
+  assert(stablePlayer.focused, "Activity camera was not focused");
+  assert.equal(stablePlayer.calls, 2, "Camera player was configured more than once per quality change");
 
   const cameraEvents = page.locator("family-camera-events-card");
-  await cameraEvents.locator(".event").waitFor({ state:"visible" });
+  await cameraEvents.locator('.event-action[data-video]').waitFor({ state:"visible" });
   await assertTargets(cameraEvents.locator(".event-action"));
   await cameraEvents.locator('.event-action[data-live="true"]').click();
+  await cameraEvents.locator('.event-action[data-video]').click();
+  const clipDialog = cameraEvents.locator("dialog.clip-dialog");
+  await clipDialog.waitFor({ state:"visible" });
+  assert((await clipDialog.locator("video").getAttribute("src")).includes("authSig=test"));
+  await clipDialog.locator(".clip-close").click();
+  const signedClip = await page.evaluate(() => window.__wsCalls.some((call) =>
+    call.type === "auth/sign_path" && call.path.endsWith("/camera-clip/video")));
+  assert(signedClip, "Completed clip did not request a user-bound signed path");
 
   const cameraSpeaker = page.locator("family-camera-speaker-card");
   await assertTargets(cameraSpeaker.locator("input,button"));

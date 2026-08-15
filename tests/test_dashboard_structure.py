@@ -638,6 +638,8 @@ class DashboardStructureTests(unittest.TestCase):
         )
         self.assertEqual(camera_view.count("camera-outside-users.json"), 2)
         self.assertEqual(camera_view.count("camera-hallway-users.json"), 2)
+        self.assertEqual(camera_view.count("camera-kitchen-users.json"), 2)
+        self.assertEqual(camera_view.count("camera-living-room-users.json"), 2)
         self.assertEqual(camera_view.count("camera-master-bedroom-users.json"), 4)
         self.assertEqual(home.count("  - title: Security\n    path: security"), 1)
         self.assertNotIn("  - title: Cameras\n    path: cameras", home)
@@ -645,13 +647,19 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("heading: Live cameras", camera_view)
         self.assertIn("heading: Camera health and recent activity", camera_view)
         self.assertIn("heading: Master Bedroom speaker", camera_view)
-        for camera_key in ("outside", "master_bedroom", "kitchen_balcony"):
+        for camera_key in (
+            "kitchen",
+            "kitchen_balcony",
+            "living_room",
+            "master_bedroom",
+            "outside",
+        ):
             self.assertEqual(
                 camera_view.count(f"sensor.family_camera_{camera_key}_activity"), 2
             )
         for resource in (
-            "/local/family-camera-wall-card.js?v=1.0.0",
-            "/local/family-camera-events-card.js?v=1.0.0",
+            "/local/family-camera-wall-card.js?v=2.0.0",
+            "/local/family-camera-events-card.js?v=1.1.0",
             "/local/family-camera-speaker-card.js?v=1.0.0",
         ):
             self.assertIn(resource, configuration)
@@ -954,7 +962,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn(".open { width: 44px; height: 44px", seerr)
         self.assertIn(".action { width: 48px; height: 44px", seerr)
 
-    def test_camera_cards_do_not_request_missing_medium_streams(self):
+    def test_camera_cards_select_available_adaptive_streams(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
         camera_wall = (ROOT / "www/family-camera-wall-card.js").read_text()
 
@@ -971,8 +979,11 @@ class DashboardStructureTests(unittest.TestCase):
             "                camera_image: camera.hallway_medium_resolution_channel",
             home,
         )
-        self.assertIn('["unknown", "unavailable"].includes(medium.state)', camera_wall)
-        self.assertIn(": camera.high_entity", camera_wall)
+        self.assertIn('["unknown", "unavailable"].includes(state.state)', camera_wall)
+        self.assertIn("this._mobileQuery.matches", camera_wall)
+        self.assertIn("return camera.high_entity", camera_wall)
+        self.assertIn("entry.signature !== signature", camera_wall)
+        self.assertEqual(camera_wall.count("this.shadowRoot.innerHTML ="), 1)
         self.assertEqual(home.count("template: family_camera_offline"), 3)
 
     def test_camera_backend_is_bounded_private_and_presence_aware(self):
@@ -982,7 +993,11 @@ class DashboardStructureTests(unittest.TestCase):
         model = (ROOT / "custom_components/family_camera_events/model.py").read_text()
         package = (ROOT / "packages/household.yaml").read_text()
 
-        self.assertEqual(streams["version"], 2)
+        self.assertEqual(streams["version"], 3)
+        self.assertEqual(len(streams["cameras"]), 5)
+        for camera in streams["cameras"].values():
+            self.assertEqual(camera["qualities"], ["high", "medium", "low"])
+            self.assertTrue(camera["low_entity_id"].startswith("camera."))
         self.assertIn("api.subscribe_events", sensor)
         self.assertIn("await api.get_events(", sensor)
         self.assertIn("start=now - timedelta(hours=24)", sensor)
@@ -992,6 +1007,9 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('"sensor.presence_confidence", "high"', sensor)
         self.assertIn("MAX_EVENTS_PER_CAMERA = 20", model)
         self.assertIn("EVENT_RETENTION = timedelta(days=7)", model)
+        events_card = (ROOT / "www/family-camera-events-card.js").read_text()
+        self.assertIn('type: "auth/sign_path"', events_card)
+        self.assertIn("dialog class=\"clip-dialog\"", events_card)
         self.assertNotIn("household_perimeter_person_event", package)
         self.assertIn("household_camera_recording_timers", package)
         self.assertIn("household_camera_recording_incident", package)

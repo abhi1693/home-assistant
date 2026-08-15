@@ -5,15 +5,43 @@ const cameraWallEscape = (value) => String(value ?? "")
   .replaceAll('"', "&quot;")
   .replaceAll("'", "&#039;");
 
+const cameraWallAvailable = (state) =>
+  state && !["unknown", "unavailable"].includes(state.state);
+
 class FamilyCameraWallCard extends HTMLElement {
   setConfig(config) {
     if (!Array.isArray(config.cameras) || !config.cameras.length) {
       throw new Error("Family camera wall requires cameras");
     }
     this.config = config;
-    this.attachShadow({ mode: "open" });
-    this._previous = new Map();
-    this._children = new Map();
+    this._previous ||= new Map();
+    this._entries ||= new Map();
+    this._mobileQuery ||= window.matchMedia("(max-width: 767px)");
+    this._handleMediaChange ||= () => this._render();
+    this._mobileQuery.addEventListener("change", this._handleMediaChange);
+    if (!this.shadowRoot) {
+      this.attachShadow({ mode: "open" });
+      this.shadowRoot.innerHTML = `
+        <style>
+          :host { display:block; }
+          .wall { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+          .wall.cols-1 { grid-template-columns:1fr; }
+          .wall.cols-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+          .camera { position:relative; min-width:0; overflow:hidden; border-radius:26px; background:var(--contrast2); }
+          .camera.focused { grid-column:1 / -1; border:1px solid color-mix(in srgb,var(--pink) 60%,transparent); }
+          .camera hui-picture-entity-card { display:block; }
+          .camera.focused hui-picture-entity-card { max-width:1120px; margin:0 auto; }
+          .focus { position:absolute; z-index:2; top:12px; left:12px; display:flex; align-items:center; gap:7px;
+            padding:7px 10px; border-radius:999px; color:white; background:rgba(168,54,124,.88); font-size:12px; font-weight:700; }
+          .focus[hidden],.offline[hidden] { display:none; }
+          .offline { min-height:210px; display:grid; place-items:center; text-align:center; padding:20px; color:var(--contrast10); }
+          .offline ha-icon { width:34px; height:34px; margin-bottom:10px; color:var(--contrast8); }
+          .offline strong { display:block; color:var(--contrast16); font-size:16px; margin-bottom:4px; }
+          @media (max-width:900px) { .wall { grid-template-columns:1fr 1fr; } }
+          @media (max-width:620px) { .wall,.wall.cols-2 { grid-template-columns:1fr; } .camera.focused { grid-column:auto; } }
+        </style>
+        <div class="wall"></div>`;
+    }
   }
 
   set hass(hass) {
@@ -52,20 +80,65 @@ class FamilyCameraWallCard extends HTMLElement {
 
   disconnectedCallback() {
     clearTimeout(this._focusTimer);
+    this._mobileQuery?.removeEventListener("change", this._handleMediaChange);
   }
 
-  _picture(camera) {
-    let child = this._children.get(camera.key);
-    const high = this._hass.states[camera.high_entity];
+  connectedCallback() {
+    this._mobileQuery?.addEventListener("change", this._handleMediaChange);
+  }
+
+  _imageEntity(camera, focused) {
+    if (focused) return camera.high_entity;
+    const low = this._hass.states[camera.low_entity];
+    if (this._mobileQuery.matches && cameraWallAvailable(low)) {
+      return camera.low_entity;
+    }
     const medium = this._hass.states[camera.medium_entity];
-    const image = medium && !["unknown", "unavailable"].includes(medium.state)
+    return cameraWallAvailable(medium)
       ? camera.medium_entity
       : camera.high_entity;
+  }
+
+  _entry(camera) {
+    let entry = this._entries.get(camera.key);
+    if (entry) return entry;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "camera";
+    const focus = document.createElement("div");
+    focus.className = "focus";
+    focus.hidden = true;
+    focus.innerHTML = '<ha-icon icon="mdi:motion-sensor"></ha-icon> Activity now';
+    const offline = document.createElement("div");
+    offline.className = "offline";
+    offline.hidden = true;
+    offline.innerHTML = `<div><ha-icon icon="mdi:video-off-outline"></ha-icon><strong>${cameraWallEscape(camera.name)}</strong>Camera is offline</div>`;
+    const child = document.createElement("hui-picture-entity-card");
+    wrapper.append(focus, offline, child);
+    this.shadowRoot.querySelector(".wall").append(wrapper);
+    entry = { wrapper, focus, offline, child, signature: null };
+    this._entries.set(camera.key, entry);
+    return entry;
+  }
+
+  _syncCamera(camera, focused) {
+    const entry = this._entry(camera);
+    const high = this._hass.states[camera.high_entity];
+    const offline = !cameraWallAvailable(high);
+    entry.wrapper.classList.toggle("focused", focused);
+    entry.wrapper.style.order = focused ? "-1" : "0";
+    entry.focus.hidden = !focused;
+    entry.offline.hidden = !offline;
+
+    if (offline) {
+      entry.child.remove();
+      return;
+    }
+    if (!entry.child.isConnected) entry.wrapper.append(entry.child);
+    const image = this._imageEntity(camera, focused);
     const signature = `${camera.high_entity}|${image}`;
-    if (!child || child.dataset.signature !== signature) {
-      child = document.createElement("hui-picture-entity-card");
-      child.dataset.signature = signature;
-      child.setConfig({
+    if (entry.signature !== signature) {
+      entry.child.setConfig({
         type: "picture-entity",
         entity: camera.high_entity,
         camera_image: image,
@@ -76,51 +149,23 @@ class FamilyCameraWallCard extends HTMLElement {
         show_state: false,
         tap_action: { action: "more-info" },
       });
-      this._children.set(camera.key, child);
+      entry.signature = signature;
     }
-    child.hass = this._hass;
-    return child;
+    entry.child.hass = this._hass;
   }
 
   _render() {
     if (!this.shadowRoot || !this._hass || !this._visible) return;
-    const focused = this._focusKey;
-    const cameras = [...this._visible].sort((a, b) =>
-      Number(b.key === focused) - Number(a.key === focused));
-    this.shadowRoot.innerHTML = `
-      <style>
-        :host { display:block; }
-        .wall { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
-        .wall.cols-1 { grid-template-columns:1fr; }
-        .wall.cols-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
-        .camera { position:relative; min-width:0; overflow:hidden; border-radius:26px; background:var(--contrast2); }
-        .camera.focused { grid-column:1 / -1; border:1px solid color-mix(in srgb,var(--pink) 60%,transparent); }
-        .camera hui-picture-entity-card { display:block; }
-        .camera.focused hui-picture-entity-card { max-width:1120px; margin:0 auto; }
-        .focus { position:absolute; z-index:2; top:12px; left:12px; display:flex; align-items:center; gap:7px;
-          padding:7px 10px; border-radius:999px; color:white; background:rgba(168,54,124,.88); font-size:12px; font-weight:700; }
-        .offline { min-height:210px; display:grid; place-items:center; text-align:center; padding:20px; color:var(--contrast10); }
-        .offline ha-icon { width:34px; height:34px; margin-bottom:10px; color:var(--contrast8); }
-        .offline strong { display:block; color:var(--contrast16); font-size:16px; margin-bottom:4px; }
-        @media (max-width:900px) { .wall { grid-template-columns:1fr 1fr; } }
-        @media (max-width:620px) { .wall,.wall.cols-2 { grid-template-columns:1fr; } .camera.focused { grid-column:auto; } }
-      </style>
-      <div class="wall cols-${Math.min(3, cameras.length)}"></div>`;
+    const visibleKeys = new Set(this._visible.map((camera) => camera.key));
+    for (const [key, entry] of this._entries) {
+      if (visibleKeys.has(key)) continue;
+      entry.wrapper.remove();
+      this._entries.delete(key);
+    }
     const wall = this.shadowRoot.querySelector(".wall");
-    for (const camera of cameras) {
-      const high = this._hass.states[camera.high_entity];
-      const offline = !high || ["unknown", "unavailable"].includes(high.state);
-      const wrapper = document.createElement("div");
-      wrapper.className = `camera${camera.key === focused ? " focused" : ""}`;
-      if (camera.key === focused) {
-        wrapper.innerHTML = `<div class="focus"><ha-icon icon="mdi:motion-sensor"></ha-icon> Activity now</div>`;
-      }
-      if (offline) {
-        wrapper.insertAdjacentHTML("beforeend", `<div class="offline"><div><ha-icon icon="mdi:video-off-outline"></ha-icon><strong>${cameraWallEscape(camera.name)}</strong>Camera is offline</div></div>`);
-      } else {
-        wrapper.appendChild(this._picture(camera));
-      }
-      wall.appendChild(wrapper);
+    wall.className = `wall cols-${Math.min(3, this._visible.length)}`;
+    for (const camera of this._visible) {
+      this._syncCamera(camera, camera.key === this._focusKey);
     }
   }
 

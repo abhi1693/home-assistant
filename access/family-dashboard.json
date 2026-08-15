@@ -2,11 +2,30 @@
   "version": 2,
   "default_dashboard": "home-tablet",
   "cameras": {
-    "master-bedroom": "camera.living_room_high_resolution_channel",
+    "kitchen": "camera.g5_turret_ultra_high_resolution_channel_2",
     "hallway": "camera.hallway_high_resolution_channel",
+    "living-room": "camera.g5_turret_ultra_high_resolution_channel_3",
+    "master-bedroom": "camera.living_room_high_resolution_channel",
     "outside": "camera.g5_turret_ultra_high_resolution_channel"
   },
   "camera_security_entities": {
+    "kitchen": [
+      "event.g5_turret_ultra_motion_detection_2",
+      "event.kitchen_smart_detection",
+      "event.kitchen_sound_detection",
+      "binary_sensor.g5_turret_ultra_motion_2",
+      "binary_sensor.kitchen_person_detected",
+      "binary_sensor.kitchen_vehicle_detected",
+      "binary_sensor.kitchen_animal_detected",
+      "binary_sensor.kitchen_baby_cry_detected",
+      "binary_sensor.kitchen_smoke_alarm_detected",
+      "binary_sensor.kitchen_co_alarm_detected",
+      "binary_sensor.kitchen_speaking_detected",
+      "binary_sensor.g5_turret_ultra_is_dark_2",
+      "sensor.g5_turret_ultra_recording_mode_2",
+      "sensor.kitchen_microphone_level",
+      "sensor.family_camera_kitchen_activity"
+    ],
     "master-bedroom": [
       "event.living_room_living_room_camera_motion_detection",
       "event.living_room_living_room_camera_smart_detection",
@@ -41,6 +60,23 @@
       "sensor.hallway_recording_mode",
       "sensor.hallway_microphone_level",
       "sensor.family_camera_kitchen_balcony_activity"
+    ],
+    "living-room": [
+      "event.g5_turret_ultra_motion_detection_3",
+      "event.living_room_smart_detection",
+      "event.living_room_sound_detection",
+      "binary_sensor.g5_turret_ultra_motion_3",
+      "binary_sensor.living_room_person_detected_2",
+      "binary_sensor.living_room_vehicle_detected_2",
+      "binary_sensor.living_room_animal_detected_2",
+      "binary_sensor.living_room_baby_cry_detected_2",
+      "binary_sensor.living_room_smoke_alarm_detected_2",
+      "binary_sensor.living_room_co_alarm_detected_2",
+      "binary_sensor.living_room_speaking_detected_2",
+      "binary_sensor.g5_turret_ultra_is_dark_3",
+      "sensor.g5_turret_ultra_recording_mode_3",
+      "sensor.living_room_microphone_level_2",
+      "sensor.family_camera_living_room_activity"
     ],
     "outside": [
       "event.g5_turret_ultra_motion_detection",
@@ -150,6 +186,8 @@
       "all_cameras": true,
       "cameras": [
         "hallway",
+        "kitchen",
+        "living-room",
         "outside"
       ],
       "notes": "Owner profile. The all_cameras capability makes every declared camera visible while preserving the explicit cameras list as the fallback when the flag is disabled."
@@ -175,6 +213,8 @@
       "cameras": [
         "master-bedroom",
         "hallway",
+        "kitchen",
+        "living-room",
         "outside"
       ],
       "notes": "Mother profile. Sole normal-dashboard and non-owner backend access to the Master Bedroom camera."
@@ -196,6 +236,8 @@
       "enforce_camera_policy": true,
       "cameras": [
         "hallway",
+        "kitchen",
+        "living-room",
         "outside"
       ],
       "notes": "Wife profile. Shared cameras exclude the Master Bedroom camera."

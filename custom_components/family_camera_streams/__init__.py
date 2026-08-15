@@ -13,7 +13,7 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_call_later, async_track_time_interval
-from uiprotect.data import ChannelQuality, DeviceState
+from uiprotect.data import ChannelQuality, DeviceState, channel_id_for_quality
 
 _LOGGER = logging.getLogger(__name__)
 _RECONCILE_INTERVAL = timedelta(minutes=1)
@@ -43,7 +43,7 @@ async def _async_reconcile(
     async with lock:
         registry = er.async_get(hass)
         create_by_entry: dict[str, list[tuple[Any, str]]] = {}
-        expected_medium: dict[str, tuple[str, str]] = {}
+        expected_streams: dict[str, tuple[str, str, ChannelQuality]] = {}
         discovery_reloads: set[str] = set()
 
         for camera_name, camera_config in desired.items():
@@ -54,12 +54,19 @@ async def _async_reconcile(
                 continue
 
             mac = high_entry.unique_id.removesuffix("_0")
-            medium_entity_id = camera_config["medium_entity_id"]
-            medium_unique_id = f"{mac}_1"
-            expected_medium[medium_unique_id] = (
-                high_entry.config_entry_id,
-                medium_entity_id,
-            )
+            desired_entities = {
+                ChannelQuality.MEDIUM: camera_config.get("medium_entity_id"),
+                ChannelQuality.LOW: camera_config.get("low_entity_id"),
+            }
+            for quality, desired_entity_id in desired_entities.items():
+                if desired_entity_id is None:
+                    continue
+                channel_id = channel_id_for_quality(quality)
+                expected_streams[f"{mac}_{channel_id}"] = (
+                    high_entry.config_entry_id,
+                    desired_entity_id,
+                    quality,
+                )
             config_entry = hass.config_entries.async_get_entry(
                 high_entry.config_entry_id
             )
@@ -95,14 +102,16 @@ async def _async_reconcile(
                 create_by_entry.setdefault(config_entry.entry_id, []).append(
                     (public, str(quality))
                 )
-            if (
-                ChannelQuality.MEDIUM in active
-                and not any(
-                    entry.unique_id == medium_unique_id
+            for quality in wanted & active:
+                channel_id = channel_id_for_quality(quality)
+                if channel_id == 0:
+                    continue
+                unique_id = f"{mac}_{channel_id}"
+                if not any(
+                    entry.unique_id == unique_id
                     for entry in registry.entities.values()
-                )
-            ):
-                discovery_reloads.add(config_entry.entry_id)
+                ):
+                    discovery_reloads.add(config_entry.entry_id)
 
         for entry_id, requests in create_by_entry.items():
             config_entry = hass.config_entries.async_get_entry(entry_id)
@@ -133,26 +142,30 @@ async def _async_reconcile(
             for entry in registry.entities.values()
             if entry.platform == "unifiprotect"
         }
-        for unique_id, (entry_id, desired_entity_id) in expected_medium.items():
-            medium_entry = entries_by_unique_id.get(unique_id)
-            if medium_entry is None:
+        for unique_id, (entry_id, desired_entity_id, quality) in expected_streams.items():
+            stream_entry = entries_by_unique_id.get(unique_id)
+            if stream_entry is None:
                 continue
             if (
-                medium_entry.disabled_by is None
-                and medium_entry.entity_id == desired_entity_id
+                stream_entry.disabled_by is None
+                and stream_entry.entity_id == desired_entity_id
             ):
                 continue
             registry.async_update_entity(
-                medium_entry.entity_id,
+                stream_entry.entity_id,
                 disabled_by=None,
                 new_entity_id=desired_entity_id,
             )
             reload_entries.add(entry_id)
-            _LOGGER.info("Enabled Git-owned medium camera entity %s", desired_entity_id)
+            _LOGGER.info(
+                "Enabled Git-owned %s camera entity %s",
+                quality,
+                desired_entity_id,
+            )
 
         for entry_id in reload_entries:
             if not await hass.config_entries.async_reload(entry_id):
-                _LOGGER.error("Unable to reload enabled medium cameras for %s", entry_id)
+                _LOGGER.error("Unable to reload enabled camera streams for %s", entry_id)
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:

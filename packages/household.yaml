@@ -62,6 +62,16 @@ timer:
     duration: "00:15:00"
     restore: true
 
+  kitchen_camera_offline:
+    name: Kitchen camera offline
+    duration: "00:15:00"
+    restore: true
+
+  living_room_camera_offline:
+    name: Living Room camera offline
+    duration: "00:15:00"
+    restore: true
+
   master_bedroom_camera_offline:
     name: Master Bedroom camera offline
     duration: "00:15:00"
@@ -74,6 +84,16 @@ timer:
 
   hallway_camera_not_recording:
     name: Kitchen Balcony camera not recording
+    duration: "00:15:00"
+    restore: true
+
+  kitchen_camera_not_recording:
+    name: Kitchen camera not recording
+    duration: "00:15:00"
+    restore: true
+
+  living_room_camera_not_recording:
+    name: Living Room camera not recording
     duration: "00:15:00"
     restore: true
 
@@ -235,12 +255,14 @@ template:
         unique_id: household_camera_coverage
         icon: mdi:cctv
         state: >-
-          {% set cameras = [states('camera.g5_turret_ultra_high_resolution_channel'), states('camera.hallway_high_resolution_channel'), states('camera.living_room_high_resolution_channel')] %}
-          {{ cameras | reject('in', ['unknown', 'unavailable']) | list | count }} of 3 online
+          {% set cameras = [states('camera.g5_turret_ultra_high_resolution_channel_2'), states('camera.hallway_high_resolution_channel'), states('camera.g5_turret_ultra_high_resolution_channel_3'), states('camera.living_room_high_resolution_channel'), states('camera.g5_turret_ultra_high_resolution_channel')] %}
+          {{ cameras | reject('in', ['unknown', 'unavailable']) | list | count }} of 5 online
         attributes:
-          outside: "{{ states('camera.g5_turret_ultra_high_resolution_channel') }}"
+          kitchen: "{{ states('camera.g5_turret_ultra_high_resolution_channel_2') }}"
           kitchen_balcony: "{{ states('camera.hallway_high_resolution_channel') }}"
+          living_room: "{{ states('camera.g5_turret_ultra_high_resolution_channel_3') }}"
           master_bedroom: "{{ states('camera.living_room_high_resolution_channel') }}"
+          outside: "{{ states('camera.g5_turret_ultra_high_resolution_channel') }}"
           required_offline: >-
             {{ [
               'Outside' if states('camera.g5_turret_ultra_high_resolution_channel') in ['unknown', 'unavailable'] else none,
@@ -519,7 +541,7 @@ automation:
     alias: Household · Track camera coverage
     description: Use restoring timers so camera outage dwell survives a Home Assistant restart.
     mode: parallel
-    max: 6
+    max: 10
     triggers:
       - trigger: state
         entity_id: camera.g5_turret_ultra_high_resolution_channel
@@ -527,6 +549,12 @@ automation:
       - trigger: state
         entity_id: camera.hallway_high_resolution_channel
         id: hallway
+      - trigger: state
+        entity_id: camera.g5_turret_ultra_high_resolution_channel_2
+        id: kitchen
+      - trigger: state
+        entity_id: camera.g5_turret_ultra_high_resolution_channel_3
+        id: living-room
       - trigger: state
         entity_id: camera.living_room_high_resolution_channel
         id: master-bedroom
@@ -537,7 +565,7 @@ automation:
     actions:
       - variables:
           timer_entity: >-
-            {{ {'outside': 'timer.outside_camera_offline', 'hallway': 'timer.hallway_camera_offline', 'master-bedroom': 'timer.master_bedroom_camera_offline'}[trigger.id] }}
+            {{ {'outside': 'timer.outside_camera_offline', 'hallway': 'timer.hallway_camera_offline', 'kitchen': 'timer.kitchen_camera_offline', 'living-room': 'timer.living_room_camera_offline', 'master-bedroom': 'timer.master_bedroom_camera_offline'}[trigger.id] }}
       - choose:
           - conditions:
               - condition: template
@@ -565,15 +593,23 @@ automation:
         id: hallway
       - trigger: event
         event_type: timer.finished
+        event_data: { entity_id: timer.kitchen_camera_offline }
+        id: kitchen
+      - trigger: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.living_room_camera_offline }
+        id: living-room
+      - trigger: event
+        event_type: timer.finished
         event_data: { entity_id: timer.master_bedroom_camera_offline }
         id: master-bedroom
     actions:
       - variables:
           camera_name: >-
-            {{ {'outside': 'Outside', 'hallway': 'Kitchen Balcony', 'master-bedroom': 'Master Bedroom'}[trigger.id] }}
+            {{ {'outside': 'Outside', 'hallway': 'Kitchen Balcony', 'kitchen': 'Kitchen', 'living-room': 'Living Room', 'master-bedroom': 'Master Bedroom'}[trigger.id] }}
           camera_recipient: "{{ 'master-camera' if trigger.id == 'master-bedroom' else 'owner' }}"
           camera_entity: >-
-            {{ {'outside': 'camera.g5_turret_ultra_high_resolution_channel', 'hallway': 'camera.hallway_high_resolution_channel', 'master-bedroom': 'camera.living_room_high_resolution_channel'}[trigger.id] }}
+            {{ {'outside': 'camera.g5_turret_ultra_high_resolution_channel', 'hallway': 'camera.hallway_high_resolution_channel', 'kitchen': 'camera.g5_turret_ultra_high_resolution_channel_2', 'living-room': 'camera.g5_turret_ultra_high_resolution_channel_3', 'master-bedroom': 'camera.living_room_high_resolution_channel'}[trigger.id] }}
       - condition: template
         value_template: >-
           {{ states(camera_entity) in ['unknown', 'unavailable'] }}
@@ -620,6 +656,28 @@ automation:
       - if:
           - condition: template
             value_template: >-
+              {{ states('camera.g5_turret_ultra_high_resolution_channel_2') in ['unknown', 'unavailable'] }}
+        then:
+          - action: timer.start
+            target: { entity_id: timer.kitchen_camera_offline }
+            data: { duration: "00:15:00" }
+        else:
+          - action: timer.cancel
+            target: { entity_id: timer.kitchen_camera_offline }
+      - if:
+          - condition: template
+            value_template: >-
+              {{ states('camera.g5_turret_ultra_high_resolution_channel_3') in ['unknown', 'unavailable'] }}
+        then:
+          - action: timer.start
+            target: { entity_id: timer.living_room_camera_offline }
+            data: { duration: "00:15:00" }
+        else:
+          - action: timer.cancel
+            target: { entity_id: timer.living_room_camera_offline }
+      - if:
+          - condition: template
+            value_template: >-
               {{ states('camera.living_room_high_resolution_channel') in ['unknown', 'unavailable'] }}
         then:
           - action: timer.start
@@ -658,6 +716,34 @@ automation:
             target: { entity_id: timer.hallway_camera_not_recording }
       - if:
           - condition: state
+            entity_id: sensor.g5_turret_ultra_recording_mode_2
+            state: never
+          - condition: template
+            value_template: >-
+              {{ states('camera.g5_turret_ultra_high_resolution_channel_2') not in ['unknown', 'unavailable'] }}
+        then:
+          - action: timer.start
+            target: { entity_id: timer.kitchen_camera_not_recording }
+            data: { duration: "00:15:00" }
+        else:
+          - action: timer.cancel
+            target: { entity_id: timer.kitchen_camera_not_recording }
+      - if:
+          - condition: state
+            entity_id: sensor.g5_turret_ultra_recording_mode_3
+            state: never
+          - condition: template
+            value_template: >-
+              {{ states('camera.g5_turret_ultra_high_resolution_channel_3') not in ['unknown', 'unavailable'] }}
+        then:
+          - action: timer.start
+            target: { entity_id: timer.living_room_camera_not_recording }
+            data: { duration: "00:15:00" }
+        else:
+          - action: timer.cancel
+            target: { entity_id: timer.living_room_camera_not_recording }
+      - if:
+          - condition: state
             entity_id: sensor.living_room_recording_mode
             state: never
           - condition: template
@@ -675,7 +761,7 @@ automation:
     alias: Household · Track camera recording
     description: Start a durable timer only when an online camera explicitly stops recording.
     mode: parallel
-    max: 6
+    max: 10
     triggers:
       - trigger: state
         entity_id: sensor.g5_turret_ultra_recording_mode
@@ -683,6 +769,12 @@ automation:
       - trigger: state
         entity_id: sensor.hallway_recording_mode
         id: hallway
+      - trigger: state
+        entity_id: sensor.g5_turret_ultra_recording_mode_2
+        id: kitchen
+      - trigger: state
+        entity_id: sensor.g5_turret_ultra_recording_mode_3
+        id: living-room
       - trigger: state
         entity_id: sensor.living_room_recording_mode
         id: master-bedroom
@@ -693,9 +785,9 @@ automation:
     actions:
       - variables:
           timer_entity: >-
-            {{ {'outside': 'timer.outside_camera_not_recording', 'hallway': 'timer.hallway_camera_not_recording', 'master-bedroom': 'timer.master_bedroom_camera_not_recording'}[trigger.id] }}
+            {{ {'outside': 'timer.outside_camera_not_recording', 'hallway': 'timer.hallway_camera_not_recording', 'kitchen': 'timer.kitchen_camera_not_recording', 'living-room': 'timer.living_room_camera_not_recording', 'master-bedroom': 'timer.master_bedroom_camera_not_recording'}[trigger.id] }}
           camera_entity: >-
-            {{ {'outside': 'camera.g5_turret_ultra_high_resolution_channel', 'hallway': 'camera.hallway_high_resolution_channel', 'master-bedroom': 'camera.living_room_high_resolution_channel'}[trigger.id] }}
+            {{ {'outside': 'camera.g5_turret_ultra_high_resolution_channel', 'hallway': 'camera.hallway_high_resolution_channel', 'kitchen': 'camera.g5_turret_ultra_high_resolution_channel_2', 'living-room': 'camera.g5_turret_ultra_high_resolution_channel_3', 'master-bedroom': 'camera.living_room_high_resolution_channel'}[trigger.id] }}
       - choose:
           - conditions:
               - condition: template
@@ -713,7 +805,7 @@ automation:
     alias: Household · Report camera recording stopped
     description: Notify after an online Protect camera has remained out of recording mode.
     mode: queued
-    max: 3
+    max: 5
     triggers:
       - trigger: event
         event_type: timer.finished
@@ -725,17 +817,25 @@ automation:
         id: hallway
       - trigger: event
         event_type: timer.finished
+        event_data: { entity_id: timer.kitchen_camera_not_recording }
+        id: kitchen
+      - trigger: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.living_room_camera_not_recording }
+        id: living-room
+      - trigger: event
+        event_type: timer.finished
         event_data: { entity_id: timer.master_bedroom_camera_not_recording }
         id: master-bedroom
     actions:
       - variables:
           camera_name: >-
-            {{ {'outside': 'Outside', 'hallway': 'Kitchen Balcony', 'master-bedroom': 'Master Bedroom'}[trigger.id] }}
+            {{ {'outside': 'Outside', 'hallway': 'Kitchen Balcony', 'kitchen': 'Kitchen', 'living-room': 'Living Room', 'master-bedroom': 'Master Bedroom'}[trigger.id] }}
           camera_recipient: "{{ 'master-camera' if trigger.id == 'master-bedroom' else 'owner' }}"
           camera_entity: >-
-            {{ {'outside': 'camera.g5_turret_ultra_high_resolution_channel', 'hallway': 'camera.hallway_high_resolution_channel', 'master-bedroom': 'camera.living_room_high_resolution_channel'}[trigger.id] }}
+            {{ {'outside': 'camera.g5_turret_ultra_high_resolution_channel', 'hallway': 'camera.hallway_high_resolution_channel', 'kitchen': 'camera.g5_turret_ultra_high_resolution_channel_2', 'living-room': 'camera.g5_turret_ultra_high_resolution_channel_3', 'master-bedroom': 'camera.living_room_high_resolution_channel'}[trigger.id] }}
           recording_entity: >-
-            {{ {'outside': 'sensor.g5_turret_ultra_recording_mode', 'hallway': 'sensor.hallway_recording_mode', 'master-bedroom': 'sensor.living_room_recording_mode'}[trigger.id] }}
+            {{ {'outside': 'sensor.g5_turret_ultra_recording_mode', 'hallway': 'sensor.hallway_recording_mode', 'kitchen': 'sensor.g5_turret_ultra_recording_mode_2', 'living-room': 'sensor.g5_turret_ultra_recording_mode_3', 'master-bedroom': 'sensor.living_room_recording_mode'}[trigger.id] }}
       - condition: template
         value_template: >-
           {{ states(camera_entity) not in ['unknown', 'unavailable'] and states(recording_entity) == 'never' }}

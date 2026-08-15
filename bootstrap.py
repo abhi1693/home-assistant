@@ -777,6 +777,11 @@ def _protect_camera_entity_sets(
             streams["cameras"][camera_key]["high_entity_id"],
             streams["cameras"][camera_key]["medium_entity_id"],
             *(
+                [streams["cameras"][camera_key]["low_entity_id"]]
+                if streams["cameras"][camera_key].get("low_entity_id")
+                else []
+            ),
+            *(
                 set(camera_security.get(camera_key, []))
                 - source_owned
             ),
@@ -853,9 +858,10 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     streams = json.loads((source / "access/protect-streams.json").read_text())
     if access.get("version") != 2:
         raise RuntimeError("Unsupported family dashboard access schema")
-    if streams.get("version") not in {1, 2}:
+    if streams.get("version") not in {1, 2, 3}:
         raise RuntimeError("Unsupported Protect stream policy schema")
-    enhanced_camera_policy = streams.get("version") == 2
+    enhanced_camera_policy = streams.get("version") in {2, 3}
+    adaptive_stream_policy = streams.get("version") == 3
 
     auth_path = config / ".storage/auth"
     person_path = config / ".storage/person"
@@ -974,6 +980,8 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             "notify_profiles",
             "alerts",
         }
+        if adaptive_stream_policy:
+            required_stream_fields.add("low_entity_id")
         if enhanced_camera_policy and required_stream_fields - set(stream):
             raise RuntimeError(f"Camera {camera_key} stream policy is incomplete")
         if enhanced_camera_policy:
@@ -987,9 +995,14 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                     f"Camera {camera_key} has an invalid activity entity"
                 )
             source_owned_camera_entities.add(activity_entity_id)
-        if stream.get("qualities") != ["high", "medium"]:
+        expected_qualities = (
+            ["high", "medium", "low"]
+            if adaptive_stream_policy
+            else ["high", "medium"]
+        )
+        if stream.get("qualities") != expected_qualities:
             raise RuntimeError(
-                f"Camera {camera_key} must declare high and medium streams"
+                f"Camera {camera_key} must declare {', '.join(expected_qualities)} streams"
             )
         entity = entities.get(entity_id)
         if (
@@ -1056,6 +1069,11 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             key: {
                 streams["cameras"][key]["medium_entity_id"],
                 streams["cameras"][key]["high_entity_id"],
+                *(
+                    [streams["cameras"][key]["low_entity_id"]]
+                    if streams["cameras"][key].get("low_entity_id")
+                    else []
+                ),
                 *camera_security.get(key, []),
             }
             for key in cameras
@@ -1442,7 +1460,7 @@ def reconcile_dashboard_defaults(source: Path, config: Path) -> None:
 def validate_protect_streams(source: Path, config: Path) -> None:
     """Validate Git-owned Protect stream tiers against enabled high entities."""
     desired = json.loads((source / "access/protect-streams.json").read_text())
-    if desired.get("version") not in {1, 2} or not desired.get("cameras"):
+    if desired.get("version") not in {1, 2, 3} or not desired.get("cameras"):
         raise RuntimeError("Unsupported or empty Protect stream configuration")
 
     registry_path = config / ".storage/core.entity_registry"
@@ -1481,9 +1499,32 @@ def validate_protect_streams(source: Path, config: Path) -> None:
             raise RuntimeError(
                 f"Protect stream {camera_name} has an invalid medium entity"
             )
+        low_entity_id = camera.get("low_entity_id")
+        if desired["version"] == 3 and (
+            not low_entity_id or not low_entity_id.startswith("camera.")
+        ):
+            raise RuntimeError(f"Protect stream {camera_name} has no low entity")
+        low = entities.get(low_entity_id)
+        if low is not None and (
+            low.get("platform") != "unifiprotect"
+            or not low.get("unique_id", "").endswith("_2")
+            or low.get("unique_id", "").removesuffix("_2")
+            != entity["unique_id"].removesuffix("_0")
+        ):
+            raise RuntimeError(
+                f"Protect stream {camera_name} has an invalid low entity"
+            )
         qualities = set(camera.get("qualities", []))
         if "high" not in qualities or not qualities <= PROTECT_STREAM_QUALITIES:
             raise RuntimeError(f"Protect stream {camera_name} has invalid qualities")
+        if desired["version"] == 3 and camera.get("qualities") != [
+            "high",
+            "medium",
+            "low",
+        ]:
+            raise RuntimeError(
+                f"Protect stream {camera_name} must declare adaptive qualities"
+            )
 
 
 def reconcile_home_location(source: Path, config: Path) -> None:
@@ -1577,7 +1618,7 @@ def reconcile_commute(source: Path, config: Path) -> None:
     """Make the private commute entry follow the owner's GPS tracker."""
     desired_path = source / "location/commute.json"
     desired = json.loads(desired_path.read_text())
-    if desired.get("version") != 2:
+    if desired.get("version") not in {2, 3}:
         raise RuntimeError("Unsupported commute configuration")
 
     config_entry_id = desired.get("config_entry_id")

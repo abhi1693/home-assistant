@@ -107,21 +107,25 @@ while room access is currently shared across authenticated family accounts.
 
 ### Security and cameras
 
-The combined Security surface presents household attention, camera coverage,
-account-filtered live streams, recording health, and a seven-day Protect event
-timeline in one place. The wall uses medium-resolution streams for its ambient
-grid and opens the high-resolution entity on interaction. A current person,
-vehicle, animal, sound, or motion event temporarily promotes that camera to the
-full-width focus position. Offline cameras remain visible as deliberate status
-tiles and recover without a dashboard edit.
+The combined Security surface presents household attention, five-camera
+coverage, account-filtered live streams, recording health, and a seven-day
+Protect event timeline in one place. The wall keeps each live player mounted
+across Home Assistant state updates, uses medium-resolution streams for its
+ambient desktop/tablet grid and low-resolution streams on phones, and switches
+only an active camera to high resolution. A current person, vehicle, animal,
+sound, or motion event temporarily promotes that camera to the full-width focus
+position. Offline cameras remain visible as deliberate status tiles and recover
+without a dashboard edit.
 
 The source-owned `family_camera_events` integration subscribes to Protect's
 local event WebSocket rather than polling the cloud. It retains at most 20
 events per camera, seeds the feed from the previous 24 hours of local Protect
-history after startup, proxies thumbnails and completed clips through
-authenticated account-aware endpoints, and never exposes notification
-bookkeeping as entity attributes. Alerts are deduplicated per Protect event and
-detection type; historical backfill never sends an alert.
+history after startup, and proxies thumbnails and completed clips through
+authenticated account-aware endpoints. The dashboard requests short-lived
+user-bound signed paths before loading either media type and plays completed
+clips in place. Notification bookkeeping is never exposed as entity attributes.
+Alerts are deduplicated per Protect event and detection type; historical
+backfill never sends an alert.
 Smoke, carbon-monoxide, and baby-cry alerts are immediate; person, vehicle, and
 animal alerts use the declared empty-home confidence policy. Informational and
 advisory alerts respect quiet hours. A clip follow-up is sent only after Protect
@@ -133,9 +137,10 @@ detection entities, recording diagnostics, and camera speakers inherit the
 same grant as their camera, so a restricted room cannot leak metadata or media
 through another entity domain. Protect console and NVR storage entities remain
 administrator-only. The Master Bedroom camera and speaker are
-available to Krishna and the owner; Manisha receives only Outside and Kitchen
-Balcony. An owner-only `all_cameras` capability adds every declared camera to
-the owner's generated grants without weakening another account.
+available to Krishna and the owner. Kitchen, Kitchen Balcony, Living Room, and
+Outside are shared with all three family accounts. An owner-only `all_cameras`
+capability adds every declared camera to the owner's generated grants without
+weakening another account.
 
 The Master Bedroom G4 Instant speaker has an explicit text composer with useful
 presets. The backend rechecks the caller's camera grant before using the local
