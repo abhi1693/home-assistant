@@ -78,6 +78,73 @@ def atomic_json(destination: Path, document: dict, mode: int | None = None) -> N
     os.replace(temporary, destination)
 
 
+def load_entity_migrations(source: Path) -> list[dict]:
+    """Load and validate Git-owned Home Assistant entity rename contracts."""
+    path = source / "access/entity-migrations.json"
+    document = json.loads(path.read_text())
+    migrations = document.get("entities")
+    if document.get("version") != 1 or not isinstance(migrations, list):
+        raise RuntimeError("Unsupported entity migration contract")
+
+    old_ids = set()
+    new_ids = set()
+    for migration in migrations:
+        if not isinstance(migration, dict):
+            raise RuntimeError("Entity migration entry is invalid")
+        old_entity_id = migration.get("old_entity_id")
+        new_entity_id = migration.get("new_entity_id")
+        platform = migration.get("platform")
+        unique_id = migration.get("unique_id")
+        if (
+            not isinstance(old_entity_id, str)
+            or not isinstance(new_entity_id, str)
+            or old_entity_id == new_entity_id
+            or old_entity_id.partition(".")[0]
+            != new_entity_id.partition(".")[0]
+            or not isinstance(platform, str)
+            or not platform
+            or not isinstance(unique_id, str)
+            or not unique_id
+            or old_entity_id in old_ids
+            or new_entity_id in new_ids
+        ):
+            raise RuntimeError("Entity migration entry is invalid")
+        old_ids.add(old_entity_id)
+        new_ids.add(new_entity_id)
+    if old_ids & new_ids:
+        raise RuntimeError("Entity migrations cannot form rename chains")
+    return migrations
+
+
+def validate_entity_migrations(source: Path, config: Path) -> None:
+    """Validate each migration against the current entity registry identity."""
+    registry_path = config / ".storage/core.entity_registry"
+    if not registry_path.exists():
+        raise RuntimeError("Home Assistant entity registry is missing")
+    registry = json.loads(registry_path.read_text())
+    entities = {
+        item["entity_id"]: item for item in registry["data"]["entities"]
+    }
+    for migration in load_entity_migrations(source):
+        old_entity = entities.get(migration["old_entity_id"])
+        new_entity = entities.get(migration["new_entity_id"])
+        if old_entity is not None and new_entity is not None:
+            raise RuntimeError(
+                "Both sides of an entity migration already exist: "
+                f"{migration['old_entity_id']}"
+            )
+        entity = old_entity or new_entity
+        if (
+            entity is None
+            or entity.get("platform") != migration["platform"]
+            or entity.get("unique_id") != migration["unique_id"]
+        ):
+            raise RuntimeError(
+                "Entity migration identity changed: "
+                f"{migration['old_entity_id']}"
+            )
+
+
 def sync_source_files(source: Path, config: Path) -> None:
     managed: dict[str, str] = {
         "configuration.yaml": sha256(source / "configuration.yaml")
@@ -137,7 +204,7 @@ def validate_household_policy(source: Path) -> None:
 
     profiles = policy.get("profiles")
     if not isinstance(profiles, dict) or set(profiles) != {
-        "abhimanyu-saharan",
+        "abhimanyu",
         "krishna",
         "manisha",
     }:
@@ -1261,7 +1328,13 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                 raise RuntimeError(
                     f"Family profile {profile_key} has an invalid person entity"
                 )
-            person_id = person_entity_id.removeprefix("person.")
+            person_id = profile.get(
+                "person_id", person_entity_id.removeprefix("person.")
+            )
+            if not isinstance(person_id, str) or not person_id:
+                raise RuntimeError(
+                    f"Family profile {profile_key} has an invalid person ID"
+                )
             person_entry = people.get(person_id)
             if person_entry is not None and person_entry.get("user_id") not in (
                 None,
@@ -1827,6 +1900,10 @@ def reconcile_commute(source: Path, config: Path) -> None:
         .get("data", {})
         .get("entities", [])
     }
+    migration_sources = {
+        migration["new_entity_id"]: migration["old_entity_id"]
+        for migration in load_entity_migrations(source)
+    }
     tracker = entities.get(tracker_entity_id)
     to_work = entities.get(to_work_entity_id)
     if (
@@ -1858,7 +1935,9 @@ def reconcile_commute(source: Path, config: Path) -> None:
         to_manzil_entity_id = route.get("to_manzil_entity_id")
         manzil_direction_entity_id = route.get("manzil_direction_entity_id")
         route_tracker = entities.get(route_tracker_id)
-        person_entity = entities.get(person_entity_id)
+        person_entity = entities.get(person_entity_id) or entities.get(
+            migration_sources.get(person_entity_id)
+        )
         if (
             not isinstance(profile_key, str)
             or not isinstance(person_entity_id, str)
@@ -2044,6 +2123,7 @@ def main() -> None:
     manifest = json.loads((source / "bootstrap/manifest.json").read_text())
     validate_household_policy(source)
     validate_room_model(source)
+    validate_entity_migrations(source, config)
     sync_source_files(source, config)
     initialize_mutable_yaml(source, config)
     install_hacs(manifest, config)

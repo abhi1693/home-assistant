@@ -74,7 +74,7 @@ script:
               - condition: template
                 value_template: >-
                   {{ destination_entity == 'zone.home'
-                     and ((traveler_key != 'abhimanyu-saharan' and is_state('person.abhimanyu_saharan', 'home'))
+                     and ((traveler_key != 'abhimanyu' and is_state('person.abhimanyu', 'home'))
                        or (traveler_key != 'krishna' and is_state('person.krishna', 'home'))
                        or (traveler_key != 'manisha' and is_state('person.manisha', 'home'))) }}
               - condition: not
@@ -92,8 +92,8 @@ script:
           - if:
               - condition: template
                 value_template: >-
-                  {{ traveler_key != 'abhimanyu-saharan'
-                     and states('person.abhimanyu_saharan') != destination_state }}
+                  {{ traveler_key != 'abhimanyu'
+                     and states('person.abhimanyu') != destination_state }}
             then:
               - action: notify.mobile_app_pixel_8
                 data:
@@ -148,7 +148,7 @@ automation:
         note: Re-evaluate Home when a previously ambiguous dual-home direction becomes clear.
       - trigger: zone.entered
         target:
-          entity_id: person.abhimanyu_saharan
+          entity_id: person.abhimanyu
         options:
           zone: zone.home
           for: "00:00:30"
@@ -165,7 +165,7 @@ automation:
                 id: departure
               - condition: zone.not_in_zone
                 target:
-                  entity_id: person.abhimanyu_saharan
+                  entity_id: person.abhimanyu
                 options:
                   zone: zone.home
               - condition: state
@@ -326,12 +326,12 @@ automation:
                 entity_id: input_boolean.abhimanyu_homeward_journey_active
                 state: "on"
               - condition: state
-                entity_id: person.abhimanyu_saharan
+                entity_id: person.abhimanyu
                 state: home
             sequence:
               - delay: "00:00:30"
               - condition: state
-                entity_id: person.abhimanyu_saharan
+                entity_id: person.abhimanyu
                 state: home
               - parallel:
                   - if:
@@ -419,7 +419,7 @@ automation:
         id: arrival_manisha_home
       - trigger: zone.entered
         target:
-          entity_id: person.abhimanyu_saharan
+          entity_id: person.abhimanyu
         options:
           zone: zone.manzil_apartment
           for: "00:00:30"
@@ -449,33 +449,33 @@ automation:
             sequence:
               - variables:
                   traveler_key: >-
-                    {% if 'abhimanyu' in trigger.entity_id %}abhimanyu-saharan
+                    {% if 'abhimanyu' in trigger.entity_id %}abhimanyu
                     {% elif 'krishna' in trigger.entity_id %}krishna
                     {% elif 'manisha' in trigger.entity_id %}manisha
                     {% endif %}
                   traveler_name: >-
-                    {{ {'abhimanyu-saharan': 'Abhimanyu', 'krishna': 'Krishna',
+                    {{ {'abhimanyu': 'Abhimanyu', 'krishna': 'Krishna',
                         'manisha': 'Manisha'}.get(traveler_key, '') }}
                   person_entity: >-
-                    {{ {'abhimanyu-saharan': 'person.abhimanyu_saharan',
+                    {{ {'abhimanyu': 'person.abhimanyu',
                         'krishna': 'person.krishna', 'manisha': 'person.manisha'}.get(traveler_key, '') }}
                   origin_entity: >-
-                    {{ {'abhimanyu-saharan': 'device_tracker.abhimanyu_pixel_8_2',
+                    {{ {'abhimanyu': 'device_tracker.abhimanyu_pixel_8_2',
                         'krishna': 'device_tracker.pixel_10_pro_2',
                         'manisha': 'device_tracker.iphone'}.get(traveler_key, '') }}
                   home_direction: >-
-                    {{ {'abhimanyu-saharan': 'sensor.family_arrivals_abhimanyu_direction_of_travel',
+                    {{ {'abhimanyu': 'sensor.family_arrivals_abhimanyu_direction_of_travel',
                         'krishna': 'sensor.family_arrivals_krishna_direction_of_travel',
                         'manisha': 'sensor.family_arrivals_manisha_direction_of_travel'}.get(traveler_key, '') }}
                   manzil_direction: >-
-                    {{ {'abhimanyu-saharan': 'sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel',
+                    {{ {'abhimanyu': 'sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel',
                         'krishna': 'sensor.manzil_apartment_arrivals_krishna_direction_of_travel',
                         'manisha': 'sensor.manzil_apartment_arrivals_manisha_direction_of_travel'}.get(traveler_key, '') }}
               - variables:
                   destination_slug: >-
                     {% set home_towards = is_state(home_direction, 'towards') %}
                     {% set manzil_towards = is_state(manzil_direction, 'towards') %}
-                    {% if home_towards and not manzil_towards and traveler_key != 'abhimanyu-saharan' %}home
+                    {% if home_towards and not manzil_towards and traveler_key != 'abhimanyu' %}home
                     {% elif manzil_towards and not home_towards %}manzil-apartment
                     {% endif %}
               - condition: template
@@ -491,7 +491,7 @@ automation:
                     {{ {
                       'krishna:home': 'input_boolean.krishna_homeward_journey_active',
                       'manisha:home': 'input_boolean.manisha_homeward_journey_active',
-                      'abhimanyu-saharan:manzil-apartment': 'input_boolean.abhimanyu_manzil_journey_active',
+                      'abhimanyu:manzil-apartment': 'input_boolean.abhimanyu_manzil_journey_active',
                       'krishna:manzil-apartment': 'input_boolean.krishna_manzil_journey_active',
                       'manisha:manzil-apartment': 'input_boolean.manisha_manzil_journey_active'
                     }.get(traveler_key ~ ':' ~ destination_slug, '') }}
@@ -499,7 +499,7 @@ automation:
                     {{ {
                       'krishna:home': 'input_boolean.krishna_manzil_journey_active',
                       'manisha:home': 'input_boolean.manisha_manzil_journey_active',
-                      'abhimanyu-saharan:manzil-apartment': 'input_boolean.abhimanyu_homeward_journey_active',
+                      'abhimanyu:manzil-apartment': 'input_boolean.abhimanyu_homeward_journey_active',
                       'krishna:manzil-apartment': 'input_boolean.krishna_homeward_journey_active',
                       'manisha:manzil-apartment': 'input_boolean.manisha_homeward_journey_active'
                     }.get(traveler_key ~ ':' ~ destination_slug, '') }}
@@ -551,12 +551,12 @@ automation:
               - variables:
                   arrival_key: "{{ trigger.id | replace('arrival_', '') }}"
                   traveler_key: >-
-                    {% if 'abhimanyu' in arrival_key %}abhimanyu-saharan
+                    {% if 'abhimanyu' in arrival_key %}abhimanyu
                     {% elif 'krishna' in arrival_key %}krishna
                     {% elif 'manisha' in arrival_key %}manisha
                     {% endif %}
                   traveler_name: >-
-                    {{ {'abhimanyu-saharan': 'Abhimanyu', 'krishna': 'Krishna',
+                    {{ {'abhimanyu': 'Abhimanyu', 'krishna': 'Krishna',
                         'manisha': 'Manisha'}.get(traveler_key, '') }}
                   destination_slug: >-
                     {{ 'manzil-apartment' if arrival_key.endswith('_manzil') else 'home' }}
@@ -571,7 +571,7 @@ automation:
                     {{ {
                       'krishna:home': 'input_boolean.krishna_homeward_journey_active',
                       'manisha:home': 'input_boolean.manisha_homeward_journey_active',
-                      'abhimanyu-saharan:manzil-apartment': 'input_boolean.abhimanyu_manzil_journey_active',
+                      'abhimanyu:manzil-apartment': 'input_boolean.abhimanyu_manzil_journey_active',
                       'krishna:manzil-apartment': 'input_boolean.krishna_manzil_journey_active',
                       'manisha:manzil-apartment': 'input_boolean.manisha_manzil_journey_active'
                     }.get(traveler_key ~ ':' ~ destination_slug, '') }}
@@ -612,9 +612,9 @@ automation:
                       destination_state: home
                       destination_slug: home
                       helper: input_boolean.manisha_homeward_journey_active
-                    - traveler_key: abhimanyu-saharan
+                    - traveler_key: abhimanyu
                       traveler_name: Abhimanyu
-                      person_entity: person.abhimanyu_saharan
+                      person_entity: person.abhimanyu
                       destination_entity: zone.manzil_apartment
                       destination_name: Manzil Apartment
                       destination_state: Manzil Apartment
@@ -684,16 +684,16 @@ template:
       - trigger: time_pattern
         minutes: "/20"
       - trigger: state
-        entity_id: person.abhimanyu_saharan
+        entity_id: person.abhimanyu
         from: home
       - trigger: state
-        entity_id: person.abhimanyu_saharan
+        entity_id: person.abhimanyu
         to: home
       - trigger: state
-        entity_id: person.abhimanyu_saharan
+        entity_id: person.abhimanyu
         to: Work
       - trigger: state
-        entity_id: person.abhimanyu_saharan
+        entity_id: person.abhimanyu
         from: Work
       - trigger: state
         entity_id: sensor.family_arrivals_abhimanyu_direction_of_travel
@@ -706,7 +706,7 @@ template:
           - condition: not
             conditions:
               - condition: state
-                entity_id: person.abhimanyu_saharan
+                entity_id: person.abhimanyu
                 state: Work
           - condition: state
             entity_id: binary_sensor.abhimanyu_work_commute_window
@@ -718,7 +718,7 @@ template:
       - choose:
           - conditions:
               - condition: state
-                entity_id: person.abhimanyu_saharan
+                entity_id: person.abhimanyu
                 state: home
             sequence:
               - variables:
@@ -786,10 +786,10 @@ template:
       - trigger: time_pattern
         minutes: "/20"
       - trigger: state
-        entity_id: person.abhimanyu_saharan
+        entity_id: person.abhimanyu
         from: Manzil Apartment
       - trigger: state
-        entity_id: person.abhimanyu_saharan
+        entity_id: person.abhimanyu
         to: Manzil Apartment
       - trigger: state
         entity_id: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
@@ -801,7 +801,7 @@ template:
       - choose:
           - conditions:
               - condition: state
-                entity_id: person.abhimanyu_saharan
+                entity_id: person.abhimanyu
                 state: Manzil Apartment
             sequence:
               - variables:

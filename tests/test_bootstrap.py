@@ -25,6 +25,10 @@ class BootstrapTests(unittest.TestCase):
         self.config = self.root / "config"
         self.source.mkdir()
         self.config.mkdir()
+        self.write(
+            "access/entity-migrations.json",
+            json.dumps({"version": 1, "entities": []}),
+        )
 
     def tearDown(self):
         self.temporary.cleanup()
@@ -69,10 +73,61 @@ class BootstrapTests(unittest.TestCase):
         bootstrap.remove_legacy_household_entities(self.config)
         self.assertEqual(json.loads(registry_path.read_text()), reconciled)
 
+    def test_entity_migrations_accept_only_the_exact_old_or_new_identity(self):
+        migration = {
+            "old_entity_id": "person.owner_old",
+            "new_entity_id": "person.owner",
+            "platform": "person",
+            "unique_id": "owner-stable-id",
+        }
+        self.write(
+            "access/entity-migrations.json",
+            json.dumps({"version": 1, "entities": [migration]}),
+        )
+        storage = self.config / ".storage"
+        storage.mkdir()
+        registry_path = storage / "core.entity_registry"
+
+        for entity_id in ("person.owner_old", "person.owner"):
+            registry_path.write_text(
+                json.dumps(
+                    {
+                        "data": {
+                            "entities": [
+                                {
+                                    "entity_id": entity_id,
+                                    "platform": "person",
+                                    "unique_id": "owner-stable-id",
+                                }
+                            ]
+                        }
+                    }
+                )
+            )
+            bootstrap.validate_entity_migrations(self.source, self.config)
+
+        registry_path.write_text(
+            json.dumps(
+                {
+                    "data": {
+                        "entities": [
+                            {
+                                "entity_id": "person.owner_old",
+                                "platform": "person",
+                                "unique_id": "changed-id",
+                            }
+                        ]
+                    }
+                }
+            )
+        )
+        with self.assertRaisesRegex(RuntimeError, "identity changed"):
+            bootstrap.validate_entity_migrations(self.source, self.config)
+
     def test_household_policy_rejects_non_phone_presence_drift(self):
         access = {
             "profiles": {
-                "abhimanyu-saharan": {
+                "abhimanyu": {
                     "device_trackers": [
                         "device_tracker.owner_phone_gps",
                         "device_tracker.owner_phone_wifi",
@@ -97,7 +152,7 @@ class BootstrapTests(unittest.TestCase):
             "version": 1,
             "automation_stage": "Shadow",
             "profiles": {
-                "abhimanyu-saharan": {
+                "abhimanyu": {
                     "gps": "device_tracker.owner_phone_gps",
                     "wifi": "device_tracker.owner_phone_wifi",
                     "notify": "notify.owner_phone",
@@ -986,9 +1041,9 @@ class BootstrapTests(unittest.TestCase):
             (Path(bootstrap.__file__).parent / "access/protect-streams.json").read_text()
         )
         profiles = access["profiles"]
-        self.assertFalse(profiles["abhimanyu-saharan"]["all_cameras"])
+        self.assertFalse(profiles["abhimanyu"]["all_cameras"])
         self.assertEqual(
-            profiles["abhimanyu-saharan"]["cameras"],
+            profiles["abhimanyu"]["cameras"],
             ["hallway", "kitchen", "living-room", "outside"],
         )
         self.assertEqual(
@@ -1001,7 +1056,7 @@ class BootstrapTests(unittest.TestCase):
             profiles["manisha"]["device_trackers"], ["device_tracker.iphone"]
         )
         self.assertEqual(
-            profiles["abhimanyu-saharan"]["notify_entity_id"],
+            profiles["abhimanyu"]["notify_entity_id"],
             "notify.abhimanyu_pixel_8",
         )
         self.assertEqual(
@@ -1009,12 +1064,12 @@ class BootstrapTests(unittest.TestCase):
         )
         self.assertEqual(profiles["manisha"]["notify_entity_id"], "notify.iphone")
         shared_cameras = ["hallway", "kitchen", "living-room", "outside"]
-        self.assertEqual(profiles["abhimanyu-saharan"]["cameras"], shared_cameras)
+        self.assertEqual(profiles["abhimanyu"]["cameras"], shared_cameras)
         self.assertEqual(profiles["manisha"]["cameras"], shared_cameras)
         self.assertEqual(
             bootstrap._camera_keys_for_profile(
-                "abhimanyu-saharan",
-                profiles["abhimanyu-saharan"],
+                "abhimanyu",
+                profiles["abhimanyu"],
                 access["cameras"],
                 True,
             ),
@@ -1084,7 +1139,7 @@ class BootstrapTests(unittest.TestCase):
 
         self.assertEqual(manifest["access_mode"], "shared")
         self.assertEqual(len(manifest["rooms"]), 7)
-        for profile_key in ("abhimanyu-saharan", "krishna", "manisha"):
+        for profile_key in ("abhimanyu", "krishna", "manisha"):
             profile = access["profiles"][profile_key]
             self.assertIn(profile["user_id"], manifest["profiles"])
             self.assertEqual(

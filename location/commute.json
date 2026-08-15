@@ -5,8 +5,8 @@
   "to_work_entity_id": "sensor.abhimanyu_home_to_work",
   "home_routes": [
     {
-      "profile_key": "abhimanyu-saharan",
-      "person_entity_id": "person.abhimanyu_saharan",
+      "profile_key": "abhimanyu",
+      "person_entity_id": "person.abhimanyu",
       "tracker_entity_id": "device_tracker.abhimanyu_pixel_8_2",
       "to_home_entity_id": "sensor.abhimanyu_to_home",
       "direction_entity_id": "sensor.family_arrivals_abhimanyu_direction_of_travel",

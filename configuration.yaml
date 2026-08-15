@@ -19,7 +19,7 @@ recorder:
   purge_keep_days: 10
   exclude:
     entities:
-      - person.abhimanyu_saharan
+      - person.abhimanyu
       - person.krishna
       - person.manisha
     entity_globs:

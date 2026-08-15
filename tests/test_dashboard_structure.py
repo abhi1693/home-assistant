@@ -207,11 +207,11 @@ class DashboardStructureTests(unittest.TestCase):
             "  - title: Rooms", 1
         )[0]
         favourites = home_view.split(
-            "profile-abhimanyu-saharan-users.json", 1
+            "profile-abhimanyu-users.json", 1
         )[1].split("&family_navigation", 1)[0]
         profiles = [
             (
-                "profile-abhimanyu-saharan-users.json",
+                "profile-abhimanyu-users.json",
                 ["Office", "Bedroom", "Living Room"],
             ),
             (
@@ -308,7 +308,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertEqual(
             home_view.count("type: custom:family-seerr-requests-card"), 1
         )
-        self.assertIn("profile-abhimanyu-saharan-users.json", home_view)
+        self.assertIn("profile-abhimanyu-users.json", home_view)
         self.assertGreater(
             home_view.index("type: custom:family-seerr-requests-card"),
             home_view.index("type: custom:family-announcements-card"),
@@ -424,7 +424,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("arrival_eta: true", home_view)
         self.assertIn("Date.now() + minutes * 60000", home)
         arrivals = {
-            "abhimanyu-saharan": (
+            "abhimanyu": (
                 "Abhimanyu",
                 "sensor.abhimanyu_to_home",
                 "sensor.family_arrivals_abhimanyu_direction_of_travel",
@@ -477,7 +477,7 @@ class DashboardStructureTests(unittest.TestCase):
             self.assertIn("state: towards", manzil_card)
 
         self.assertIn("entity: sensor.abhimanyu_home_to_work", home_view)
-        self.assertIn("profile-abhimanyu-saharan-users.json", commute_work)
+        self.assertIn("profile-abhimanyu-users.json", commute_work)
         self.assertIn("state_not: Work", commute_work)
         self.assertIn("destination: Work", commute_work)
         self.assertIn("mdi:briefcase-clock", home)
@@ -506,7 +506,7 @@ class DashboardStructureTests(unittest.TestCase):
         )
         self.assertEqual(commute.count("is_state('sun.sun', 'above_horizon')"), 3)
         work_routes = {
-            "abhimanyu-saharan": (
+            "abhimanyu": (
                 "sensor.abhimanyu_home_to_work",
                 "binary_sensor.abhimanyu_work_commute_window",
             ),
@@ -796,7 +796,7 @@ class DashboardStructureTests(unittest.TestCase):
 
         self.assertEqual(
             set(access["health_profiles"]),
-            {"abhimanyu-saharan", "krishna", "manisha"},
+            {"abhimanyu", "krishna", "manisha"},
         )
         self.assertIn("visible: !include ../access/generated/family-members-users.json", health)
         for profile in ("abhimanyu", "krishna", "manisha"):
@@ -808,7 +808,7 @@ class DashboardStructureTests(unittest.TestCase):
         combined = "\n".join((abhimanyu, krishna, manisha))
 
         for profile, page in (
-            ("abhimanyu-saharan", abhimanyu),
+            ("abhimanyu", abhimanyu),
             ("krishna", krishna),
             ("manisha", manisha),
         ):
@@ -845,14 +845,14 @@ class DashboardStructureTests(unittest.TestCase):
     def test_presence_uses_only_travelling_phone_trackers(self):
         access = json.loads((ROOT / "access/family-dashboard.json").read_text())
         policy = json.loads((ROOT / "access/household-policy.json").read_text())
-        owner = access["profiles"]["abhimanyu-saharan"]
+        owner = access["profiles"]["abhimanyu"]
 
         self.assertNotIn("device_tracker.abhi_pc", owner["device_trackers"])
         self.assertEqual(
             set(owner["device_trackers"]),
             {
-                policy["profiles"]["abhimanyu-saharan"]["gps"],
-                policy["profiles"]["abhimanyu-saharan"]["wifi"],
+                policy["profiles"]["abhimanyu"]["gps"],
+                policy["profiles"]["abhimanyu"]["wifi"],
             },
         )
 
@@ -876,11 +876,48 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("- sensor.*health_connect*", configuration)
         self.assertIn("- sensor.*sleep*", configuration)
         for person in (
-            "person.abhimanyu_saharan",
+            "person.abhimanyu",
             "person.krishna",
             "person.manisha",
         ):
             self.assertIn(f"- {person}", configuration)
+
+    def test_owner_identity_rename_uses_native_registry_migration(self):
+        access = json.loads((ROOT / "access/family-dashboard.json").read_text())
+        migrations = json.loads(
+            (ROOT / "access/entity-migrations.json").read_text()
+        )
+        guard = (
+            ROOT / "custom_components/family_dashboard_guard/__init__.py"
+        ).read_text()
+        manifest = json.loads(
+            (
+                ROOT
+                / "custom_components/family_dashboard_guard/manifest.json"
+            ).read_text()
+        )
+
+        owner = access["profiles"]["abhimanyu"]
+        self.assertEqual(owner["person_id"], "abhimanyu_saharan")
+        self.assertEqual(owner["person_entity_id"], "person.abhimanyu")
+        self.assertEqual(
+            migrations["entities"],
+            [
+                {
+                    "old_entity_id": "person.abhimanyu_saharan",
+                    "new_entity_id": "person.abhimanyu",
+                    "platform": "person",
+                    "unique_id": "abhimanyu_saharan",
+                }
+            ],
+        )
+        self.assertIn("registry.async_update_entity", guard)
+        self.assertIn("new_entity_id=new_entity_id", guard)
+        self.assertIn("core.entity_registry.pre-entity-migration-v1", guard)
+        self.assertEqual(
+            set(manifest["dependencies"]),
+            {"frontend", "person", "recorder"},
+        )
 
     def test_rooms_use_quota_conscious_full_fan_controls(self):
         configuration = (ROOT / "configuration.yaml").read_text()

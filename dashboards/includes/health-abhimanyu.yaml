@@ -2,7 +2,7 @@ type: grid
 column_span: 3
 visibility:
   - condition: user
-    users: !include ../../access/generated/profile-abhimanyu-saharan-users.json
+    users: !include ../../access/generated/profile-abhimanyu-users.json
 cards:
   - type: heading
     heading: Abhimanyu · Health

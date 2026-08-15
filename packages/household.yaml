@@ -197,7 +197,7 @@ template:
         unit_of_measurement: "%"
         icon: mdi:home-account
         state: >-
-          {% set person = states('person.abhimanyu_saharan') %}
+          {% set person = states('person.abhimanyu') %}
           {% set confidence = states('sensor.abhimanyu_presence_confidence') %}
           {% if person in ['unknown', 'unavailable'] or confidence == 'unknown' %}50
           {% elif confidence == 'high' %}{{ 98 if person == 'home' else 2 }}
@@ -239,9 +239,9 @@ template:
         icon: mdi:account-check-outline
         state: >-
           {% set values = [states('sensor.abhimanyu_presence_confidence'), states('sensor.krishna_presence_confidence'), states('sensor.manisha_presence_confidence')] %}
-          {% set people = [states('person.abhimanyu_saharan'), states('person.krishna'), states('person.manisha')] %}
+          {% set people = [states('person.abhimanyu'), states('person.krishna'), states('person.manisha')] %}
           {% set home_confidence = [
-            states('sensor.abhimanyu_presence_confidence') if is_state('person.abhimanyu_saharan', 'home') else none,
+            states('sensor.abhimanyu_presence_confidence') if is_state('person.abhimanyu', 'home') else none,
             states('sensor.krishna_presence_confidence') if is_state('person.krishna', 'home') else none,
             states('sensor.manisha_presence_confidence') if is_state('person.manisha', 'home') else none
           ] | reject('eq', none) | list %}
@@ -321,7 +321,7 @@ template:
         unique_id: house_occupied
         device_class: occupancy
         state: >-
-          {{ (is_state('person.abhimanyu_saharan', 'home') and states('sensor.abhimanyu_presence_confidence') in ['high', 'medium'])
+          {{ (is_state('person.abhimanyu', 'home') and states('sensor.abhimanyu_presence_confidence') in ['high', 'medium'])
              or (is_state('person.krishna', 'home') and states('sensor.krishna_presence_confidence') in ['high', 'medium'])
              or (is_state('person.manisha', 'home') and states('sensor.manisha_presence_confidence') in ['high', 'medium']) }}
         availability: >-
@@ -999,7 +999,7 @@ automation:
     conditions:
       - condition: template
         value_template: >-
-          {{ not is_state('person.' ~ ('abhimanyu_saharan' if trigger.id == 'abhimanyu' else trigger.id), 'home') }}
+          {{ not is_state('person.' ~ trigger.id, 'home') }}
     actions:
       - action: script.family_household_incident
         data:

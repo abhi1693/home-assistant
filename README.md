@@ -112,6 +112,14 @@ after its identity is revalidated. Sensitive measurements and sleep remain
 excluded from Recorder; movement statistics retain only the existing activity
 history needed for honest daily trends.
 
+The owner's Git profile key is `abhimanyu`, and the visible Person entity is
+`person.abhimanyu`. The immutable Home Assistant user UUID, login, Companion App
+entities and underlying Person registry identity remain unchanged. A guarded
+entity-migration contract validates both sides of the rename during bootstrap;
+after Person and Recorder load, the dashboard guard performs the rename through
+Home Assistant's entity registry API so Recorder can migrate metadata normally.
+The pre-migration entity registry is retained under `/config/backups`.
+
 ### Rooms
 
 `/home-tablet/rooms` provides the room index. Nested routes such as

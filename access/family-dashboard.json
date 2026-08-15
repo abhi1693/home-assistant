@@ -111,8 +111,8 @@
   "commute": {
     "owner_to_work_entity_id": "sensor.abhimanyu_home_to_work",
     "home_arrivals": {
-      "abhimanyu-saharan": {
-        "person_entity_id": "person.abhimanyu_saharan",
+      "abhimanyu": {
+        "person_entity_id": "person.abhimanyu",
         "to_work_entity_id": "sensor.abhimanyu_home_to_work",
         "to_home_entity_id": "sensor.abhimanyu_to_home",
         "direction_entity_id": "sensor.family_arrivals_abhimanyu_direction_of_travel",
@@ -138,7 +138,7 @@
     }
   },
   "health_profiles": {
-    "abhimanyu-saharan": {
+    "abhimanyu": {
       "source": "Pixel 8 · Health Connect",
       "entities": [
         "sensor.pixel_8_active_calories_burned",
@@ -227,10 +227,11 @@
     }
   ],
   "profiles": {
-    "abhimanyu-saharan": {
+    "abhimanyu": {
       "user_id": "9302d11f48c64fe796a3c9e5cb563650",
       "username": "asaharan",
-      "person_entity_id": "person.abhimanyu_saharan",
+      "person_id": "abhimanyu_saharan",
+      "person_entity_id": "person.abhimanyu",
       "person_name": "Abhimanyu",
       "notify_entity_id": "notify.abhimanyu_pixel_8",
       "next_alarm_entity_id": "sensor.pixel_8_next_alarm",

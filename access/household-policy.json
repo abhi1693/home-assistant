@@ -2,7 +2,7 @@
   "version": 1,
   "automation_stage": "Shadow",
   "profiles": {
-    "abhimanyu-saharan": {
+    "abhimanyu": {
       "gps": "device_tracker.abhimanyu_pixel_8_2",
       "wifi": "device_tracker.abhimanyu_pixel_8",
       "notify": "notify.abhimanyu_pixel_8"

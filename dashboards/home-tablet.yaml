@@ -254,7 +254,7 @@ button_card_templates:
 
   family_ribbon_presence:
     template: family_ribbon
-    entity: person.abhimanyu_saharan
+    entity: person.abhimanyu
     name: At home
     icon: mdi:home-heart
     label: |
@@ -1614,7 +1614,7 @@ views:
             cards:
               - type: custom:button-card
                 template: family_presence_likelihood
-                entity: person.abhimanyu_saharan
+                entity: person.abhimanyu
                 name: Abhimanyu
                 variables:
                   likelihood_entity: sensor.abhimanyu_home_likelihood
@@ -1863,7 +1863,7 @@ views:
           - type: vertical-stack
             visibility:
               - condition: user
-                users: !include ../access/generated/profile-abhimanyu-saharan-users.json
+                users: !include ../access/generated/profile-abhimanyu-users.json
             cards:
               - type: heading
                 heading: Favourite rooms
@@ -2186,9 +2186,9 @@ views:
               arrival_eta: false
             visibility:
               - condition: user
-                users: !include ../access/generated/profile-abhimanyu-saharan-users.json
+                users: !include ../access/generated/profile-abhimanyu-users.json
               - condition: state
-                entity: person.abhimanyu_saharan
+                entity: person.abhimanyu
                 state_not: Work
               - condition: state
                 entity: binary_sensor.abhimanyu_work_commute_window
@@ -2275,7 +2275,7 @@ views:
             url: http://requests.media.home
             visibility:
               - condition: user
-                users: !include ../access/generated/profile-abhimanyu-saharan-users.json
+                users: !include ../access/generated/profile-abhimanyu-users.json
           - type: custom:todo-swipe-card
             entities:
               - entity: todo.shopping_list
@@ -2579,7 +2579,7 @@ views:
             min_width: 280
             cards:
               - type: custom:button-card
-                entity: person.abhimanyu_saharan
+                entity: person.abhimanyu
                 name: Abhimanyu
                 icon: mdi:account
                 show_state: true
