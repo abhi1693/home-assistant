@@ -464,6 +464,7 @@ async function validate(page, viewport) {
   assert.equal(stablePlayer.calls, 2, "Camera player was configured more than once per quality change");
 
   const cameraEvents = page.locator("family-camera-events-card");
+  assert.equal(await cameraEvents.locator(".health-grid").count(), 0, "Camera health grid was still rendered");
   await cameraEvents.locator('.event-open[data-video]').first().waitFor({ state:"visible" });
   await assertTargets(cameraEvents.locator(".event-open"));
   const detectionCards = await boxes(cameraEvents.locator(".event-open"));

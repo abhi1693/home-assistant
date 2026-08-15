@@ -53,25 +53,6 @@ class FamilyCameraEventsCard extends HTMLElement {
     return `${Math.round(minutes / 1440)}d ago`;
   }
 
-  _health(camera) {
-    const live = this._hass.states[camera.high_entity];
-    const recording = this._hass.states[camera.recording_entity];
-    const dark = this._hass.states[camera.dark_entity]?.state === "on";
-    const mic = this._hass.states[camera.microphone_entity]?.state;
-    const online = live && !["unknown", "unavailable"].includes(live.state);
-    const mode = recording && !["unknown", "unavailable"].includes(recording.state)
-      ? recording.state.replaceAll("_", " ") : "Not recording";
-    return `<div class="health ${online ? "online" : "offline"}">
-      <div class="health-name"><span class="dot"></span><strong>${cameraEventsEscape(camera.name)}</strong></div>
-      <div class="signals">
-        <span title="${online ? "Online" : "Offline"}"><ha-icon icon="${online ? "mdi:video-check-outline" : "mdi:video-off-outline"}"></ha-icon>${online ? "Online" : "Offline"}</span>
-        <span title="Recording mode"><ha-icon icon="mdi:record-rec"></ha-icon>${cameraEventsEscape(mode)}</span>
-        ${dark ? '<span title="Night vision"><ha-icon icon="mdi:weather-night"></ha-icon>Night</span>' : ""}
-        ${mic && mic !== "unavailable" ? `<span title="Microphone"><ha-icon icon="mdi:microphone-outline"></ha-icon>${cameraEventsEscape(mic)}%</span>` : ""}
-      </div>
-    </div>`;
-  }
-
   async _signedPath(path, expires = 90) {
     if (!path?.startsWith("/api/family_camera_events/")) return path;
     const signed = await this._hass.callWS({
@@ -142,10 +123,6 @@ class FamilyCameraEventsCard extends HTMLElement {
         const activity = this._hass.states[camera.activity_entity];
         return {
           key: camera.key,
-          high: this._hass.states[camera.high_entity]?.state,
-          recording: this._hass.states[camera.recording_entity]?.state,
-          dark: this._hass.states[camera.dark_entity]?.state,
-          microphone: this._hass.states[camera.microphone_entity]?.state,
           last_event: activity?.attributes?.last_event,
           events: activity?.attributes?.events,
         };
@@ -157,7 +134,6 @@ class FamilyCameraEventsCard extends HTMLElement {
       const state = this._hass.states[camera.activity_entity];
       return (state?.attributes?.events || []).map((event) => ({ ...event, camera }));
     }).sort((a, b) => String(b.start).localeCompare(String(a.start))).slice(0, 12);
-    const health = cameras.map((camera) => this._health(camera)).join("");
     const timeline = events.length ? events.map((event) => {
       const primary = event.types?.find((type) => type !== "motion") || event.types?.[0] || "motion";
       const [icon, label] = CAMERA_EVENT_META[primary] || ["mdi:cctv", primary.replaceAll("_", " ")];
@@ -176,16 +152,6 @@ class FamilyCameraEventsCard extends HTMLElement {
       <style>
         :host { display:block; }
         ha-card { padding:18px; border-radius:28px; background:var(--contrast2); }
-        .health-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-bottom:18px; }
-        .health-grid.cols-1 { grid-template-columns:1fr; }
-        .health-grid.cols-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
-        .health { padding:13px 14px; border:1px solid var(--contrast4); border-radius:18px; min-width:0; }
-        .health-name { display:flex; align-items:center; gap:8px; margin-bottom:9px; }
-        .dot { width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 4px color-mix(in srgb,var(--red) 16%,transparent); }
-        .health.online .dot { background:var(--green); box-shadow:0 0 0 4px color-mix(in srgb,var(--green) 16%,transparent); }
-        .signals { display:flex; flex-wrap:wrap; gap:7px 12px; color:var(--contrast10); font-size:11px; text-transform:capitalize; }
-        .signals span { display:flex; align-items:center; gap:4px; }
-        .signals ha-icon { width:15px; height:15px; }
         .timeline { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; gap:12px; }
         .event { min-width:0; }
         .event-open { display:grid; grid-template-rows:auto 1fr; width:100%; height:100%; min-height:44px; padding:0; overflow:hidden; text-align:left; color:inherit; font:inherit; border:1px solid transparent; border-radius:18px; background:var(--contrast1); cursor:pointer; }
@@ -214,15 +180,13 @@ class FamilyCameraEventsCard extends HTMLElement {
         .empty strong { color:var(--contrast16); }
         .empty span { font-size:12px; }
         @media (max-width:1100px) { .timeline { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-        @media (max-width:900px) { .health-grid { grid-template-columns:1fr 1fr; } }
         @media (max-width:620px) {
           ha-card { padding:12px; border-radius:22px; }
-          .health-grid,.health-grid.cols-2 { grid-template-columns:1fr; }
           .timeline { grid-template-columns:1fr; }
           .event-copy { min-height:84px; }
         }
       </style>
-      <ha-card><div class="health-grid cols-${Math.min(3, cameras.length)}">${health}</div><div class="timeline">${timeline}</div></ha-card>
+      <ha-card><div class="timeline">${timeline}</div></ha-card>
       <dialog class="clip-dialog"><div class="clip-head"><div class="clip-message">Recorded activity</div><button type="button" class="clip-close" aria-label="Close clip"><ha-icon icon="mdi:close"></ha-icon></button></div><video controls autoplay muted playsinline preload="metadata"></video></dialog>`;
     this.shadowRoot.querySelectorAll('button[data-live="true"]').forEach((button) => {
       button.addEventListener("click", (event) => {
@@ -252,5 +216,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "family-camera-events-card",
   name: "Family Camera Events",
-  description: "Private Protect health and event timeline with thumbnails and clips.",
+  description: "Private Protect event timeline with thumbnails and clips.",
 });

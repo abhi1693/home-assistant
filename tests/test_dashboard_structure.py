@@ -643,7 +643,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("  - title: Cameras\n    path: cameras", home)
         self.assertNotIn("/home-tablet/cameras", home)
         self.assertIn("heading: Live cameras", camera_view)
-        self.assertIn("heading: Camera health and recent activity", camera_view)
+        self.assertIn("heading: Recent activity", camera_view)
+        self.assertNotIn("heading: Camera health and recent activity", camera_view)
         self.assertNotIn("heading: Master Bedroom speaker", camera_view)
         for camera_key in (
             "kitchen",
@@ -657,7 +658,7 @@ class DashboardStructureTests(unittest.TestCase):
             )
         for resource in (
             "/local/family-camera-wall-card.js?v=2.1.0",
-            "/local/family-camera-events-card.js?v=1.2.0",
+            "/local/family-camera-events-card.js?v=1.3.0",
         ):
             self.assertIn(resource, configuration)
         self.assertNotIn("family-camera-speaker-card.js", configuration)
@@ -1017,6 +1018,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("grid-template-columns:repeat(3,minmax(0,1fr))", events_card)
         self.assertIn("await video.play()", events_card)
         self.assertIn("<video controls autoplay muted", events_card)
+        self.assertNotIn("health-grid", events_card)
+        self.assertNotIn("recording_entity", events_card)
         self.assertIn("channel_index=PROTECT_HIGH_CHANNEL_INDEX", sensor)
         self.assertIn("PROTECT_HIGH_CHANNEL_INDEX = 0", sensor)
         self.assertNotIn("household_perimeter_person_event", package)

@@ -108,8 +108,8 @@ while room access is currently shared across authenticated family accounts.
 ### Security and cameras
 
 The combined Security surface presents household attention, five-camera
-coverage, account-filtered live streams, recording health, and a seven-day
-Protect event timeline in one place. The wall keeps each live player mounted
+coverage, account-filtered live streams, and a seven-day Protect event timeline
+in one place. The wall keeps each live player mounted
 across Home Assistant state updates, balances each account's visible camera
 count into an even desktop grid (four as 2x2 and five in a six-slot 3x2 grid),
 uses medium-resolution streams for its ambient desktop/tablet grid and

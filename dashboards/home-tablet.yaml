@@ -2402,7 +2402,7 @@ views:
               columns: 48
               rows: auto
           - type: heading
-            heading: Camera health and recent activity
+            heading: Recent activity
             heading_style: title
             icon: mdi:motion-sensor
             grid_options: { columns: 48, rows: 1 }
@@ -2412,41 +2412,26 @@ views:
                 name: Kitchen
                 high_entity: camera.g5_turret_ultra_high_resolution_channel_2
                 activity_entity: sensor.family_camera_kitchen_activity
-                recording_entity: sensor.g5_turret_ultra_recording_mode_2
-                dark_entity: binary_sensor.g5_turret_ultra_is_dark_2
-                microphone_entity: sensor.kitchen_microphone_level
                 users: !include ../access/generated/camera-kitchen-users.json
               - key: hallway
                 name: Kitchen Balcony
                 high_entity: camera.hallway_high_resolution_channel
                 activity_entity: sensor.family_camera_kitchen_balcony_activity
-                recording_entity: sensor.hallway_recording_mode
-                dark_entity: binary_sensor.hallway_is_dark
-                microphone_entity: sensor.hallway_microphone_level
                 users: !include ../access/generated/camera-hallway-users.json
               - key: living-room
                 name: Living Room
                 high_entity: camera.g5_turret_ultra_high_resolution_channel_3
                 activity_entity: sensor.family_camera_living_room_activity
-                recording_entity: sensor.g5_turret_ultra_recording_mode_3
-                dark_entity: binary_sensor.g5_turret_ultra_is_dark_3
-                microphone_entity: sensor.living_room_microphone_level_2
                 users: !include ../access/generated/camera-living-room-users.json
               - key: master-bedroom
                 name: Master Bedroom
                 high_entity: camera.living_room_high_resolution_channel
                 activity_entity: sensor.family_camera_master_bedroom_activity
-                recording_entity: sensor.living_room_recording_mode
-                dark_entity: binary_sensor.living_room_is_dark
-                microphone_entity: sensor.living_room_microphone_level
                 users: !include ../access/generated/camera-master-bedroom-users.json
               - key: outside
                 name: Outside
                 high_entity: camera.g5_turret_ultra_high_resolution_channel
                 activity_entity: sensor.family_camera_outside_activity
-                recording_entity: sensor.g5_turret_ultra_recording_mode
-                dark_entity: binary_sensor.g5_turret_ultra_is_dark
-                microphone_entity: sensor.g5_turret_ultra_microphone_level
                 users: !include ../access/generated/camera-outside-users.json
             visibility:
               - condition: user
