@@ -88,7 +88,7 @@ The family-facing dashboard combines:
 - Upcoming calendar events, announcements, shopping, and media requests.
 - Favorite-room summaries ordered per account.
 - Shared room, security, and people views.
-- Owner-only health and maintenance views.
+- An owner-only health view.
 
 The layout uses the same information hierarchy at phone, tablet, and desktop
 widths. Custom cards provide responsive grids, room routing, announcements,
@@ -150,9 +150,14 @@ shared-camera allowlist rather than the optional `all_cameras` capability.
 ### Rack
 
 The administrator-only Rack dashboard keeps infrastructure concerns away from
-the family interface. It summarizes Home Assistant, Kubernetes, Fleet,
-Longhorn, Prometheus, network, UPS, temperature, and database-backup health,
-with links to dedicated diagnostic systems.
+the family interface. Its triage-first status surface promotes unhealthy
+workloads, Fleet failures, degraded Longhorn volumes, unreachable monitoring
+targets, firing alerts, stale backups, UPS battery operation, and stale bridge
+data before routine metrics. Quieter sections summarize cluster health, UPS
+power, 24-hour power and temperature history, Home Assistant, Jellyfin, and
+database-backup health. Grafana and Rancher remain the dedicated diagnostic
+systems; live Protect streams stay on the Security page rather than being
+duplicated here.
 
 ## Repository layout
 

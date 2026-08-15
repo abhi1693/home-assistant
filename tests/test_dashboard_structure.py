@@ -18,7 +18,7 @@ class DashboardStructureTests(unittest.TestCase):
             ),
             1,
         )
-        self.assertEqual(home.count("- *family_navigation"), 5)
+        self.assertEqual(home.count("- *family_navigation"), 4)
         self.assertEqual(
             rack.count("- !include includes/family-navigation.yaml"), 1
         )
@@ -42,14 +42,13 @@ class DashboardStructureTests(unittest.TestCase):
                 "People",
                 "More",
                 "Health",
-                "Maintenance",
                 "Rack",
                 "Settings",
             ],
         )
         self.assertNotIn("return Boolean(user?.is_admin);", navigation)
         self.assertEqual(
-            navigation.count("return !navbar.isDesktop || !user?.is_admin;"), 3
+            navigation.count("return !navbar.isDesktop || !user?.is_admin;"), 2
         )
         self.assertIn("action: open-popup", navigation)
         self.assertIn("return navbar.isDesktop ||", navigation)
@@ -673,14 +672,14 @@ class DashboardStructureTests(unittest.TestCase):
         for title, path in (
             ("Security", "security"),
             ("People", "people"),
-            ("Maintenance", "maintenance"),
         ):
             self.assertIn(f"  - title: {title}\n    path: {path}", home)
-        maintenance = home.split("  - title: Maintenance", 1)[1]
-        self.assertIn(
-            "visible: !include ../access/generated/profile-abhimanyu-saharan-users.json",
-            maintenance,
-        )
+        self.assertNotIn("  - title: Maintenance", home)
+        self.assertNotIn("path: maintenance", home)
+        self.assertNotIn("/home-tablet/maintenance", home)
+        self.assertNotIn("/home-tablet/maintenance", (
+            ROOT / "dashboards/includes/family-navigation.yaml"
+        ).read_text())
         self.assertIn("entity: sensor.house_attention_level", home)
         self.assertNotIn("home_protect_storage", home)
         self.assertNotIn("household_nvr_storage_incident", package)
@@ -704,13 +703,42 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertEqual(policy["automation_stage"], "Shadow")
         self.assertEqual(policy["profiles"]["manisha"]["wifi"], None)
 
+    def test_rack_is_a_triage_first_operations_console(self):
+        rack = (ROOT / "dashboards/rack-admin.yaml").read_text()
+        infrastructure = (ROOT / "packages/infrastructure.yaml").read_text()
+
+        self.assertIn("heading: Operational status", rack)
+        self.assertIn("template: rack_overview", rack)
+        self.assertIn("Everything operational", rack)
+        self.assertIn("elapsed <= 180000", rack)
+        self.assertIn("above: 24", rack)
+        for entity_id in (
+            "sensor.rack_unhealthy_workloads",
+            "sensor.rack_fleet_failures",
+            "sensor.rack_degraded_volumes",
+            "sensor.rack_unreachable_targets",
+            "sensor.rack_active_alerts",
+        ):
+            self.assertIn(f"entity: {entity_id}", rack)
+        self.assertIn("entity: binary_sensor.rack_ups_on_battery", rack)
+        self.assertIn("heading: Cluster health", rack)
+        self.assertIn("heading: Power", rack)
+        self.assertIn("heading: Environment", rack)
+        self.assertIn("heading: Services and backups", rack)
+        self.assertEqual(rack.count("hours_to_show: 24"), 2)
+        self.assertIn("url_path: http://grafana.home", rack)
+        self.assertIn("url_path: https://rancher.home", rack)
+        self.assertIn("generated_at", infrastructure)
+        self.assertIn("links", infrastructure)
+        self.assertNotIn("heading: Protect", rack)
+        self.assertNotIn("type: picture-entity", rack)
+        self.assertNotIn("camera.", rack)
+
     def test_health_view_is_owner_only_and_uses_available_sensors(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
         access = json.loads((ROOT / "access/family-dashboard.json").read_text())
         configuration = (ROOT / "configuration.yaml").read_text()
-        health = home.split("  - title: Health", 1)[1].split(
-            "  - title: Maintenance", 1
-        )[0]
+        health = home.split("  - title: Health", 1)[1]
 
         self.assertEqual(access["owner_health"]["profile"], "abhimanyu-saharan")
         self.assertIn(

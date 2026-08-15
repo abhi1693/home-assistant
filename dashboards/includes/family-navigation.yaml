@@ -55,8 +55,7 @@ routes:
       action: open-popup
     selected: |
       [[[
-        return ['/home-tablet/health', '/home-tablet/maintenance',
-          '/rack-admin/overview', '/config/dashboard']
+        return ['/home-tablet/health', '/rack-admin/overview', '/config/dashboard']
           .some((path) => window.location.pathname.startsWith(path));
       ]]]
     hidden: |
@@ -77,12 +76,6 @@ routes:
         }
         if (user?.is_admin) {
           items.push(
-            {
-              icon: 'mdi:tools',
-              icon_selected: 'mdi:toolbox',
-              label: 'Maintenance',
-              url: '/home-tablet/maintenance',
-            },
             {
               icon: 'mdi:server-network-outline',
               icon_selected: 'mdi:server-network',
@@ -107,14 +100,6 @@ routes:
       [[[
         return !navbar.isDesktop ||
           user?.id !== '9302d11f48c64fe796a3c9e5cb563650';
-      ]]]
-  - icon: mdi:tools
-    icon_selected: mdi:toolbox
-    url: /home-tablet/maintenance
-    label: Maintenance
-    hidden: |
-      [[[
-        return !navbar.isDesktop || !user?.is_admin;
       ]]]
   - icon: mdi:server-network-outline
     icon_selected: mdi:server-network

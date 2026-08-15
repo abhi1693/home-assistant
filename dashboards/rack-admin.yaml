@@ -10,37 +10,39 @@ button_card_templates:
       action: more-info
     styles:
       grid:
-        - grid-template-areas: '"i" "n" "s"'
-        - grid-template-columns: 1fr
-        - grid-template-rows: 1fr min-content min-content
+        - grid-template-areas: '"i n" "i s"'
+        - grid-template-columns: 46px minmax(0, 1fr)
+        - grid-template-rows: min-content min-content
+        - column-gap: 12px
       card:
-        - background: var(--metric-accent, var(--blue))
-        - border-radius: 24px
+        - min-height: 94px
+        - padding: 16px
+        - border-radius: 22px
+        - background: var(--contrast2)
+        - border: 1px solid var(--contrast4)
         - box-shadow: none
-        - padding: 14px
-        - height: 132px
       img_cell:
-        - align-self: start
-        - justify-self: end
-        - width: 38px
-        - height: 38px
-        - border-radius: 50%
-        - background: rgba(0, 0, 0, 0.12)
+        - grid-area: i
+        - width: 42px
+        - height: 42px
+        - border-radius: 14px
+        - background: color-mix(in srgb, var(--metric-accent, var(--blue)) 14%, var(--contrast3))
       icon:
-        - width: 21px
-        - color: var(--black)
+        - width: 23px
+        - color: var(--metric-accent, var(--blue))
       name:
+        - grid-area: n
         - justify-self: start
-        - color: var(--black)
-        - font-size: 11px
-        - font-weight: 550
-        - opacity: 0.62
+        - color: var(--contrast10)
+        - font-size: 12px
+        - font-weight: 650
       state:
+        - grid-area: s
         - justify-self: start
-        - color: var(--black)
-        - font-size: 17px
-        - font-weight: 720
-        - padding-top: 3px
+        - color: var(--contrast20)
+        - font-size: 18px
+        - font-weight: 740
+        - line-height: 1.25
 
   rack_temperature:
     template: rack_metric
@@ -59,17 +61,207 @@ button_card_templates:
         return `${celsius.toFixed(precision)} °C`;
       ]]]
 
-  rack_ready:
+  rack_ready_nodes:
     template: rack_metric
-    icon: mdi:kubernetes
+    state_display: |
+      [[[
+        if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
+          return 'Unavailable';
+        }
+        const total = Number(entity.attributes.total_nodes);
+        return Number.isFinite(total) ? `${entity.state} of ${total}` : entity.state;
+      ]]]
+
+  rack_uptime:
+    template: rack_metric
+    state_display: |
+      [[[
+        if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
+          return 'Unavailable';
+        }
+        const started = new Date(entity.state);
+        const elapsed = Date.now() - started.getTime();
+        if (!Number.isFinite(elapsed) || elapsed < 0) return entity.state;
+        const days = Math.floor(elapsed / 86400000);
+        const hours = Math.floor((elapsed % 86400000) / 3600000);
+        return days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+      ]]]
+
+  rack_bridge_age:
+    template: rack_metric
+    state_display: |
+      [[[
+        const generated = entity?.attributes?.generated_at;
+        if (!generated) return 'Unavailable';
+        const seconds = Math.max(0, Math.floor((Date.now() - new Date(generated).getTime()) / 1000));
+        if (!Number.isFinite(seconds)) return 'Unavailable';
+        if (seconds < 60) return `${seconds}s old`;
+        const minutes = Math.floor(seconds / 60);
+        return `${minutes}m old`;
+      ]]]
+
+  rack_issue:
+    variables:
+      singular: issue
+      plural: issues
+      detail: Open the entity for source details
+      state_text: null
+    show_icon: true
+    show_name: true
+    show_state: true
+    show_label: true
+    state_display: |
+      [[[
+        if (variables.state_text) return variables.state_text;
+        const value = Number(entity?.state);
+        if (!Number.isFinite(value)) return entity?.state || 'Unavailable';
+        const noun = value === 1 ? variables.singular : variables.plural;
+        return `${value} ${noun}`;
+      ]]]
+    label: |
+      [[[
+        return variables.detail;
+      ]]]
+    tap_action:
+      action: more-info
     styles:
+      grid:
+        - grid-template-areas: '"i n" "i s" "i l"'
+        - grid-template-columns: 46px minmax(0, 1fr)
+        - grid-template-rows: min-content min-content min-content
+        - column-gap: 12px
       card:
-        - background: |
-            [[[
-              const ready = ['true', 'ready', 'on', '1'].includes(
-                String(entity?.state).toLowerCase());
-              return ready ? 'var(--green)' : 'var(--red)';
-            ]]]
+        - min-height: 106px
+        - padding: 16px
+        - border-radius: 22px
+        - background: color-mix(in srgb, var(--orange) 9%, var(--contrast2))
+        - border: 1px solid color-mix(in srgb, var(--orange) 35%, var(--contrast4))
+        - box-shadow: none
+      img_cell:
+        - grid-area: i
+        - width: 42px
+        - height: 42px
+        - border-radius: 14px
+        - background: color-mix(in srgb, var(--orange) 16%, var(--contrast3))
+      icon:
+        - width: 23px
+        - color: var(--orange)
+      name:
+        - grid-area: n
+        - justify-self: start
+        - color: var(--contrast11)
+        - font-size: 12px
+        - font-weight: 650
+      state:
+        - grid-area: s
+        - justify-self: start
+        - color: var(--contrast20)
+        - font-size: 17px
+        - font-weight: 740
+      label:
+        - grid-area: l
+        - justify-self: start
+        - color: var(--contrast9)
+        - font-size: 11px
+        - white-space: normal
+
+  rack_overview:
+    entity: sensor.rack_summary_status
+    variables:
+      context: |
+        [[[
+          const generated = entity?.attributes?.generated_at;
+          const elapsed = generated ? Date.now() - new Date(generated).getTime() : Infinity;
+          const bridgeHealthy = entity?.state === 'ok' &&
+            Number.isFinite(elapsed) && elapsed <= 180000;
+          const numericIds = [
+            'sensor.rack_unhealthy_workloads',
+            'sensor.rack_fleet_failures',
+            'sensor.rack_degraded_volumes',
+            'sensor.rack_unreachable_targets',
+            'sensor.rack_active_alerts',
+          ];
+          let issues = bridgeHealthy ? 0 : 1;
+          let incomplete = false;
+          if (bridgeHealthy) {
+            for (const id of numericIds) {
+              const value = Number(states[id]?.state);
+              if (!Number.isFinite(value)) incomplete = true;
+              else if (value > 0) issues += 1;
+            }
+            const ready = Number(states['sensor.rack_ready_nodes']?.state);
+            const total = Number(states['sensor.rack_ready_nodes']?.attributes?.total_nodes);
+            if (!Number.isFinite(ready) || !Number.isFinite(total)) incomplete = true;
+            else if (ready < total) issues += 1;
+            const backupAge = Number(states['sensor.rack_database_backup_age']?.state);
+            if (!Number.isFinite(backupAge)) incomplete = true;
+            else if (backupAge > 24) issues += 1;
+            const ups = states['binary_sensor.rack_ups_on_battery']?.state;
+            if (!['on', 'off'].includes(ups)) incomplete = true;
+            else if (ups === 'on') issues += 1;
+            if (incomplete) issues += 1;
+          }
+          const ready = states['sensor.rack_ready_nodes'];
+          const nodes = ready?.attributes?.total_nodes
+            ? `${ready.state} of ${ready.attributes.total_nodes} nodes ready`
+            : 'Node readiness unavailable';
+          const seconds = Number.isFinite(elapsed)
+            ? Math.max(0, Math.floor(elapsed / 1000)) : null;
+          const age = seconds === null ? null
+            : seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m`;
+          return {
+            hasIssue: issues > 0,
+            name: issues === 0 ? 'Everything operational'
+              : `${issues} ${issues === 1 ? 'signal needs' : 'signals need'} attention`,
+            label: generated && age ? `${nodes} · Status snapshot ${age} old`
+              : 'Waiting for the infrastructure status bridge',
+            icon: issues > 0 ? 'mdi:alert-circle-outline' : 'mdi:check-decagram-outline',
+            color: issues > 0 ? 'var(--orange)' : 'var(--green)',
+          };
+        ]]]
+    show_icon: true
+    show_name: true
+    show_state: false
+    show_label: true
+    name: '[[[ return variables.context.name; ]]]'
+    label: '[[[ return variables.context.label; ]]]'
+    icon: '[[[ return variables.context.icon; ]]]'
+    tap_action:
+      action: more-info
+    styles:
+      grid:
+        - grid-template-areas: '"i n" "i l"'
+        - grid-template-columns: 58px minmax(0, 1fr)
+        - grid-template-rows: min-content min-content
+        - column-gap: 15px
+      card:
+        - min-height: 112px
+        - padding: 20px
+        - border-radius: 24px
+        - box-shadow: none
+        - background: '[[[ return `color-mix(in srgb, ${variables.context.color} 10%, var(--contrast2))`; ]]]'
+        - border: '[[[ return `1px solid color-mix(in srgb, ${variables.context.color} 38%, var(--contrast4))`; ]]]'
+      img_cell:
+        - grid-area: i
+        - width: 54px
+        - height: 54px
+        - border-radius: 18px
+        - background: var(--contrast3)
+      icon:
+        - width: 29px
+        - color: '[[[ return variables.context.color; ]]]'
+      name:
+        - grid-area: n
+        - justify-self: start
+        - color: var(--contrast20)
+        - font-size: 20px
+        - font-weight: 760
+      label:
+        - grid-area: l
+        - justify-self: start
+        - color: var(--contrast10)
+        - font-size: 13px
+        - white-space: normal
 
 views:
   - title: Rack
@@ -81,215 +273,382 @@ views:
     dense_section_placement: true
     header:
       layout: responsive
-      badges_position: top
+      badges_position: bottom
       card:
         type: markdown
         text_only: true
         content: |-
           # Rack
-          Private infrastructure health, grouped for diagnosis instead of decoration.
+          {% set generated = state_attr('sensor.rack_summary_status', 'generated_at') %}
+          Infrastructure triage for Kubernetes, storage, power, network and backups.{% if generated %} Status refreshed {{ relative_time(as_datetime(generated)) }} ago.{% else %} Waiting for the status bridge.{% endif %}
         card_mod:
           style: |
             ha-card { background: transparent; padding: 8px 0 4px; }
-            h1 { font-size: 32px; letter-spacing: -1.2px; margin-bottom: 6px; }
+            h1 { font-size: 34px; letter-spacing: -1.2px; margin: 0 0 5px; }
+            p { color: var(--contrast11); font-size: 15px; line-height: 1.45; }
     badges:
       - type: entity
         entity: sensor.rack_ready_nodes
         name: Nodes
         show_name: true
         show_state: true
-        color: green
       - type: entity
         entity: sensor.rack_active_alerts
         name: Alerts
         show_name: true
         show_state: true
-        color: orange
       - type: entity
-        entity: sensor.usw_pro_aggregation_temperature
-        name: Aggregation
+        entity: binary_sensor.rack_ups_on_battery
+        name: Power
         show_name: true
         show_state: true
-        color: blue
+      - type: entity
+        entity: sensor.rack_database_backup_age
+        name: Backup
+        show_name: true
+        show_state: true
     sections:
       - type: grid
-        column_span: 2
+        column_span: 4
+        background: true
         cards:
           - type: heading
-            heading: Cluster
+            heading: Operational status
+            heading_style: title
+            icon: mdi:heart-pulse
+            grid_options: { columns: 48, rows: 1 }
+          - type: custom:button-card
+            template: rack_overview
+            grid_options: { columns: 48, rows: auto }
+          - type: custom:button-card
+            template: rack_issue
+            entity: sensor.rack_summary_status
+            name: Status bridge
+            icon: mdi:lan-disconnect
+            variables:
+              state_text: Status data unavailable
+              detail: Home Assistant cannot read a current infrastructure snapshot
+            visibility:
+              - condition: state
+                entity: sensor.rack_summary_status
+                state_not: ok
+            grid_options: { columns: 12, rows: auto }
+          - type: custom:button-card
+            template: rack_issue
+            entity: sensor.rack_unhealthy_workloads
+            name: Kubernetes workloads
+            icon: mdi:alert-decagram-outline
+            variables:
+              singular: workload unhealthy
+              plural: workloads unhealthy
+              detail: Open Grafana or Rancher to identify the affected workload
+            visibility:
+              - condition: numeric_state
+                entity: sensor.rack_unhealthy_workloads
+                above: 0
+            grid_options: { columns: 12, rows: auto }
+          - type: custom:button-card
+            template: rack_issue
+            entity: sensor.rack_fleet_failures
+            name: Fleet reconciliation
+            icon: mdi:git
+            variables:
+              singular: bundle failing
+              plural: bundles failing
+              detail: Rancher has desired state that is not Ready
+            visibility:
+              - condition: numeric_state
+                entity: sensor.rack_fleet_failures
+                above: 0
+            grid_options: { columns: 12, rows: auto }
+          - type: custom:button-card
+            template: rack_issue
+            entity: sensor.rack_degraded_volumes
+            name: Longhorn storage
+            icon: mdi:harddisk-remove
+            variables:
+              singular: volume degraded
+              plural: volumes degraded
+              detail: Inspect replica health before attempting a repair
+            visibility:
+              - condition: numeric_state
+                entity: sensor.rack_degraded_volumes
+                above: 0
+            grid_options: { columns: 12, rows: auto }
+          - type: custom:button-card
+            template: rack_issue
+            entity: sensor.rack_unreachable_targets
+            name: Monitoring targets
+            icon: mdi:access-point-network-off
+            variables:
+              singular: target unreachable
+              plural: targets unreachable
+              detail: Grafana contains the affected scrape targets
+            visibility:
+              - condition: numeric_state
+                entity: sensor.rack_unreachable_targets
+                above: 0
+            grid_options: { columns: 12, rows: auto }
+          - type: custom:button-card
+            template: rack_issue
+            entity: sensor.rack_active_alerts
+            name: Monitoring alerts
+            icon: mdi:alert-outline
+            variables:
+              singular: active alert
+              plural: active alerts
+              detail: Warning and critical alerts currently firing
+            visibility:
+              - condition: numeric_state
+                entity: sensor.rack_active_alerts
+                above: 0
+            grid_options: { columns: 12, rows: auto }
+          - type: custom:button-card
+            template: rack_issue
+            entity: sensor.rack_database_backup_age
+            name: Database backup
+            icon: mdi:database-alert-outline
+            variables:
+              singular: hour since backup
+              plural: hours since backup
+              detail: The latest CloudNativePG base backup is older than 24 hours
+            visibility:
+              - condition: numeric_state
+                entity: sensor.rack_database_backup_age
+                above: 24
+            grid_options: { columns: 12, rows: auto }
+          - type: custom:button-card
+            template: rack_issue
+            entity: binary_sensor.rack_ups_on_battery
+            name: Rack power
+            icon: mdi:power-plug-battery-outline
+            variables:
+              state_text: Running on battery
+              detail: Check battery charge and remaining UPS capacity
+            visibility:
+              - condition: state
+                entity: binary_sensor.rack_ups_on_battery
+                state: "on"
+            grid_options: { columns: 12, rows: auto }
+
+      - type: grid
+        column_span: 2
+        background: true
+        cards:
+          - type: heading
+            heading: Cluster health
             heading_style: title
             icon: mdi:kubernetes
-          - type: grid
-            square: false
-            columns: 3
-            cards:
-              - type: custom:button-card
-                template: rack_metric
-                entity: sensor.rack_ready_nodes
-                name: Ready nodes
-                icon: mdi:kubernetes
-                styles:
-                  card:
-                    - --metric-accent: var(--green)
-              - type: custom:button-card
-                template: rack_metric
-                entity: sensor.rack_unhealthy_workloads
-                name: Workloads
-                icon: mdi:alert-decagram-outline
-                styles:
-                  card:
-                    - --metric-accent: var(--orange)
-              - type: custom:button-card
-                template: rack_metric
-                entity: sensor.rack_fleet_failures
-                name: Fleet failures
-                icon: mdi:git
-                styles:
-                  card:
-                    - --metric-accent: var(--purple)
-              - type: custom:button-card
-                template: rack_metric
-                entity: sensor.rack_degraded_volumes
-                name: Degraded volumes
-                icon: mdi:harddisk-remove
-                styles:
-                  card:
-                    - --metric-accent: var(--red)
-              - type: custom:button-card
-                template: rack_metric
-                entity: sensor.rack_unreachable_targets
-                name: Unreachable targets
-                icon: mdi:access-point-network-off
-                styles:
-                  card:
-                    - --metric-accent: var(--yellow)
-              - type: custom:button-card
-                template: rack_metric
-                entity: sensor.rack_active_alerts
-                name: Active alerts
-                icon: mdi:alert-outline
-                styles:
-                  card:
-                    - --metric-accent: var(--pink)
+            grid_options: { columns: 24, rows: 1 }
+          - type: custom:button-card
+            template: rack_ready_nodes
+            entity: sensor.rack_ready_nodes
+            name: Ready nodes
+            icon: mdi:kubernetes
+            styles:
+              card:
+                - --metric-accent: var(--green)
+            grid_options: { columns: 12, rows: 2 }
+          - type: custom:button-card
+            template: rack_metric
+            entity: sensor.rack_unhealthy_workloads
+            name: Unhealthy workloads
+            icon: mdi:alert-decagram-outline
+            styles:
+              card:
+                - --metric-accent: var(--orange)
+            grid_options: { columns: 12, rows: 2 }
+          - type: custom:button-card
+            template: rack_metric
+            entity: sensor.rack_fleet_failures
+            name: Fleet failures
+            icon: mdi:git
+            styles:
+              card:
+                - --metric-accent: var(--purple)
+            grid_options: { columns: 12, rows: 2 }
+          - type: custom:button-card
+            template: rack_metric
+            entity: sensor.rack_degraded_volumes
+            name: Degraded volumes
+            icon: mdi:harddisk-remove
+            styles:
+              card:
+                - --metric-accent: var(--red)
+            grid_options: { columns: 12, rows: 2 }
+          - type: custom:button-card
+            template: rack_metric
+            entity: sensor.rack_unreachable_targets
+            name: Unreachable targets
+            icon: mdi:access-point-network-off
+            styles:
+              card:
+                - --metric-accent: var(--yellow)
+            grid_options: { columns: 12, rows: 2 }
+          - type: custom:button-card
+            template: rack_metric
+            entity: sensor.rack_active_alerts
+            name: Active alerts
+            icon: mdi:alert-outline
+            styles:
+              card:
+                - --metric-accent: var(--pink)
+            grid_options: { columns: 12, rows: 2 }
+
       - type: grid
+        background: true
         cards:
           - type: heading
             heading: Power
             heading_style: title
             icon: mdi:power-plug-battery-outline
-          - type: grid
-            square: false
-            columns: 3
-            cards:
-              - type: custom:button-card
-                template: rack_metric
-                entity: sensor.ups_status
-                name: UPS status
-                icon: mdi:power-plug
-                styles:
-                  card:
-                    - --metric-accent: var(--green)
-              - type: custom:button-card
-                template: rack_metric
-                entity: sensor.ups_battery_charge
+          - type: custom:button-card
+            template: rack_metric
+            entity: sensor.ups_status
+            name: UPS status
+            icon: mdi:power-plug
+            styles:
+              card:
+                - --metric-accent: var(--green)
+          - type: custom:button-card
+            template: rack_metric
+            entity: sensor.ups_battery_charge
+            name: Battery charge
+            icon: mdi:battery-high
+            styles:
+              card:
+                - --metric-accent: var(--blue)
+          - type: custom:button-card
+            template: rack_metric
+            entity: sensor.ups_load
+            name: UPS load
+            icon: mdi:gauge
+            styles:
+              card:
+                - --metric-accent: var(--yellow)
+          - type: history-graph
+            title: Power · 24 hours
+            hours_to_show: 24
+            entities:
+              - entity: sensor.ups_battery_charge
                 name: Battery
-                icon: mdi:battery-high
-                styles:
-                  card:
-                    - --metric-accent: var(--blue)
-              - type: custom:button-card
-                template: rack_metric
-                entity: sensor.ups_load
+                color: "#a9c7ff"
+              - entity: sensor.ups_load
                 name: Load
-                icon: mdi:gauge
-                styles:
-                  card:
-                    - --metric-accent: var(--yellow)
+                color: "#ffda78"
+            grid_options: { columns: full, rows: 4 }
+
       - type: grid
+        background: true
         cards:
           - type: heading
-            heading: Network
+            heading: Environment
             heading_style: title
+            icon: mdi:thermometer-lines
+          - type: custom:button-card
+            template: rack_temperature
+            entity: sensor.usw_pro_aggregation_temperature
+            name: USW Pro Aggregation
             icon: mdi:switch
-          - type: grid
-            square: false
-            columns: 2
-            cards:
-              - type: custom:button-card
-                template: rack_temperature
-                entity: sensor.usw_pro_aggregation_temperature
-                name: USW Pro Aggregation
-                icon: mdi:switch
-                styles:
-                  card:
-                    - --metric-accent: var(--blue)
-              - type: custom:button-card
-                template: rack_temperature
-                entity: sensor.unifi_cpu_temperature_celsius
+            styles:
+              card:
+                - --metric-accent: var(--blue)
+          - type: custom:button-card
+            template: rack_temperature
+            entity: sensor.unifi_cpu_temperature_celsius
+            name: UniFi CPU
+            icon: mdi:router-network
+            styles:
+              card:
+                - --metric-accent: var(--purple)
+          - type: custom:button-card
+            template: rack_temperature
+            entity: sensor.rack_ambient_temperature_celsius
+            name: Rack ambient
+            icon: mdi:thermometer
+            styles:
+              card:
+                - --metric-accent: var(--yellow)
+          - type: history-graph
+            title: Temperature · 24 hours
+            hours_to_show: 24
+            entities:
+              - entity: sensor.usw_pro_aggregation_temperature
+                name: Aggregation
+                color: "#a9c7ff"
+              - entity: sensor.unifi_cpu_temperature_celsius
                 name: UniFi CPU
-                icon: mdi:router-network
-                styles:
-                  card:
-                    - --metric-accent: var(--purple)
-              - type: custom:button-card
-                template: rack_temperature
-                entity: sensor.rack_ambient_temperature_celsius
-                name: Rack ambient
-                icon: mdi:thermometer
-                styles:
-                  card:
-                    - --metric-accent: var(--yellow)
-              - type: custom:button-card
-                template: rack_metric
-                entity: sensor.jellyfin_5876476948_vc8dc_active_clients
-                name: Jellyfin clients
-                icon: mdi:jellyfish
-                styles:
-                  card:
-                    - --metric-accent: var(--pink)
-              - type: custom:button-card
-                template: rack_metric
-                entity: sensor.uptime
-                name: HA started
-                icon: mdi:home-assistant
-                styles:
-                  card:
-                    - --metric-accent: var(--green)
-              - type: custom:button-card
-                template: rack_metric
-                entity: sensor.rack_database_backup_age
-                name: Database backup age
-                icon: mdi:database-clock-outline
-                styles:
-                  card:
-                    - --metric-accent: var(--teal)
+                color: "#efb1ff"
+              - entity: sensor.rack_ambient_temperature_celsius
+                name: Ambient
+                color: "#ffda78"
+            grid_options: { columns: full, rows: 4 }
+
       - type: grid
+        column_span: 2
+        background: true
         cards:
           - type: heading
-            heading: Protect
+            heading: Services and backups
             heading_style: title
-            icon: mdi:shield-home-outline
-          - type: picture-entity
-            entity: camera.g5_turret_ultra_high_resolution_channel
-            name: Outside context
-            camera_view: live
-            fit_mode: cover
-            aspect_ratio: "4:3"
-            show_state: false
+            icon: mdi:server-network-outline
+            grid_options: { columns: 24, rows: 1 }
+          - type: custom:button-card
+            template: rack_uptime
+            entity: sensor.uptime
+            name: Home Assistant uptime
+            icon: mdi:home-assistant
+            styles:
+              card:
+                - --metric-accent: var(--green)
+            grid_options: { columns: 12, rows: 2 }
+          - type: custom:button-card
+            template: rack_metric
+            entity: sensor.rack_database_backup_age
+            name: Database backup age
+            icon: mdi:database-clock-outline
+            styles:
+              card:
+                - --metric-accent: var(--teal)
+            grid_options: { columns: 12, rows: 2 }
+          - type: custom:button-card
+            template: rack_metric
+            entity: sensor.jellyfin_5876476948_vc8dc_active_clients
+            name: Jellyfin clients
+            icon: mdi:jellyfish
+            styles:
+              card:
+                - --metric-accent: var(--pink)
+            grid_options: { columns: 12, rows: 2 }
+          - type: custom:button-card
+            template: rack_bridge_age
+            entity: sensor.rack_summary_status
+            name: Status bridge snapshot
+            icon: mdi:lan-check
+            styles:
+              card:
+                - --metric-accent: var(--blue)
+            grid_options: { columns: 12, rows: 2 }
+          - type: heading
+            heading: Open diagnostics
+            heading_style: subtitle
+            icon: mdi:open-in-new
+            grid_options: { columns: 24, rows: 1 }
+          - type: button
+            name: Grafana
+            icon: mdi:chart-timeline-variant-shimmer
             tap_action:
-              action: more-info
-            card_mod:
-              style: |
-                ha-card { overflow: hidden; border-radius: 28px; }
-          - type: picture-entity
-            entity: camera.hallway_high_resolution_channel
-            name: Hallway context
-            camera_view: live
-            fit_mode: cover
-            aspect_ratio: "16:9"
-            show_state: false
+              action: url
+              url_path: http://grafana.home
+            grid_options: { columns: 12, rows: 2 }
+          - type: button
+            name: Rancher
+            icon: mdi:developer-board
             tap_action:
-              action: more-info
+              action: url
+              url_path: https://rancher.home
+            grid_options: { columns: 12, rows: 2 }
+
       - type: grid
         column_span: 4
         cards:
