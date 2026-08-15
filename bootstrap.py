@@ -898,21 +898,33 @@ def reconcile_family_access(source: Path, config: Path) -> None:
         if not isinstance(user_id, str) or not isinstance(username, str):
             raise RuntimeError("Retired family profile identity is invalid")
         user = users.get(user_id)
-        if user is None:
-            continue
-        if user.get("is_owner") or usernames.get(user_id) != username:
+        recorded_username = usernames.get(user_id)
+        if (user and user.get("is_owner")) or recorded_username not in {
+            None,
+            username,
+        }:
             raise RuntimeError(
                 f"Refusing to retire changed or owner profile {username}"
             )
+        changed = user is not None
         auth["data"]["users"] = [
             item for item in auth["data"]["users"] if item["id"] != user_id
         ]
+        credential_count = len(auth["data"].get("credentials", []))
         auth["data"]["credentials"] = [
             item
             for item in auth["data"].get("credentials", [])
             if item.get("user_id") != user_id
         ]
-        users.pop(user_id)
+        changed |= credential_count != len(auth["data"]["credentials"])
+        refresh_token_count = len(auth["data"].get("refresh_tokens", []))
+        auth["data"]["refresh_tokens"] = [
+            item
+            for item in auth["data"].get("refresh_tokens", [])
+            if item.get("user_id") != user_id
+        ]
+        changed |= refresh_token_count != len(auth["data"]["refresh_tokens"])
+        users.pop(user_id, None)
         usernames.pop(user_id, None)
         preference = config / ".storage" / f"frontend.user_data_{user_id}"
         if preference.exists():
@@ -921,7 +933,9 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             if not backup.exists():
                 shutil.copy2(preference, backup)
             preference.unlink()
-        print(f"Retired Home Assistant profile {username}")
+            changed = True
+        if changed:
+            print(f"Retired Home Assistant profile {username}")
     people_items = person["data"]["items"]
     retired_user_ids = {
         item["user_id"] for item in retired_profiles if isinstance(item, dict)

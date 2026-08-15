@@ -555,6 +555,16 @@ class BootstrapTests(unittest.TestCase):
                         "data": {"username": "retired-reviewer"},
                     },
                 ],
+                "refresh_tokens": [
+                    {
+                        "id": "reviewer-refresh-token",
+                        "user_id": reviewer_id,
+                    },
+                    {
+                        "id": "retired-refresh-token",
+                        "user_id": retired_id,
+                    },
+                ],
             },
         }
         person = {
@@ -655,6 +665,20 @@ class BootstrapTests(unittest.TestCase):
                 for credential in reconciled["data"]["credentials"]
             },
         )
+        self.assertNotIn(
+            retired_id,
+            {
+                token.get("user_id")
+                for token in reconciled["data"]["refresh_tokens"]
+            },
+        )
+        self.assertIn(
+            reviewer_id,
+            {
+                token.get("user_id")
+                for token in reconciled["data"]["refresh_tokens"]
+            },
+        )
         self.assertFalse((storage / f"frontend.user_data_{retired_id}").exists())
         retired_preferences_backup = (
             self.config
@@ -743,6 +767,17 @@ class BootstrapTests(unittest.TestCase):
         self.assertTrue(
             next((self.config / "backups").glob("auth.pre-family-access-*"))
         )
+
+        partial_retirement = json.loads(json.dumps(reconciled))
+        partial_retirement["data"]["refresh_tokens"].append(
+            {
+                "id": "orphaned-retired-refresh-token",
+                "user_id": retired_id,
+            }
+        )
+        (storage / "auth").write_text(json.dumps(partial_retirement))
+        bootstrap.reconcile_family_access(self.source, self.config)
+        self.assertEqual(json.loads((storage / "auth").read_text()), reconciled)
 
         bootstrap.reconcile_family_access(self.source, self.config)
         self.assertEqual(json.loads((storage / "auth").read_text()), reconciled)
