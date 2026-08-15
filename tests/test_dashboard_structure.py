@@ -743,7 +743,8 @@ class DashboardStructureTests(unittest.TestCase):
             "fleet-bundle/fleet-bundle",
             "longhorn-storage/longhorn-storage",
             "prometheus-overview",
-            "rack-diagnostics/rack-diagnostics",
+            "http://prometheus.home/targets",
+            "http://alertmanager.home/#/alerts",
             "cloudnative-pg/cloudnativepg",
             "ups-nut-prometheus/ups-nut",
         ):
@@ -753,11 +754,9 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("'var-name': match[2]", rack)
         self.assertIn("'var-cluster': ''", rack)
         self.assertNotIn("'var-cluster': '.*'", rack)
-        self.assertIn("'var-target_namespace': match?.[1]", rack)
-        self.assertIn("'var-target_job': match?.[2]", rack)
-        self.assertIn("'var-alert_name': alertname", rack)
-        self.assertIn("'var-alert_namespace': namespace", rack)
+        self.assertIn("new URLSearchParams({ search: match?.[2]", rack)
         self.assertNotIn("http://grafana.home/explore?", rack)
+        self.assertNotIn("rack-diagnostics/rack-diagnostics", rack)
         self.assertNotIn("destination: http://grafana.home\n", rack)
         self.assertNotIn("destination: https://rancher.home\n", rack)
         self.assertLess(

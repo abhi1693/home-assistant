@@ -490,12 +490,8 @@ views:
                   const first = Array.isArray(details)
                     ? details.find((detail) => !detail.startsWith('+')) : null;
                   const match = first?.match(/^([^/]+)\/(.+?)(?:\s+×\d+)?$/);
-                  const base = 'http://grafana.home/d/rack-diagnostics/rack-diagnostics';
-                  const params = new URLSearchParams({
-                    orgId: '1', from: 'now-1h', to: 'now', viewPanel: '1',
-                    'var-target_namespace': match?.[1] || '.*',
-                    'var-target_job': match?.[2] || '.*',
-                  });
+                  const base = 'http://prometheus.home/targets';
+                  const params = new URLSearchParams({ search: match?.[2] || '' });
                   return `${base}?${params.toString()}`;
                 ]]]
             visibility:
@@ -515,20 +511,7 @@ views:
               detail_attribute: active_alert_details
               destination: |
                 [[[
-                  const details = entity?.attributes?.active_alert_details;
-                  const first = Array.isArray(details)
-                    ? details.find((detail) => !detail.startsWith('+')) : null;
-                  let label = first?.replace(/\s+×\d+$/, '') || '';
-                  const namespace = label.match(/\s+\(([^)]+)\)$/)?.[1];
-                  label = label.replace(/\s+\([^)]+\)$/, '');
-                  const alertname = label.replace(/^[^:]+:\s*/, '');
-                  const base = 'http://grafana.home/d/rack-diagnostics/rack-diagnostics';
-                  const params = new URLSearchParams({
-                    orgId: '1', from: 'now-1h', to: 'now', viewPanel: '2',
-                    'var-alert_name': alertname || '.*',
-                    'var-alert_namespace': namespace || '.*',
-                  });
-                  return `${base}?${params.toString()}`;
+                  return 'http://alertmanager.home/#/alerts?active=true&silenced=true&inhibited=true';
                 ]]]
             visibility:
               - condition: numeric_state

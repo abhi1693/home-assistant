@@ -158,9 +158,10 @@ power, 24-hour power and temperature history, Home Assistant, and
 database-backup health. Incident cards deep-link to the relevant filtered
 workload or Fleet view, or directly to the applicable nodes, scrape failures,
 Longhorn, CloudNativePG, or UPS panel. Scrape-target and alert links open a
-provisioned Rack Diagnostics panel scoped to the first displayed offender.
-Grafana and Rancher remain the dedicated diagnostic systems; live Protect
-streams stay on the Security page rather than being duplicated here.
+filtered Prometheus Targets view and Alertmanager's active-alert list,
+respectively. Grafana and Rancher remain the dedicated metric and cluster
+diagnostic systems; live Protect streams stay on the Security page rather than
+being duplicated here.
 The Rack header reports the UPS power source explicitly as `Mains` or `Battery`
 rather than exposing the inverse `on battery` binary state as a confusing
 `Off` value.
