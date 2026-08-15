@@ -356,7 +356,7 @@ views:
                 ]]]
               detail: Prometheus data is stale or unavailable
               destination: >-
-                http://grafana.home/d/a164a7f0339f99e89cea5cb47e9be617/kubernetes-compute-resources-workload?orgId=1&from=now-1h&to=now&var-datasource=prometheus&var-cluster=.*&var-namespace=home-assistant&var-type=deployment&var-workload=home-assistant-status-bridge
+                http://grafana.home/d/a164a7f0339f99e89cea5cb47e9be617/kubernetes-compute-resources-workload?orgId=1&from=now-1h&to=now&var-datasource=prometheus&var-cluster=&var-namespace=home-assistant&var-type=deployment&var-workload=home-assistant-status-bridge
             visibility:
               - condition: state
                 entity: binary_sensor.rack_status_bridge_fresh
@@ -417,7 +417,7 @@ views:
                   if (!namespace || !workload) return `${base}?orgId=1&from=now-1h&to=now`;
                   const params = new URLSearchParams({
                     orgId: '1', from: 'now-1h', to: 'now',
-                    'var-datasource': 'prometheus', 'var-cluster': '.*',
+                    'var-datasource': 'prometheus', 'var-cluster': '',
                     'var-namespace': namespace, 'var-type': '.*',
                     'var-workload': workload,
                   });
@@ -482,10 +482,30 @@ views:
             variables:
               singular: target unreachable
               plural: targets unreachable
-              detail: Open Prometheus scrape failures
+              detail: Open the first failed scrape target
               detail_attribute: unreachable_target_details
-              destination: >-
-                http://grafana.home/d/9fa0d141-d019-4ad7-8bc5-42196ee308bd/prometheus-overview?orgId=1&from=now-1h&to=now&viewPanel=8
+              destination: |
+                [[[
+                  const details = entity?.attributes?.unreachable_target_details;
+                  const first = Array.isArray(details)
+                    ? details.find((detail) => !detail.startsWith('+')) : null;
+                  const match = first?.match(/^([^/]+)\/(.+?)(?:\s+×\d+)?$/);
+                  const escape = (value) => value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+                  const query = match
+                    ? `up{namespace="${escape(match[1])}",job="${escape(match[2])}"} == 0`
+                    : 'up == 0';
+                  const panes = {
+                    rack: {
+                      datasource: 'prometheus',
+                      queries: [{ refId: 'A', expr: query, editorMode: 'code', range: true }],
+                      range: { from: 'now-1h', to: 'now' },
+                    },
+                  };
+                  const params = new URLSearchParams({
+                    schemaVersion: '1', panes: JSON.stringify(panes), orgId: '1',
+                  });
+                  return `http://grafana.home/explore?${params.toString()}`;
+                ]]]
             visibility:
               - condition: numeric_state
                 entity: sensor.rack_unreachable_targets
@@ -501,8 +521,34 @@ views:
               plural: active alerts
               detail: Warning and critical alerts currently firing
               detail_attribute: active_alert_details
-              destination: >-
-                http://grafana.home/d/alertmanager-overview/alertmanager-overview?orgId=1&from=now-1h&to=now&viewPanel=1
+              destination: |
+                [[[
+                  const details = entity?.attributes?.active_alert_details;
+                  const first = Array.isArray(details)
+                    ? details.find((detail) => !detail.startsWith('+')) : null;
+                  let label = first?.replace(/\s+×\d+$/, '') || '';
+                  const namespace = label.match(/\s+\(([^)]+)\)$/)?.[1];
+                  label = label.replace(/\s+\([^)]+\)$/, '');
+                  const alertname = label.replace(/^[^:]+:\s*/, '');
+                  const escape = (value) => value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+                  const labels = ['alertstate="firing"', 'severity=~"warning|critical"'];
+                  if (alertname) labels.push(`alertname="${escape(alertname)}"`);
+                  if (namespace) labels.push(`namespace="${escape(namespace)}"`);
+                  const panes = {
+                    rack: {
+                      datasource: 'prometheus',
+                      queries: [{
+                        refId: 'A', expr: `ALERTS{${labels.join(',')}}`,
+                        editorMode: 'code', range: true,
+                      }],
+                      range: { from: 'now-1h', to: 'now' },
+                    },
+                  };
+                  const params = new URLSearchParams({
+                    schemaVersion: '1', panes: JSON.stringify(panes), orgId: '1',
+                  });
+                  return `http://grafana.home/explore?${params.toString()}`;
+                ]]]
             visibility:
               - condition: numeric_state
                 entity: sensor.rack_active_alerts
@@ -518,7 +564,7 @@ views:
               plural: hours since backup
               detail: The latest CloudNativePG base backup is older than 24 hours
               destination: >-
-                http://grafana.home/d/cloudnative-pg/cloudnativepg?orgId=1&from=now-24h&to=now&viewPanel=360
+                http://grafana.home/d/cloudnative-pg/cloudnativepg?orgId=1&from=now-24h&to=now&var-DS_PROMETHEUS=prometheus&var-namespace=postgresql&var-cluster=postgresql&var-instances=postgresql-.*&viewPanel=360
             visibility:
               - condition: numeric_state
                 entity: sensor.rack_database_backup_age

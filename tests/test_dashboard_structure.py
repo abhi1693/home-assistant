@@ -739,7 +739,7 @@ class DashboardStructureTests(unittest.TestCase):
             "fleet-bundle/fleet-bundle",
             "longhorn-storage/longhorn-storage",
             "prometheus-overview",
-            "alertmanager-overview/alertmanager-overview",
+            "http://grafana.home/explore?",
             "cloudnative-pg/cloudnativepg",
             "ups-nut-prometheus/ups-nut",
         ):
@@ -747,6 +747,10 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("'var-namespace': namespace", rack)
         self.assertIn("'var-workload': workload", rack)
         self.assertIn("'var-name': match[2]", rack)
+        self.assertIn("'var-cluster': ''", rack)
+        self.assertNotIn("'var-cluster': '.*'", rack)
+        self.assertIn("up{namespace=", rack)
+        self.assertIn("`ALERTS{${labels.join(',')}}`", rack)
         self.assertNotIn("destination: http://grafana.home\n", rack)
         self.assertNotIn("destination: https://rancher.home\n", rack)
         self.assertLess(

@@ -157,9 +157,10 @@ data before routine metrics. Quieter sections summarize cluster health, UPS
 power, 24-hour power and temperature history, Home Assistant, and
 database-backup health. Incident cards deep-link to the relevant filtered
 workload or Fleet view, or directly to the applicable nodes, scrape failures,
-alerts, Longhorn, CloudNativePG, or UPS panel. Grafana and Rancher remain the
-dedicated diagnostic systems; live Protect streams stay on the Security page
-rather than being duplicated here.
+Longhorn, CloudNativePG, or UPS panel. Scrape-target and alert links open a
+Grafana Explore query scoped to the first displayed offender. Grafana and
+Rancher remain the dedicated diagnostic systems; live Protect streams stay on
+the Security page rather than being duplicated here.
 
 ## Repository layout
 
