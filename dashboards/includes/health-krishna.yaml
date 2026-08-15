@@ -9,21 +9,6 @@ cards:
     heading_style: title
     icon: mdi:heart-pulse
     grid_options: { columns: 36, rows: 1 }
-  - type: custom:button-card
-    template: health_overview
-    variables:
-      person: Krishna
-      source: Pixel 10 Pro · Health Connect
-      entities:
-        - sensor.pixel_10_pro_daily_steps
-        - sensor.pixel_10_pro_daily_distance
-        - sensor.pixel_10_pro_daily_floors
-        - sensor.pixel_10_pro_daily_elevation_gained
-        - sensor.pixel_10_pro_active_calories_burned
-        - sensor.pixel_10_pro_detected_activity
-        - sensor.pixel_10_pro_sleep_duration
-        - sensor.pixel_10_pro_sleep_confidence
-    grid_options: { columns: 36, rows: auto }
   - type: heading
     heading: Today
     heading_style: subtitle
@@ -80,30 +65,6 @@ cards:
       card: [{ "--health-accent": var(--teal) }]
     grid_options: { columns: 12, rows: auto }
   - type: heading
-    heading: Measurements
-    heading_style: subtitle
-    icon: mdi:heart-pulse
-    grid_options: { columns: 36, rows: 1 }
-  - type: markdown
-    content: >-
-      Heart rate, oxygen, breathing and body measurements are not enabled on this
-      phone. This page will not infer values or show empty clinical cards. If those
-      Companion App sensors are enabled later, they remain private to Krishna and
-      can be added here deliberately.
-    card_mod:
-      style: |
-        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
-    grid_options: { columns: 36, rows: auto }
-  - type: markdown
-    content: >-
-      Sleep remains a current snapshot and is not retained in Recorder. Freshness
-      reflects the Health Connect measurement time. Values are informational, not
-      medical guidance.
-    card_mod:
-      style: |
-        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
-    grid_options: { columns: 36, rows: auto }
-  - type: heading
     heading: Movement · 7 days
     heading_style: subtitle
     icon: mdi:chart-bar
@@ -159,11 +120,3 @@ cards:
       style: |
         ha-card { border-radius: 22px; background: var(--contrast2); }
     grid_options: { columns: 12, rows: 4 }
-  - type: markdown
-    content: >-
-      Daily bars use long-term statistics and handle midnight resets cleanly. Until
-      enough days accumulate, the chart acts as an honest “building baseline” view.
-    card_mod:
-      style: |
-        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
-    grid_options: { columns: 36, rows: auto }

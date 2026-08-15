@@ -816,8 +816,8 @@ class DashboardStructureTests(unittest.TestCase):
                 f"profile-{profile}-users.json",
                 page,
             )
-            self.assertIn("template: health_overview", page)
             self.assertIn("template: health_metric", page)
+            self.assertNotIn("type: markdown", page)
         for entity_id in (
             "sensor.pixel_8_heart_rate",
             "sensor.pixel_8_sleep_duration",
@@ -833,8 +833,13 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertEqual(combined.count("days_to_show: 7"), 6)
         self.assertNotIn("hours_to_show: 24", combined)
         self.assertIn("format: breaths", abhimanyu)
-        self.assertIn("Values are informational", combined)
-        self.assertIn("not medical guidance", combined)
+        self.assertNotIn("Private to your account", home)
+        self.assertNotIn("medical guidance", combined)
+        self.assertNotIn("not available", combined)
+        self.assertNotIn("not enabled", combined)
+        self.assertNotIn("heading: Measurements", krishna)
+        self.assertNotIn("heading: Recovery", manisha)
+        self.assertNotIn("heading: Movement trend", manisha)
         self.assertIn("- sensor.*heart_rate*", configuration)
         self.assertIn("- sensor.*oxygen_saturation*", configuration)
         self.assertIn("- sensor.*respiratory_rate*", configuration)
@@ -882,11 +887,9 @@ class DashboardStructureTests(unittest.TestCase):
         ):
             self.assertIn(f"- {person}", configuration)
 
-    def test_owner_identity_rename_uses_native_registry_migration(self):
+    def test_owner_identity_rename_is_stable_without_one_shot_migration(self):
         access = json.loads((ROOT / "access/family-dashboard.json").read_text())
-        migrations = json.loads(
-            (ROOT / "access/entity-migrations.json").read_text()
-        )
+        bootstrap = (ROOT / "bootstrap.py").read_text()
         guard = (
             ROOT / "custom_components/family_dashboard_guard/__init__.py"
         ).read_text()
@@ -900,24 +903,11 @@ class DashboardStructureTests(unittest.TestCase):
         owner = access["profiles"]["abhimanyu"]
         self.assertEqual(owner["person_id"], "abhimanyu_saharan")
         self.assertEqual(owner["person_entity_id"], "person.abhimanyu")
-        self.assertEqual(
-            migrations["entities"],
-            [
-                {
-                    "old_entity_id": "person.abhimanyu_saharan",
-                    "new_entity_id": "person.abhimanyu",
-                    "platform": "person",
-                    "unique_id": "abhimanyu_saharan",
-                }
-            ],
-        )
-        self.assertIn("registry.async_update_entity", guard)
-        self.assertIn("new_entity_id=new_entity_id", guard)
-        self.assertIn("core.entity_registry.pre-entity-migration-v1", guard)
-        self.assertEqual(
-            set(manifest["dependencies"]),
-            {"frontend", "person", "recorder"},
-        )
+        self.assertFalse((ROOT / "access/entity-migrations.json").exists())
+        self.assertNotIn("entity_migration", bootstrap)
+        self.assertNotIn("entity-migration", guard)
+        self.assertNotIn("async_update_entity", guard)
+        self.assertEqual(manifest["dependencies"], ["frontend"])
 
     def test_rooms_use_quota_conscious_full_fan_controls(self):
         configuration = (ROOT / "configuration.yaml").read_text()

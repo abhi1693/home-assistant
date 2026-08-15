@@ -9,19 +9,6 @@ cards:
     heading_style: title
     icon: mdi:heart-pulse
     grid_options: { columns: 36, rows: 1 }
-  - type: custom:button-card
-    template: health_overview
-    variables:
-      person: Manisha
-      source: iPhone · Motion & Fitness
-      entities:
-        - sensor.iphone_steps
-        - sensor.iphone_distance
-        - sensor.iphone_average_active_pace
-        - sensor.iphone_floors_ascended
-        - sensor.iphone_floors_descended
-        - sensor.iphone_activity
-    grid_options: { columns: 36, rows: auto }
   - type: heading
     heading: Today
     heading_style: subtitle
@@ -81,41 +68,3 @@ cards:
     styles:
       card: [{ "--health-accent": var(--teal) }]
     grid_options: { columns: 12, rows: auto }
-  - type: heading
-    heading: Recovery and measurements
-    heading_style: subtitle
-    icon: mdi:heart-outline
-    grid_options: { columns: 36, rows: 1 }
-  - type: markdown
-    content: >-
-      This iPhone currently publishes Motion & Fitness activity only. Sleep, heart,
-      oxygen and recovery signals are not available, so the page stays focused on
-      the data the phone actually supplies instead of presenting empty cards.
-    card_mod:
-      style: |
-        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
-    grid_options: { columns: 36, rows: auto }
-  - type: heading
-    heading: Movement trend
-    heading_style: subtitle
-    icon: mdi:chart-bar
-    grid_options: { columns: 36, rows: 1 }
-  - type: markdown
-    content: >-
-      The iPhone entities do not yet publish Home Assistant statistics metadata.
-      Current values and their freshness are shown above; a seven-day chart will be
-      added only when the source can represent daily resets without misleading
-      midnight drops.
-    card_mod:
-      style: |
-        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
-    grid_options: { columns: 36, rows: auto }
-  - type: markdown
-    content: >-
-      These Motion & Fitness entities are private to Manisha. Other family accounts
-      cannot read them, and non-family accounts receive no health access. Values
-      are informational, not medical guidance.
-    card_mod:
-      style: |
-        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
-    grid_options: { columns: 36, rows: auto }

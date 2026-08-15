@@ -96,13 +96,10 @@ agenda rendering, appliance controls, fan controls, media summaries, and Seerr
 request actions.
 
 The shared `/home-tablet/health` route renders a mutually exclusive personal
-section for Abhimanyu, Krishna, or Manisha. Each section starts with source and
-sync quality, separates movement, recovery, and measurements, marks stale
-readings using their measurement timestamp, and uses native seven-day daily
-statistics where the phone integration supplies statistics metadata. Android
-Health Connect pages include movement and sleep snapshots; Abhimanyu also has
-enabled vital snapshots. Manisha's iPhone page stays focused on Motion & Fitness
-data and explains why unsupported recovery and trend surfaces are absent.
+section for Abhimanyu, Krishna, or Manisha. Each section shows only measurements
+and charts backed by that person's available phone data; unsupported categories
+and explanatory cards are omitted. Reading cards retain concise freshness labels,
+and Android movement data uses native seven-day daily statistics where available.
 
 Health privacy is enforced independently of Lovelace visibility. Every declared
 health entity belongs to exactly one family profile. Non-owner permission groups
@@ -114,10 +111,8 @@ history needed for honest daily trends.
 
 The owner's Git profile key is `abhimanyu`, and the visible Person entity is
 `person.abhimanyu`. The immutable Home Assistant user UUID, login, Companion App
-entities and underlying Person registry identity remain unchanged. A guarded
-entity-migration contract validates both sides of the rename during bootstrap;
-after Person and Recorder load, the dashboard guard performs the rename through
-Home Assistant's entity registry API so Recorder can migrate metadata normally.
+entities and underlying Person registry identity remain unchanged. The completed
+one-time entity migration is no longer part of bootstrap or runtime startup.
 The pre-migration entity registry is retained under `/config/backups`.
 
 ### Rooms

@@ -9,23 +9,6 @@ cards:
     heading_style: title
     icon: mdi:heart-pulse
     grid_options: { columns: 36, rows: 1 }
-  - type: custom:button-card
-    template: health_overview
-    variables:
-      person: Abhimanyu
-      source: Pixel 8 · Health Connect
-      entities:
-        - sensor.pixel_8_daily_steps
-        - sensor.pixel_8_daily_distance
-        - sensor.pixel_8_total_calories_burned
-        - sensor.pixel_8_heart_rate
-        - sensor.pixel_8_oxygen_saturation
-        - sensor.pixel_8_resting_heart_rate
-        - sensor.pixel_8_heart_rate_variability
-        - sensor.pixel_8_respiratory_rate
-        - sensor.pixel_8_sleep_duration
-        - sensor.pixel_8_sleep_confidence
-    grid_options: { columns: 36, rows: auto }
   - type: heading
     heading: Today
     heading_style: subtitle
@@ -158,16 +141,6 @@ cards:
       styles:
         card: [{ "--health-accent": var(--green) }]
     grid_options: { columns: 12, rows: auto }
-  - type: markdown
-    content: >-
-      Measurements and sleep remain current snapshots: Home Assistant does not
-      retain their history. Freshness reflects the measurement time supplied by
-      Health Connect, not merely the latest phone sync. Values are informational,
-      not medical guidance.
-    card_mod:
-      style: |
-        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
-    grid_options: { columns: 36, rows: auto }
   - type: heading
     heading: Movement · 7 days
     heading_style: subtitle
@@ -224,12 +197,3 @@ cards:
       style: |
         ha-card { border-radius: 22px; background: var(--contrast2); }
     grid_options: { columns: 12, rows: 4 }
-  - type: markdown
-    content: >-
-      Daily bars replace the old rolling 24-hour lines, so midnight resets no
-      longer look like sudden activity drops. The baseline will become more useful
-      as hourly statistics accumulate.
-    card_mod:
-      style: |
-        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
-    grid_options: { columns: 36, rows: auto }

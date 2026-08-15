@@ -25,10 +25,6 @@ class BootstrapTests(unittest.TestCase):
         self.config = self.root / "config"
         self.source.mkdir()
         self.config.mkdir()
-        self.write(
-            "access/entity-migrations.json",
-            json.dumps({"version": 1, "entities": []}),
-        )
 
     def tearDown(self):
         self.temporary.cleanup()
@@ -72,57 +68,6 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(reconciled["data"]["entities"], [retained])
         bootstrap.remove_legacy_household_entities(self.config)
         self.assertEqual(json.loads(registry_path.read_text()), reconciled)
-
-    def test_entity_migrations_accept_only_the_exact_old_or_new_identity(self):
-        migration = {
-            "old_entity_id": "person.owner_old",
-            "new_entity_id": "person.owner",
-            "platform": "person",
-            "unique_id": "owner-stable-id",
-        }
-        self.write(
-            "access/entity-migrations.json",
-            json.dumps({"version": 1, "entities": [migration]}),
-        )
-        storage = self.config / ".storage"
-        storage.mkdir()
-        registry_path = storage / "core.entity_registry"
-
-        for entity_id in ("person.owner_old", "person.owner"):
-            registry_path.write_text(
-                json.dumps(
-                    {
-                        "data": {
-                            "entities": [
-                                {
-                                    "entity_id": entity_id,
-                                    "platform": "person",
-                                    "unique_id": "owner-stable-id",
-                                }
-                            ]
-                        }
-                    }
-                )
-            )
-            bootstrap.validate_entity_migrations(self.source, self.config)
-
-        registry_path.write_text(
-            json.dumps(
-                {
-                    "data": {
-                        "entities": [
-                            {
-                                "entity_id": "person.owner_old",
-                                "platform": "person",
-                                "unique_id": "changed-id",
-                            }
-                        ]
-                    }
-                }
-            )
-        )
-        with self.assertRaisesRegex(RuntimeError, "identity changed"):
-            bootstrap.validate_entity_migrations(self.source, self.config)
 
     def test_household_policy_rejects_non_phone_presence_drift(self):
         access = {
