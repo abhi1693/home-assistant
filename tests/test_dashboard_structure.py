@@ -706,6 +706,7 @@ class DashboardStructureTests(unittest.TestCase):
     def test_rack_is_a_triage_first_operations_console(self):
         rack = (ROOT / "dashboards/rack-admin.yaml").read_text()
         infrastructure = (ROOT / "packages/infrastructure.yaml").read_text()
+        household = (ROOT / "packages/household.yaml").read_text()
 
         self.assertIn("heading: Operational status", rack)
         self.assertIn("template: rack_overview", rack)
@@ -723,6 +724,9 @@ class DashboardStructureTests(unittest.TestCase):
         ):
             self.assertIn(f"entity: {entity_id}", rack)
         self.assertIn("entity: binary_sensor.rack_ups_on_battery", rack)
+        self.assertIn("entity: sensor.rack_power_source", rack)
+        self.assertIn("name: Rack power source", household)
+        self.assertIn("else 'Mains' if 'OL' in status", household)
         self.assertIn("heading: Continuity", rack)
         self.assertIn("heading: Power", rack)
         self.assertIn("heading: Environment", rack)

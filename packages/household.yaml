@@ -269,6 +269,19 @@ template:
               'Kitchen Balcony' if states('camera.hallway_high_resolution_channel') in ['unknown', 'unavailable'] else none
             ] | reject('eq', none) | list }}
 
+      - name: Rack power source
+        unique_id: rack_power_source
+        icon: mdi:power-plug
+        availability: >-
+          {{ states('sensor.ups_status_data') not in ['unknown', 'unavailable', ''] }}
+        state: >-
+          {% set status = states('sensor.ups_status_data').split() %}
+          {{ 'Battery' if 'OB' in status else 'Mains' if 'OL' in status else 'Transition' }}
+        attributes:
+          status_flags: "{{ states('sensor.ups_status_data') }}"
+          charge: "{{ states('sensor.ups_battery_charge') }}"
+          load: "{{ states('sensor.ups_load') }}"
+
       - name: House attention level
         unique_id: house_attention_level
         icon: mdi:home-alert-outline

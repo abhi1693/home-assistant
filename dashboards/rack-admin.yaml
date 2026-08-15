@@ -321,7 +321,7 @@ views:
         show_name: true
         show_state: true
       - type: entity
-        entity: binary_sensor.rack_ups_on_battery
+        entity: sensor.rack_power_source
         name: Power
         show_name: true
         show_state: true

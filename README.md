@@ -161,6 +161,9 @@ Longhorn, CloudNativePG, or UPS panel. Scrape-target and alert links open a
 provisioned Rack Diagnostics panel scoped to the first displayed offender.
 Grafana and Rancher remain the dedicated diagnostic systems; live Protect
 streams stay on the Security page rather than being duplicated here.
+The Rack header reports the UPS power source explicitly as `Mains` or `Battery`
+rather than exposing the inverse `on battery` binary state as a confusing
+`Off` value.
 
 ## Repository layout
 
