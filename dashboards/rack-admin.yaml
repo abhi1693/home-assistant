@@ -102,6 +102,21 @@ button_card_templates:
         return `${minutes}m old`;
       ]]]
 
+  rack_duration_hours:
+    template: rack_metric
+    state_display: |
+      [[[
+        if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
+          return 'Unavailable';
+        }
+        const value = Number(entity.state);
+        if (!Number.isFinite(value)) return entity.state;
+        const totalMinutes = Math.round(value * 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+      ]]]
+
   rack_issue:
     variables:
       singular: issue
@@ -544,7 +559,7 @@ views:
                 - --metric-accent: var(--blue)
             grid_options: { columns: 12, rows: 2 }
           - type: custom:button-card
-            template: rack_metric
+            template: rack_duration_hours
             entity: sensor.rack_database_backup_age
             name: Database backup age
             icon: mdi:database-clock-outline

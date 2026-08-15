@@ -739,6 +739,7 @@ class DashboardStructureTests(unittest.TestCase):
         )
         self.assertIn("hide_sidebar: true", rack)
         self.assertIn("return hours > 0 ? `${hours}h` : '<1h';", rack)
+        self.assertIn("template: rack_duration_hours", rack)
         for attribute in (
             "unready_node_details",
             "unhealthy_workload_details",
