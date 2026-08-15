@@ -174,6 +174,10 @@ button_card_templates:
         - color: var(--contrast9)
         - font-size: 11px
         - white-space: normal
+        - display: -webkit-box
+        - -webkit-line-clamp: 2
+        - -webkit-box-orient: vertical
+        - overflow: hidden
 
   rack_overview:
     entity: sensor.rack_summary_status
@@ -494,14 +498,14 @@ views:
             tap_action:
               action: url
               url_path: http://grafana.home
-            grid_options: { columns: 24, rows: 2 }
+            grid_options: { columns: 12, rows: 2 }
           - type: button
             name: Rancher
             icon: mdi:developer-board
             tap_action:
               action: url
               url_path: https://rancher.home
-            grid_options: { columns: 24, rows: 2 }
+            grid_options: { columns: 12, rows: 2 }
 
       - type: grid
         column_span: 2
