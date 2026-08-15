@@ -86,6 +86,7 @@ The family-facing dashboard combines:
 - Account-filtered live cameras.
 - Active Music Assistant and Jellyfin sessions.
 - Upcoming calendar events, announcements, shopping, and media requests.
+- A three-person daily steps leaderboard beneath Shopping.
 - Favorite-room summaries ordered per account.
 - Shared room, security, and people views.
 - A private, personalized Health view for each family member.
@@ -102,12 +103,13 @@ and explanatory cards are omitted. Reading cards retain concise freshness labels
 and Android movement data uses native seven-day daily statistics where available.
 
 Health privacy is enforced independently of Lovelace visibility. Every declared
-health entity belongs to exactly one family profile. Non-owner permission groups
-receive only that profile's entities, while other family and non-family accounts
-receive none. The temporary browser-review account is retired during bootstrap
-after its identity is revalidated. Sensitive measurements and sleep remain
-excluded from Recorder; movement statistics retain only the existing activity
-history needed for honest daily trends.
+health entity belongs to exactly one family profile. The three declared daily
+step totals are the sole family-shared health values and feed the Home sidebar's
+ranked leaderboard; all other health entities remain profile-private. The
+temporary browser-review account is retired during bootstrap after its identity
+is revalidated. Sensitive measurements and sleep remain excluded from Recorder;
+movement statistics retain only the existing activity history needed for honest
+daily trends.
 
 The owner's Git profile key is `abhimanyu`, and the visible Person entity is
 `person.abhimanyu`. The immutable Home Assistant user UUID, login, Companion App

@@ -220,6 +220,11 @@
       ]
     }
   },
+  "shared_daily_steps": {
+    "abhimanyu": "sensor.pixel_8_daily_steps",
+    "krishna": "sensor.pixel_10_pro_daily_steps",
+    "manisha": "sensor.iphone_steps"
+  },
   "retired_profiles": [
     {
       "user_id": "2d1be8070c364e6a9ba70103c007d4d0",

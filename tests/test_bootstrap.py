@@ -450,12 +450,19 @@ class BootstrapTests(unittest.TestCase):
                     "health_profiles": {
                         "owner": {
                             "source": "Owner phone",
-                            "entities": ["sensor.owner_heart_rate"],
+                            "entities": [
+                                "sensor.owner_heart_rate",
+                                "sensor.owner_steps",
+                            ],
                         },
                         "reviewer": {
                             "source": "Reviewer phone",
                             "entities": ["sensor.reviewer_steps"],
                         },
+                    },
+                    "shared_daily_steps": {
+                        "owner": "sensor.owner_steps",
+                        "reviewer": "sensor.reviewer_steps",
                     },
                     "retired_profiles": [
                         {
@@ -629,6 +636,11 @@ class BootstrapTests(unittest.TestCase):
                         "disabled_by": None,
                     },
                     {
+                        "entity_id": "sensor.owner_steps",
+                        "platform": "mobile_app",
+                        "disabled_by": None,
+                    },
+                    {
                         "entity_id": "sensor.reviewer_steps",
                         "platform": "mobile_app",
                         "disabled_by": None,
@@ -704,6 +716,7 @@ class BootstrapTests(unittest.TestCase):
                 "binary_sensor.master_bedroom_person": True,
                 "calendar.birthdays": True,
                 "sensor.office_temperature": True,
+                "sensor.owner_steps": True,
                 "sensor.reviewer_steps": True,
             },
         )

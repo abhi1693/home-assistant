@@ -847,6 +847,40 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("- sensor.*blood_glucose*", configuration)
         self.assertIn("- sensor.*blood_pressure*", configuration)
 
+    def test_home_sidebar_ranks_shared_daily_steps_below_shopping(self):
+        home = (ROOT / "dashboards/home-tablet.yaml").read_text()
+        access = json.loads((ROOT / "access/family-dashboard.json").read_text())
+        sidebar = home.split(
+            "      - type: grid\n        cards:\n          - type: heading\n"
+            "            heading: Coming up",
+            1,
+        )[1].split("\n  - title: Rooms", 1)[0]
+        leaderboard = home.split("  family_steps_leaderboard:", 1)[1].split(
+            "\n  family_ribbon:", 1
+        )[0]
+
+        self.assertLess(
+            sidebar.index("type: custom:todo-swipe-card"),
+            sidebar.index("template: family_steps_leaderboard"),
+        )
+        self.assertIn("name: Steps today", leaderboard)
+        self.assertIn("icon: mdi:podium", leaderboard)
+        self.assertIn("return right.steps - left.steps", leaderboard)
+        self.assertIn("person.steps.toLocaleString()", leaderboard)
+        self.assertIn("${index + 1}", leaderboard)
+        self.assertIn("family-members-users.json", sidebar)
+        self.assertEqual(
+            access["shared_daily_steps"],
+            {
+                "abhimanyu": "sensor.pixel_8_daily_steps",
+                "krishna": "sensor.pixel_10_pro_daily_steps",
+                "manisha": "sensor.iphone_steps",
+            },
+        )
+        for profile, entity_id in access["shared_daily_steps"].items():
+            self.assertIn(entity_id, access["health_profiles"][profile]["entities"])
+            self.assertIn(entity_id, leaderboard)
+
     def test_presence_uses_only_travelling_phone_trackers(self):
         access = json.loads((ROOT / "access/family-dashboard.json").read_text())
         policy = json.loads((ROOT / "access/household-policy.json").read_text())

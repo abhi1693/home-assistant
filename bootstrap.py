@@ -1003,6 +1003,29 @@ def reconcile_family_access(source: Path, config: Path) -> None:
     private_health_domains = {
         entity_id.partition(".")[0] for entity_id in private_health_entities
     }
+    shared_daily_steps = access.get("shared_daily_steps", {})
+    if (
+        not isinstance(shared_daily_steps, dict)
+        or set(shared_daily_steps) != family_profile_keys
+        or not all(
+            isinstance(entity_id, str)
+            for entity_id in shared_daily_steps.values()
+        )
+        or len(set(shared_daily_steps.values())) != len(shared_daily_steps)
+    ):
+        raise RuntimeError(
+            "Every family member must have one unique shared daily steps entity"
+        )
+    for profile_key, entity_id in shared_daily_steps.items():
+        if (
+            not isinstance(entity_id, str)
+            or not entity_id.endswith("_steps")
+            or entity_id
+            not in private_health_entities_by_profile.get(profile_key, set())
+        ):
+            raise RuntimeError(
+                f"Shared daily steps entity for {profile_key} is invalid"
+            )
 
     calendars = access.get("calendars", {})
     shared_calendars = calendars.get("shared", [])
@@ -1361,6 +1384,7 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                         *sorted(
                             private_health_entities_by_profile.get(profile_key, set())
                         ),
+                        *sorted(shared_daily_steps.values()),
                         *family_public_entities,
                     ],
                     family_unrestricted_domains,

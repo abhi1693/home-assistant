@@ -89,6 +89,84 @@ button_card_templates:
         return count === 1 ? '1 item' : `${count} items`;
       ]]]
 
+  family_steps_leaderboard:
+    show_icon: true
+    show_name: true
+    show_state: false
+    name: Steps today
+    icon: mdi:podium
+    triggers_update:
+      - sensor.pixel_8_daily_steps
+      - sensor.pixel_10_pro_daily_steps
+      - sensor.iphone_steps
+    custom_fields:
+      rankings: |
+        [[[
+          const unavailable = new Set(['unknown', 'unavailable', 'none', '']);
+          const people = [
+            { name: 'Abhimanyu', entity: 'sensor.pixel_8_daily_steps' },
+            { name: 'Krishna', entity: 'sensor.pixel_10_pro_daily_steps' },
+            { name: 'Manisha', entity: 'sensor.iphone_steps' }
+          ].map((person, order) => {
+            const raw = states[person.entity]?.state;
+            const value = unavailable.has(String(raw || '').toLowerCase())
+              ? null : Number(raw);
+            return {
+              ...person,
+              order,
+              steps: Number.isFinite(value) && value >= 0 ? Math.round(value) : null
+            };
+          }).sort((left, right) => {
+            if (left.steps === null && right.steps === null) return left.order - right.order;
+            if (left.steps === null) return 1;
+            if (right.steps === null) return -1;
+            return right.steps - left.steps || left.order - right.order;
+          });
+          const rankColors = ['var(--yellow)', 'var(--contrast10)', '#c8874e'];
+          return people.map((person, index) => {
+            const steps = person.steps === null
+              ? '—'
+              : `${person.steps.toLocaleString()} steps`;
+            return `<div style="display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:32px;">
+              <span style="display:grid;place-items:center;width:22px;height:22px;border-radius:8px;background:color-mix(in srgb, ${rankColors[index]} 18%, transparent);color:${rankColors[index]};font-size:11px;font-weight:800;">${index + 1}</span>
+              <span style="overflow:hidden;text-overflow:ellipsis;color:var(--contrast16);font-size:13px;font-weight:650;">${person.name}</span>
+              <span style="color:var(--contrast20);font-size:13px;font-weight:750;font-variant-numeric:tabular-nums;">${steps}</span>
+            </div>`;
+          }).join('');
+        ]]]
+    tap_action: { action: none }
+    hold_action: { action: none }
+    styles:
+      grid:
+        - grid-template-areas: '"i n" "rankings rankings"'
+        - grid-template-columns: 30px minmax(0, 1fr)
+        - grid-template-rows: min-content min-content
+        - column-gap: 8px
+        - row-gap: 8px
+      card:
+        - padding: 14px 16px 12px
+        - border-radius: 24px
+        - background: var(--contrast2)
+        - border: 1px solid rgba(var(--rgb-primary-text-color), 0.06)
+        - box-shadow: none
+      img_cell:
+        - justify-self: start
+        - width: 28px
+        - height: 28px
+        - border-radius: 10px
+        - background: color-mix(in srgb, var(--yellow) 15%, transparent)
+      icon:
+        - width: 17px
+        - color: var(--yellow)
+      name:
+        - justify-self: start
+        - color: var(--contrast20)
+        - font-size: 16px
+        - font-weight: 700
+      custom_fields:
+        rankings:
+          - width: 100%
+
   family_ribbon:
     show_icon: true
     show_name: true
@@ -2231,6 +2309,11 @@ views:
                   input { min-height: 44px !important; }
                   button { min-width: 44px !important; min-height: 44px !important; }
                 }
+          - type: custom:button-card
+            template: family_steps_leaderboard
+            visibility:
+              - condition: user
+                users: !include ../access/generated/family-members-users.json
 
   - title: Rooms
     path: rooms
