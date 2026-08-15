@@ -81,16 +81,21 @@ async function installComponents(page) {
     }
     customElements.define("ha-card", HaCard);
     customElements.define("ha-icon", HaIcon);
-    customElements.define("hui-picture-entity-card", HuiPictureEntityCard);
     customElements.define("test-card", TestCard);
-    window.loadCardHelpers = async () => ({
-      createCardElement(config) {
-        const tag = config.type.startsWith("custom:") ? config.type.slice(7) : config.type;
-        const element = document.createElement(tag);
-        element.setConfig?.(config);
-        return element;
-      },
-    });
+    window.loadCardHelpers = async () => {
+      await new Promise((resolve) => setTimeout(resolve));
+      if (!customElements.get("hui-picture-entity-card")) {
+        customElements.define("hui-picture-entity-card", HuiPictureEntityCard);
+      }
+      return {
+        createCardElement(config) {
+          const tag = config.type.startsWith("custom:") ? config.type.slice(7) : `hui-${config.type}-card`;
+          const element = document.createElement(tag);
+          element.setConfig?.(config);
+          return element;
+        },
+      };
+    };
   });
   for (const source of [
     "family-responsive-grid-card.js",

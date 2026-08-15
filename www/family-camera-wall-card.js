@@ -113,12 +113,35 @@ class FamilyCameraWallCard extends HTMLElement {
     offline.className = "offline";
     offline.hidden = true;
     offline.innerHTML = `<div><ha-icon icon="mdi:video-off-outline"></ha-icon><strong>${cameraWallEscape(camera.name)}</strong>Camera is offline</div>`;
-    const child = document.createElement("hui-picture-entity-card");
-    wrapper.append(focus, offline, child);
+    wrapper.append(focus, offline);
     this.shadowRoot.querySelector(".wall").append(wrapper);
-    entry = { wrapper, focus, offline, child, signature: null };
+    entry = {
+      wrapper,
+      focus,
+      offline,
+      child: null,
+      signature: null,
+      desiredConfig: null,
+      desiredSignature: null,
+      creating: null,
+    };
     this._entries.set(camera.key, entry);
     return entry;
+  }
+
+  async _createChild(entry) {
+    try {
+      this._cardHelpers ||= window.loadCardHelpers();
+      const helpers = await this._cardHelpers;
+      if (entry.child || !entry.desiredConfig || !entry.wrapper.isConnected) return;
+      const child = helpers.createCardElement(entry.desiredConfig);
+      entry.child = child;
+      entry.signature = entry.desiredSignature;
+      entry.wrapper.append(child);
+      child.hass = this._hass;
+    } finally {
+      entry.creating = null;
+    }
   }
 
   _syncCamera(camera, focused) {
@@ -131,24 +154,31 @@ class FamilyCameraWallCard extends HTMLElement {
     entry.offline.hidden = !offline;
 
     if (offline) {
-      entry.child.remove();
+      entry.child?.remove();
+      return;
+    }
+    const image = this._imageEntity(camera, focused);
+    const signature = `${camera.high_entity}|${image}`;
+    const config = {
+      type: "picture-entity",
+      entity: camera.high_entity,
+      camera_image: image,
+      name: camera.name,
+      camera_view: "live",
+      fit_mode: "cover",
+      aspect_ratio: "16:9",
+      show_state: false,
+      tap_action: { action: "more-info" },
+    };
+    entry.desiredConfig = config;
+    entry.desiredSignature = signature;
+    if (!entry.child) {
+      entry.creating ||= this._createChild(entry);
       return;
     }
     if (!entry.child.isConnected) entry.wrapper.append(entry.child);
-    const image = this._imageEntity(camera, focused);
-    const signature = `${camera.high_entity}|${image}`;
     if (entry.signature !== signature) {
-      entry.child.setConfig({
-        type: "picture-entity",
-        entity: camera.high_entity,
-        camera_image: image,
-        name: camera.name,
-        camera_view: "live",
-        fit_mode: "cover",
-        aspect_ratio: "16:9",
-        show_state: false,
-        tap_action: { action: "more-info" },
-      });
+      entry.child.setConfig(config);
       entry.signature = signature;
     }
     entry.child.hass = this._hass;

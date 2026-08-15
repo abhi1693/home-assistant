@@ -87,7 +87,7 @@ lovelace:
       type: module
     - url: /local/family-rooms-card.js?v=1.0.0
       type: module
-    - url: /local/family-camera-wall-card.js?v=2.0.0
+    - url: /local/family-camera-wall-card.js?v=2.0.1
       type: module
     - url: /local/family-camera-events-card.js?v=1.1.0
       type: module
