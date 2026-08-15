@@ -788,51 +788,59 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("auto_padding:", navigation)
         self.assertIn("mobile_px: 96", navigation)
 
-    def test_health_view_is_owner_only_and_uses_available_sensors(self):
+    def test_health_view_is_private_per_profile_and_uses_available_sensors(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
         access = json.loads((ROOT / "access/family-dashboard.json").read_text())
         configuration = (ROOT / "configuration.yaml").read_text()
         health = home.split("  - title: Health", 1)[1]
 
-        self.assertEqual(access["owner_health"]["profile"], "abhimanyu-saharan")
-        self.assertIn(
-            "sensor.pixel_8_heart_rate", access["owner_health"]["entities"]
+        self.assertEqual(
+            set(access["health_profiles"]),
+            {"abhimanyu-saharan", "krishna", "manisha"},
         )
-        self.assertIn(
-            "visible: !include ../access/generated/profile-abhimanyu-saharan-users.json",
-            health,
-        )
-        self.assertGreaterEqual(
-            health.count(
-                "users: !include ../access/generated/profile-abhimanyu-saharan-users.json"
-            ),
-            2,
-        )
+        self.assertIn("visible: !include ../access/generated/family-members-users.json", health)
+        for profile in ("abhimanyu", "krishna", "manisha"):
+            self.assertIn(f"!include includes/health-{profile}.yaml", health)
+
+        abhimanyu = (ROOT / "dashboards/includes/health-abhimanyu.yaml").read_text()
+        krishna = (ROOT / "dashboards/includes/health-krishna.yaml").read_text()
+        manisha = (ROOT / "dashboards/includes/health-manisha.yaml").read_text()
+        combined = "\n".join((abhimanyu, krishna, manisha))
+
+        for profile, page in (
+            ("abhimanyu-saharan", abhimanyu),
+            ("krishna", krishna),
+            ("manisha", manisha),
+        ):
+            self.assertIn(
+                f"profile-{profile}-users.json",
+                page,
+            )
+            self.assertIn("template: health_overview", page)
+            self.assertIn("template: health_metric", page)
         for entity_id in (
-            "sensor.pixel_8_daily_steps",
-            "sensor.pixel_8_daily_distance",
-            "sensor.pixel_8_total_calories_burned",
             "sensor.pixel_8_heart_rate",
-            "sensor.pixel_8_oxygen_saturation",
             "sensor.pixel_8_sleep_duration",
-            "sensor.pixel_8_sleep_confidence",
+            "sensor.pixel_10_pro_daily_steps",
+            "sensor.pixel_10_pro_sleep_confidence",
+            "sensor.iphone_steps",
+            "sensor.iphone_average_active_pace",
         ):
-            self.assertIn(f"entity: {entity_id}", health)
-        for unavailable_metric in (
-            "blood_glucose",
-            "body_fat",
-            "weight",
-            "systolic_blood_pressure",
-            "sleep_segment",
-        ):
-            self.assertNotIn(unavailable_metric, health)
-        self.assertIn("template: health_metric", health)
-        self.assertEqual(health.count("hours_to_show: 24"), 3)
-        self.assertNotIn("condition: numeric_state", health)
+            self.assertIn(entity_id, combined)
+        self.assertEqual(abhimanyu.count("type: statistics-graph"), 3)
+        self.assertEqual(krishna.count("type: statistics-graph"), 3)
+        self.assertNotIn("type: statistics-graph", manisha)
+        self.assertEqual(combined.count("days_to_show: 7"), 6)
+        self.assertNotIn("hours_to_show: 24", combined)
+        self.assertIn("format: breaths", abhimanyu)
+        self.assertIn("Values are informational", combined)
+        self.assertIn("not medical guidance", combined)
         self.assertIn("- sensor.*heart_rate*", configuration)
         self.assertIn("- sensor.*oxygen_saturation*", configuration)
         self.assertIn("- sensor.*respiratory_rate*", configuration)
         self.assertIn("- sensor.*sleep*", configuration)
+        self.assertIn("- sensor.*blood_glucose*", configuration)
+        self.assertIn("- sensor.*blood_pressure*", configuration)
 
     def test_presence_uses_only_travelling_phone_trackers(self):
         access = json.loads((ROOT / "access/family-dashboard.json").read_text())

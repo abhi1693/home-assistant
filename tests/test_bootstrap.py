@@ -426,11 +426,12 @@ class BootstrapTests(unittest.TestCase):
     def test_family_access_is_validated_generated_and_enforced(self):
         owner_id = "owner-user-id"
         reviewer_id = "reviewer-user-id"
+        retired_id = "retired-user-id"
         self.write(
             "access/family-dashboard.json",
             json.dumps(
                 {
-                    "version": 2,
+                    "version": 3,
                     "cameras": {
                         "master-bedroom": "camera.master_bedroom",
                         "hallway": "camera.hallway",
@@ -446,10 +447,22 @@ class BootstrapTests(unittest.TestCase):
                         "shared": ["calendar.birthdays"],
                         "owner_only": ["calendar.private"],
                     },
-                    "owner_health": {
-                        "profile": "owner",
-                        "entities": ["sensor.owner_heart_rate"],
+                    "health_profiles": {
+                        "owner": {
+                            "source": "Owner phone",
+                            "entities": ["sensor.owner_heart_rate"],
+                        },
+                        "reviewer": {
+                            "source": "Reviewer phone",
+                            "entities": ["sensor.reviewer_steps"],
+                        },
                     },
+                    "retired_profiles": [
+                        {
+                            "user_id": retired_id,
+                            "username": "retired-reviewer",
+                        }
+                    ],
                     "profiles": {
                         "owner": {
                             "user_id": owner_id,
@@ -464,7 +477,7 @@ class BootstrapTests(unittest.TestCase):
                             "user_id": reviewer_id,
                             "username": "reviewer",
                             "person_entity_id": None,
-                            "is_family_member": False,
+                            "is_family_member": True,
                             "is_owner": False,
                             "enforce_camera_policy": True,
                             "cameras": ["master-bedroom"],
@@ -503,6 +516,7 @@ class BootstrapTests(unittest.TestCase):
                 "groups": [
                     {"id": "system-admin", "name": "Administrators"},
                     {"id": "system-users", "name": "Users"},
+                    {"id": "family-access-retired", "name": "Retired"},
                 ],
                 "users": [
                     {
@@ -517,6 +531,12 @@ class BootstrapTests(unittest.TestCase):
                         "is_owner": False,
                         "group_ids": ["system-users"],
                     },
+                    {
+                        "id": retired_id,
+                        "name": "Retired reviewer",
+                        "is_owner": False,
+                        "group_ids": ["family-access-retired"],
+                    },
                 ],
                 "credentials": [
                     {
@@ -528,6 +548,11 @@ class BootstrapTests(unittest.TestCase):
                         "user_id": reviewer_id,
                         "auth_provider_type": "homeassistant",
                         "data": {"username": "reviewer"},
+                    },
+                    {
+                        "user_id": retired_id,
+                        "auth_provider_type": "homeassistant",
+                        "data": {"username": "retired-reviewer"},
                     },
                 ],
             },
@@ -594,6 +619,11 @@ class BootstrapTests(unittest.TestCase):
                         "disabled_by": None,
                     },
                     {
+                        "entity_id": "sensor.reviewer_steps",
+                        "platform": "mobile_app",
+                        "disabled_by": None,
+                    },
+                    {
                         "entity_id": "calendar.birthdays",
                         "platform": "google",
                         "disabled_by": None,
@@ -609,10 +639,29 @@ class BootstrapTests(unittest.TestCase):
         (storage / "auth").write_text(json.dumps(auth))
         (storage / "person").write_text(json.dumps(person))
         (storage / "core.entity_registry").write_text(json.dumps(entities))
+        (storage / f"frontend.user_data_{retired_id}").write_text("{}")
 
         bootstrap.reconcile_family_access(self.source, self.config)
 
         reconciled = json.loads((storage / "auth").read_text())
+        self.assertNotIn(
+            retired_id,
+            {user["id"] for user in reconciled["data"]["users"]},
+        )
+        self.assertNotIn(
+            retired_id,
+            {
+                credential.get("user_id")
+                for credential in reconciled["data"]["credentials"]
+            },
+        )
+        self.assertFalse((storage / f"frontend.user_data_{retired_id}").exists())
+        retired_preferences_backup = (
+            self.config
+            / "backups"
+            / f"frontend.user_data_{retired_id}.pre-retirement"
+        )
+        self.assertTrue(retired_preferences_backup.exists())
         reviewer = next(
             user for user in reconciled["data"]["users"] if user["id"] == reviewer_id
         )
@@ -631,6 +680,7 @@ class BootstrapTests(unittest.TestCase):
                 "binary_sensor.master_bedroom_person": True,
                 "calendar.birthdays": True,
                 "sensor.office_temperature": True,
+                "sensor.reviewer_steps": True,
             },
         )
         self.assertEqual(
@@ -688,7 +738,7 @@ class BootstrapTests(unittest.TestCase):
             json.loads(
                 (self.config / "access/generated/family-members-users.json").read_text()
             ),
-            [owner_id],
+            sorted([owner_id, reviewer_id]),
         )
         self.assertTrue(
             next((self.config / "backups").glob("auth.pre-family-access-*"))
@@ -704,7 +754,7 @@ class BootstrapTests(unittest.TestCase):
             "access/family-dashboard.json",
             json.dumps(
                 {
-                    "version": 2,
+                    "version": 3,
                     "cameras": {"master-bedroom": "camera.master_bedroom"},
                     "calendars": {
                         "shared": ["calendar.birthdays"],
@@ -1012,7 +1062,7 @@ class BootstrapTests(unittest.TestCase):
             "access/family-dashboard.json",
             json.dumps(
                 {
-                    "version": 2,
+                    "version": 3,
                     "cameras": {"inside": "camera.inside"},
                     "calendars": {
                         "shared": ["calendar.birthdays"],

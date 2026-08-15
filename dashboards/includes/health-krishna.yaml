@@ -1,0 +1,169 @@
+type: grid
+column_span: 3
+visibility:
+  - condition: user
+    users: !include ../../access/generated/profile-krishna-users.json
+cards:
+  - type: heading
+    heading: Krishna · Health
+    heading_style: title
+    icon: mdi:heart-pulse
+    grid_options: { columns: 36, rows: 1 }
+  - type: custom:button-card
+    template: health_overview
+    variables:
+      person: Krishna
+      source: Pixel 10 Pro · Health Connect
+      entities:
+        - sensor.pixel_10_pro_daily_steps
+        - sensor.pixel_10_pro_daily_distance
+        - sensor.pixel_10_pro_daily_floors
+        - sensor.pixel_10_pro_daily_elevation_gained
+        - sensor.pixel_10_pro_active_calories_burned
+        - sensor.pixel_10_pro_detected_activity
+        - sensor.pixel_10_pro_sleep_duration
+        - sensor.pixel_10_pro_sleep_confidence
+    grid_options: { columns: 36, rows: auto }
+  - type: heading
+    heading: Today
+    heading_style: subtitle
+    icon: mdi:calendar-today-outline
+    grid_options: { columns: 36, rows: 1 }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.pixel_10_pro_daily_steps
+    name: Steps
+    icon: mdi:walk
+    variables: { format: steps, stale_hours: 26 }
+    styles:
+      card: [{ "--health-accent": var(--green) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.pixel_10_pro_daily_distance
+    name: Distance
+    icon: mdi:map-marker-distance
+    variables: { format: distance, stale_hours: 26 }
+    styles:
+      card: [{ "--health-accent": var(--blue) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.pixel_10_pro_daily_floors
+    name: Floors climbed
+    icon: mdi:stairs-up
+    variables: { format: floors, stale_hours: 26 }
+    styles:
+      card: [{ "--health-accent": var(--orange) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: heading
+    heading: Recovery
+    heading_style: subtitle
+    icon: mdi:sleep
+    grid_options: { columns: 36, rows: 1 }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.pixel_10_pro_sleep_duration
+    name: Sleep duration
+    icon: mdi:sleep
+    variables: { format: duration, stale_hours: 36 }
+    styles:
+      card: [{ "--health-accent": var(--purple) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.pixel_10_pro_sleep_confidence
+    name: Data confidence
+    icon: mdi:check-decagram-outline
+    variables: { format: percent, stale_hours: 36 }
+    styles:
+      card: [{ "--health-accent": var(--teal) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: heading
+    heading: Measurements
+    heading_style: subtitle
+    icon: mdi:heart-pulse
+    grid_options: { columns: 36, rows: 1 }
+  - type: markdown
+    content: >-
+      Heart rate, oxygen, breathing and body measurements are not enabled on this
+      phone. This page will not infer values or show empty clinical cards. If those
+      Companion App sensors are enabled later, they remain private to Krishna and
+      can be added here deliberately.
+    card_mod:
+      style: |
+        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
+    grid_options: { columns: 36, rows: auto }
+  - type: markdown
+    content: >-
+      Sleep remains a current snapshot and is not retained in Recorder. Freshness
+      reflects the Health Connect measurement time. Values are informational, not
+      medical guidance.
+    card_mod:
+      style: |
+        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
+    grid_options: { columns: 36, rows: auto }
+  - type: heading
+    heading: Movement · 7 days
+    heading_style: subtitle
+    icon: mdi:chart-bar
+    grid_options: { columns: 36, rows: 1 }
+  - type: statistics-graph
+    title: Steps
+    entities:
+      - entity: sensor.pixel_10_pro_daily_steps
+        name: Daily steps
+        color: "#67c587"
+    days_to_show: 7
+    period: day
+    chart_type: bar
+    stat_types: [max]
+    hide_legend: true
+    min_y_axis: 0
+    fit_y_data: true
+    card_mod:
+      style: |
+        ha-card { border-radius: 22px; background: var(--contrast2); }
+    grid_options: { columns: 12, rows: 4 }
+  - type: statistics-graph
+    title: Distance
+    entities:
+      - entity: sensor.pixel_10_pro_daily_distance
+        name: Daily distance
+        color: "#54a7e8"
+    days_to_show: 7
+    period: day
+    chart_type: bar
+    stat_types: [max]
+    hide_legend: true
+    min_y_axis: 0
+    fit_y_data: true
+    card_mod:
+      style: |
+        ha-card { border-radius: 22px; background: var(--contrast2); }
+    grid_options: { columns: 12, rows: 4 }
+  - type: statistics-graph
+    title: Floors climbed
+    entities:
+      - entity: sensor.pixel_10_pro_daily_floors
+        name: Daily floors
+        color: "#ef9f59"
+    days_to_show: 7
+    period: day
+    chart_type: bar
+    stat_types: [max]
+    hide_legend: true
+    min_y_axis: 0
+    fit_y_data: true
+    card_mod:
+      style: |
+        ha-card { border-radius: 22px; background: var(--contrast2); }
+    grid_options: { columns: 12, rows: 4 }
+  - type: markdown
+    content: >-
+      Daily bars use long-term statistics and handle midnight resets cleanly. Until
+      enough days accumulate, the chart acts as an honest “building baseline” view.
+    card_mod:
+      style: |
+        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
+    grid_options: { columns: 36, rows: auto }

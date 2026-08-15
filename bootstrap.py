@@ -852,11 +852,11 @@ def reconcile_camera_activity_entity_ids(
 
 
 def reconcile_family_access(source: Path, config: Path) -> None:
-    """Validate and reconcile Git-owned dashboard users and camera access."""
+    """Validate and reconcile Git-owned dashboard users and private access."""
     access_path = source / "access/family-dashboard.json"
     access = json.loads(access_path.read_text())
     streams = json.loads((source / "access/protect-streams.json").read_text())
-    if access.get("version") != 2:
+    if access.get("version") != 3:
         raise RuntimeError("Unsupported family dashboard access schema")
     if streams.get("version") not in {1, 2, 3}:
         raise RuntimeError("Unsupported Protect stream policy schema")
@@ -889,7 +889,46 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                     f"Home Assistant user {user_id} has multiple local usernames"
                 )
             usernames[user_id] = username
+    retired_profiles = access.get("retired_profiles", [])
+    if not isinstance(retired_profiles, list):
+        raise RuntimeError("Retired family profiles must be a list")
+    for retired in retired_profiles:
+        user_id = retired.get("user_id") if isinstance(retired, dict) else None
+        username = retired.get("username") if isinstance(retired, dict) else None
+        if not isinstance(user_id, str) or not isinstance(username, str):
+            raise RuntimeError("Retired family profile identity is invalid")
+        user = users.get(user_id)
+        if user is None:
+            continue
+        if user.get("is_owner") or usernames.get(user_id) != username:
+            raise RuntimeError(
+                f"Refusing to retire changed or owner profile {username}"
+            )
+        auth["data"]["users"] = [
+            item for item in auth["data"]["users"] if item["id"] != user_id
+        ]
+        auth["data"]["credentials"] = [
+            item
+            for item in auth["data"].get("credentials", [])
+            if item.get("user_id") != user_id
+        ]
+        users.pop(user_id)
+        usernames.pop(user_id, None)
+        preference = config / ".storage" / f"frontend.user_data_{user_id}"
+        if preference.exists():
+            backup = config / "backups" / f"{preference.name}.pre-retirement"
+            backup.parent.mkdir(parents=True, exist_ok=True)
+            if not backup.exists():
+                shutil.copy2(preference, backup)
+            preference.unlink()
+        print(f"Retired Home Assistant profile {username}")
     people_items = person["data"]["items"]
+    retired_user_ids = {
+        item["user_id"] for item in retired_profiles if isinstance(item, dict)
+    }
+    for item in people_items:
+        if item.get("user_id") in retired_user_ids:
+            item["user_id"] = None
     people = {item["id"]: item for item in people_items}
     entities = {
         item["entity_id"]: item for item in entity_registry["data"]["entities"]
@@ -900,20 +939,38 @@ def reconcile_family_access(source: Path, config: Path) -> None:
         if entity_id.partition(".")[0] not in {"calendar", "camera"}
     }
 
-    owner_health = access.get("owner_health", {})
-    owner_health_profile = owner_health.get("profile")
-    owner_health_entities = owner_health.get("entities", [])
-    owner_profile = access.get("profiles", {}).get(owner_health_profile)
-    if owner_health:
+    profiles = access.get("profiles", {})
+    health_profiles = access.get("health_profiles", {})
+    family_profile_keys = {
+        profile_key
+        for profile_key, profile in profiles.items()
+        if profile.get("is_family_member")
+    }
+    if (
+        not isinstance(health_profiles, dict)
+        or set(health_profiles) != family_profile_keys
+    ):
+        raise RuntimeError(
+            "Every family member must have exactly one private health profile"
+        )
+    private_health_entities_by_profile = {}
+    private_health_entities = set()
+    for profile_key, health_profile in health_profiles.items():
+        profile = profiles.get(profile_key)
+        health_entities = health_profile.get("entities", [])
         if (
-            not owner_health_profile
-            or not owner_profile
-            or not owner_profile.get("is_owner")
-            or not owner_health_entities
-            or len(owner_health_entities) != len(set(owner_health_entities))
+            profile is None
+            or not profile.get("is_family_member")
+            or not isinstance(health_profile.get("source"), str)
+            or not health_profile["source"].strip()
+            or not health_entities
+            or len(health_entities) != len(set(health_entities))
         ):
-            raise RuntimeError("Owner health privacy contract is invalid")
-        for entity_id in owner_health_entities:
+            raise RuntimeError(
+                f"Private health profile {profile_key} is invalid"
+            )
+        private_health_entities_by_profile[profile_key] = set(health_entities)
+        for entity_id in health_entities:
             entity = entities.get(entity_id)
             if (
                 not isinstance(entity_id, str)
@@ -922,11 +979,15 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                 or entity.get("platform") != "mobile_app"
             ):
                 raise RuntimeError(
-                    f"Owner health entity is not a Companion App sensor: {entity_id}"
+                    f"Private health entity is not a Companion App sensor: {entity_id}"
                 )
-    owner_health_entities = set(owner_health_entities)
-    owner_health_domains = {
-        entity_id.partition(".")[0] for entity_id in owner_health_entities
+            if entity_id in private_health_entities:
+                raise RuntimeError(
+                    f"Private health entity belongs to multiple profiles: {entity_id}"
+                )
+            private_health_entities.add(entity_id)
+    private_health_domains = {
+        entity_id.partition(".")[0] for entity_id in private_health_entities
     }
 
     calendars = access.get("calendars", {})
@@ -1116,7 +1177,7 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             ):
                 raise RuntimeError(f"Camera {camera_key} alert severity is invalid")
 
-    private_domains = owner_health_domains | {
+    private_domains = private_health_domains | {
         entity_id.partition(".")[0]
         for entity_id in protected_camera_entities
     }
@@ -1125,7 +1186,7 @@ def reconcile_family_access(source: Path, config: Path) -> None:
         entity_id
         for entity_id in entities
         if entity_id.partition(".")[0] in private_domains
-        and entity_id not in owner_health_entities
+        and entity_id not in private_health_entities
         and entity_id not in protected_camera_entities
     )
 
@@ -1277,6 +1338,9 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                     [
                         *allowed_entities,
                         *shared_calendars,
+                        *sorted(
+                            private_health_entities_by_profile.get(profile_key, set())
+                        ),
                         *family_public_entities,
                     ],
                     family_unrestricted_domains,

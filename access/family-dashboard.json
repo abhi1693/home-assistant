@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "default_dashboard": "home-tablet",
   "cameras": {
     "kitchen": "camera.g5_turret_ultra_high_resolution_channel_2",
@@ -137,34 +137,95 @@
       }
     }
   },
-  "owner_health": {
-    "profile": "abhimanyu-saharan",
-    "entities": [
-      "sensor.pixel_8_active_calories_burned",
-      "sensor.pixel_8_basal_body_temperature",
-      "sensor.pixel_8_blood_glucose",
-      "sensor.pixel_8_body_fat",
-      "sensor.pixel_8_body_temperature",
-      "sensor.pixel_8_body_water_mass",
-      "sensor.pixel_8_daily_distance",
-      "sensor.pixel_8_daily_steps",
-      "sensor.pixel_8_detected_activity",
-      "sensor.pixel_8_diastolic_blood_pressure",
-      "sensor.pixel_8_heart_rate",
-      "sensor.pixel_8_heart_rate_variability",
-      "sensor.pixel_8_lean_body_mass",
-      "sensor.pixel_8_oxygen_saturation",
-      "sensor.pixel_8_respiratory_rate",
-      "sensor.pixel_8_resting_heart_rate",
-      "sensor.pixel_8_sleep_confidence",
-      "sensor.pixel_8_sleep_duration",
-      "sensor.pixel_8_sleep_segment",
-      "sensor.pixel_8_steps_sensor",
-      "sensor.pixel_8_systolic_blood_pressure",
-      "sensor.pixel_8_total_calories_burned",
-      "sensor.pixel_8_weight"
-    ]
+  "health_profiles": {
+    "abhimanyu-saharan": {
+      "source": "Pixel 8 · Health Connect",
+      "entities": [
+        "sensor.pixel_8_active_calories_burned",
+        "sensor.pixel_8_basal_body_temperature",
+        "sensor.pixel_8_basal_metabolic_rate",
+        "sensor.pixel_8_blood_glucose",
+        "sensor.pixel_8_body_fat",
+        "sensor.pixel_8_body_temperature",
+        "sensor.pixel_8_body_water_mass",
+        "sensor.pixel_8_bone_mass",
+        "sensor.pixel_8_daily_distance",
+        "sensor.pixel_8_daily_elevation_gained",
+        "sensor.pixel_8_daily_floors",
+        "sensor.pixel_8_daily_hydration",
+        "sensor.pixel_8_daily_steps",
+        "sensor.pixel_8_detected_activity",
+        "sensor.pixel_8_diastolic_blood_pressure",
+        "sensor.pixel_8_heart_rate",
+        "sensor.pixel_8_heart_rate_variability",
+        "sensor.pixel_8_height",
+        "sensor.pixel_8_lean_body_mass",
+        "sensor.pixel_8_oxygen_saturation",
+        "sensor.pixel_8_respiratory_rate",
+        "sensor.pixel_8_resting_heart_rate",
+        "sensor.pixel_8_sleep_confidence",
+        "sensor.pixel_8_sleep_duration",
+        "sensor.pixel_8_sleep_segment",
+        "sensor.pixel_8_steps_sensor",
+        "sensor.pixel_8_systolic_blood_pressure",
+        "sensor.pixel_8_total_calories_burned",
+        "sensor.pixel_8_vo2_max",
+        "sensor.pixel_8_weight"
+      ]
+    },
+    "krishna": {
+      "source": "Pixel 10 Pro · Health Connect",
+      "entities": [
+        "sensor.pixel_10_pro_active_calories_burned",
+        "sensor.pixel_10_pro_basal_body_temperature",
+        "sensor.pixel_10_pro_basal_metabolic_rate",
+        "sensor.pixel_10_pro_blood_glucose",
+        "sensor.pixel_10_pro_body_fat",
+        "sensor.pixel_10_pro_body_temperature",
+        "sensor.pixel_10_pro_body_water_mass",
+        "sensor.pixel_10_pro_bone_mass",
+        "sensor.pixel_10_pro_daily_distance",
+        "sensor.pixel_10_pro_daily_elevation_gained",
+        "sensor.pixel_10_pro_daily_floors",
+        "sensor.pixel_10_pro_daily_hydration",
+        "sensor.pixel_10_pro_daily_steps",
+        "sensor.pixel_10_pro_detected_activity",
+        "sensor.pixel_10_pro_diastolic_blood_pressure",
+        "sensor.pixel_10_pro_heart_rate",
+        "sensor.pixel_10_pro_heart_rate_variability",
+        "sensor.pixel_10_pro_height",
+        "sensor.pixel_10_pro_lean_body_mass",
+        "sensor.pixel_10_pro_oxygen_saturation",
+        "sensor.pixel_10_pro_respiratory_rate",
+        "sensor.pixel_10_pro_resting_heart_rate",
+        "sensor.pixel_10_pro_sleep_confidence",
+        "sensor.pixel_10_pro_sleep_duration",
+        "sensor.pixel_10_pro_sleep_segment",
+        "sensor.pixel_10_pro_steps_sensor",
+        "sensor.pixel_10_pro_systolic_blood_pressure",
+        "sensor.pixel_10_pro_total_calories_burned",
+        "sensor.pixel_10_pro_vo2_max",
+        "sensor.pixel_10_pro_weight"
+      ]
+    },
+    "manisha": {
+      "source": "iPhone · Motion & Fitness",
+      "entities": [
+        "sensor.iphone_activity",
+        "sensor.iphone_average_active_pace",
+        "sensor.iphone_distance",
+        "sensor.iphone_floors_ascended",
+        "sensor.iphone_floors_descended",
+        "sensor.iphone_steps"
+      ]
+    }
   },
+  "retired_profiles": [
+    {
+      "user_id": "2d1be8070c364e6a9ba70103c007d4d0",
+      "username": "codex-dashboard-review"
+    }
+  ],
   "profiles": {
     "abhimanyu-saharan": {
       "user_id": "9302d11f48c64fe796a3c9e5cb563650",
@@ -241,17 +302,6 @@
         "outside"
       ],
       "notes": "Wife profile. Shared cameras exclude the Master Bedroom camera."
-    },
-    "codex-dashboard-reviewer": {
-      "user_id": "2d1be8070c364e6a9ba70103c007d4d0",
-      "username": "codex-dashboard-review",
-      "person_entity_id": null,
-      "is_family_member": false,
-      "is_owner": false,
-      "default_dashboard": "home-tablet",
-      "enforce_camera_policy": true,
-      "cameras": [],
-      "notes": "Temporary browser-validation profile; remove after dashboard acceptance."
     }
   }
 }

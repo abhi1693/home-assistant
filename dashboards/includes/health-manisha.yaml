@@ -1,0 +1,121 @@
+type: grid
+column_span: 3
+visibility:
+  - condition: user
+    users: !include ../../access/generated/profile-manisha-users.json
+cards:
+  - type: heading
+    heading: Manisha · Health
+    heading_style: title
+    icon: mdi:heart-pulse
+    grid_options: { columns: 36, rows: 1 }
+  - type: custom:button-card
+    template: health_overview
+    variables:
+      person: Manisha
+      source: iPhone · Motion & Fitness
+      entities:
+        - sensor.iphone_steps
+        - sensor.iphone_distance
+        - sensor.iphone_average_active_pace
+        - sensor.iphone_floors_ascended
+        - sensor.iphone_floors_descended
+        - sensor.iphone_activity
+    grid_options: { columns: 36, rows: auto }
+  - type: heading
+    heading: Today
+    heading_style: subtitle
+    icon: mdi:calendar-today-outline
+    grid_options: { columns: 36, rows: 1 }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.iphone_steps
+    name: Steps
+    icon: mdi:walk
+    variables: { format: steps, stale_hours: 26 }
+    styles:
+      card: [{ "--health-accent": var(--green) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.iphone_distance
+    name: Distance
+    icon: mdi:map-marker-distance
+    variables: { format: distance, stale_hours: 26 }
+    styles:
+      card: [{ "--health-accent": var(--blue) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.iphone_average_active_pace
+    name: Active pace
+    icon: mdi:speedometer
+    variables: { format: pace, stale_hours: 26 }
+    styles:
+      card: [{ "--health-accent": var(--pink) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.iphone_floors_ascended
+    name: Floors ascended
+    icon: mdi:stairs-up
+    variables: { format: floors, stale_hours: 26 }
+    styles:
+      card: [{ "--health-accent": var(--orange) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.iphone_floors_descended
+    name: Floors descended
+    icon: mdi:stairs-down
+    variables: { format: floors, stale_hours: 26 }
+    styles:
+      card: [{ "--health-accent": var(--purple) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.iphone_activity
+    name: Current activity
+    icon: mdi:run
+    variables: { format: activity, stale_hours: 6 }
+    styles:
+      card: [{ "--health-accent": var(--teal) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: heading
+    heading: Recovery and measurements
+    heading_style: subtitle
+    icon: mdi:heart-outline
+    grid_options: { columns: 36, rows: 1 }
+  - type: markdown
+    content: >-
+      This iPhone currently publishes Motion & Fitness activity only. Sleep, heart,
+      oxygen and recovery signals are not available, so the page stays focused on
+      the data the phone actually supplies instead of presenting empty cards.
+    card_mod:
+      style: |
+        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
+    grid_options: { columns: 36, rows: auto }
+  - type: heading
+    heading: Movement trend
+    heading_style: subtitle
+    icon: mdi:chart-bar
+    grid_options: { columns: 36, rows: 1 }
+  - type: markdown
+    content: >-
+      The iPhone entities do not yet publish Home Assistant statistics metadata.
+      Current values and their freshness are shown above; a seven-day chart will be
+      added only when the source can represent daily resets without misleading
+      midnight drops.
+    card_mod:
+      style: |
+        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
+    grid_options: { columns: 36, rows: auto }
+  - type: markdown
+    content: >-
+      These Motion & Fitness entities are private to Manisha. Other family accounts
+      cannot read them, and non-family accounts receive no health access. Values
+      are informational, not medical guidance.
+    card_mod:
+      style: |
+        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
+    grid_options: { columns: 36, rows: auto }

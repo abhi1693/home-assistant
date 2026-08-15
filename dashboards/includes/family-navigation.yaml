@@ -65,13 +65,23 @@ routes:
       ]]]
     hidden: |
       [[[
+        const healthUsers = [
+          '9302d11f48c64fe796a3c9e5cb563650',
+          '8117b77542614a06b4672a8ae1a979b5',
+          '734722ec932a41a68d47553b6c2f7f5d',
+        ];
         return navbar.isDesktop || (!user?.is_admin &&
-          user?.id !== '9302d11f48c64fe796a3c9e5cb563650');
+          !healthUsers.includes(user?.id));
       ]]]
     popup: |
       [[[
         const items = [];
-        if (user?.id === '9302d11f48c64fe796a3c9e5cb563650') {
+        const healthUsers = [
+          '9302d11f48c64fe796a3c9e5cb563650',
+          '8117b77542614a06b4672a8ae1a979b5',
+          '734722ec932a41a68d47553b6c2f7f5d',
+        ];
+        if (healthUsers.includes(user?.id)) {
           items.push({
             icon: 'mdi:heart-pulse',
             icon_selected: 'mdi:heart',
@@ -103,8 +113,13 @@ routes:
     label: Health
     hidden: |
       [[[
+        const healthUsers = [
+          '9302d11f48c64fe796a3c9e5cb563650',
+          '8117b77542614a06b4672a8ae1a979b5',
+          '734722ec932a41a68d47553b6c2f7f5d',
+        ];
         return !navbar.isDesktop ||
-          user?.id !== '9302d11f48c64fe796a3c9e5cb563650';
+          !healthUsers.includes(user?.id);
       ]]]
   - icon: mdi:server-network-outline
     icon_selected: mdi:server-network

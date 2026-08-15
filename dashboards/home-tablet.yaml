@@ -556,6 +556,95 @@ button_card_templates:
       icon:
         - color: var(--purple)
 
+  health_overview:
+    show_icon: true
+    show_name: true
+    show_state: true
+    show_label: true
+    show_entity_picture: false
+    name: |
+      [[[
+        return `${variables.person || 'Your'} health`;
+      ]]]
+    icon: mdi:heart-pulse
+    state_display: |
+      [[[
+        const ids = Array.isArray(variables.entities) ? variables.entities : [];
+        const available = ids
+          .map((id) => states[id])
+          .filter((item) => item && !['unknown', 'unavailable', 'none', ''].includes(
+            String(item.state).toLowerCase()));
+        if (!ids.length) return 'No health signals configured';
+        return `${available.length} of ${ids.length} signals available`;
+      ]]]
+    label: |
+      [[[
+        const ids = Array.isArray(variables.entities) ? variables.entities : [];
+        const updates = ids
+          .map((id) => states[id]?.last_updated)
+          .map((raw) => raw ? new Date(raw).getTime() : NaN)
+          .filter(Number.isFinite);
+        if (!updates.length) return `${variables.source || 'Companion App'} · Waiting for sync`;
+        const minutes = Math.max(0, Math.floor((Date.now() - Math.max(...updates)) / 60000));
+        const freshness = minutes < 2 ? 'synced just now'
+          : minutes < 60 ? `synced ${minutes} min ago`
+          : minutes < 1440 ? `synced ${Math.floor(minutes / 60)} hr ago`
+          : `last sync ${new Date(Math.max(...updates)).toLocaleDateString([], {
+              day: 'numeric', month: 'short'
+            })}`;
+        return `${variables.source || 'Companion App'} · ${freshness}`;
+      ]]]
+    custom_fields:
+      privacy: Private to your account
+    tap_action: { action: none }
+    hold_action: { action: none }
+    styles:
+      grid:
+        - grid-template-areas: '"i n" "i s" "i l" ". privacy"'
+        - grid-template-columns: 58px minmax(0, 1fr)
+        - grid-template-rows: min-content min-content min-content min-content
+        - column-gap: 14px
+      card:
+        - min-height: 124px
+        - padding: 18px 20px
+        - border-radius: 26px
+        - background: linear-gradient(120deg, color-mix(in srgb, var(--pink) 13%, var(--contrast2)), var(--contrast2))
+        - border: 1px solid color-mix(in srgb, var(--pink) 24%, transparent)
+        - box-shadow: none
+      img_cell:
+        - width: 54px
+        - height: 54px
+        - border-radius: 18px
+        - background: color-mix(in srgb, var(--pink) 18%, transparent)
+      icon:
+        - width: 29px
+        - color: var(--pink)
+      name:
+        - justify-self: start
+        - color: var(--contrast20)
+        - font-size: 22px
+        - font-weight: 760
+      state:
+        - justify-self: start
+        - color: var(--contrast12)
+        - font-size: 14px
+        - font-weight: 650
+      label:
+        - justify-self: start
+        - color: var(--contrast9)
+        - font-size: 12px
+      custom_fields:
+        privacy:
+          - align-self: start
+          - justify-self: start
+          - margin-top: 8px
+          - padding: 7px 10px
+          - border-radius: 999px
+          - background: color-mix(in srgb, var(--green) 13%, var(--contrast3))
+          - color: var(--green)
+          - font-size: 11px
+          - font-weight: 700
+
   health_metric:
     show_icon: true
     show_name: true
@@ -563,16 +652,24 @@ button_card_templates:
     show_label: true
     state_display: |
       [[[
-        const value = Number(entity?.state);
-        if (!entity || ['unknown', 'unavailable'].includes(entity.state)
-            || !Number.isFinite(value)) return '—';
+        if (!entity || ['unknown', 'unavailable'].includes(entity.state)) return '—';
+        if (variables.format === 'activity') {
+          return String(entity.state)
+            .replaceAll('_', ' ')
+            .replace(/\b\w/g, (letter) => letter.toUpperCase());
+        }
+        const value = Number(entity.state);
+        if (!Number.isFinite(value)) return '—';
         if (variables.format === 'steps') return Math.round(value).toLocaleString();
         if (variables.format === 'distance') {
           return value >= 1000 ? `${(value / 1000).toFixed(1)} km` : `${Math.round(value)} m`;
         }
         if (variables.format === 'calories') return `${Math.round(value).toLocaleString()} kcal`;
         if (variables.format === 'heart') return `${Math.round(value)} bpm`;
+        if (variables.format === 'breaths') return `${Math.round(value)} breaths/min`;
         if (variables.format === 'percent') return `${Math.round(value)}%`;
+        if (variables.format === 'floors') return `${Math.round(value)} floors`;
+        if (variables.format === 'pace') return `${value.toFixed(1)} m/s`;
         if (variables.format === 'duration') {
           const hours = Math.floor(value / 60);
           const minutes = Math.round(value % 60);
@@ -590,13 +687,17 @@ button_card_templates:
           || entity.attributes?.endTime
           || entity.attributes?.timestamp
           || entity.last_updated;
-        const measured = typeof raw === 'number' ? new Date(raw) : new Date(raw);
+        const normalized = typeof raw === 'number' && raw < 100000000000
+          ? raw * 1000 : raw;
+        const measured = new Date(normalized);
         if (Number.isNaN(measured.getTime())) return 'Latest reading';
         const minutes = Math.max(0, Math.floor((Date.now() - measured.getTime()) / 60000));
-        if (minutes < 2) return 'Just updated';
-        if (minutes < 60) return `${minutes} min ago`;
-        if (minutes < 1440) return `${Math.floor(minutes / 60)} hr ago`;
-        return measured.toLocaleDateString([], {day: 'numeric', month: 'short'});
+        const staleMinutes = Number(variables.stale_hours || 26) * 60;
+        const relative = minutes < 2 ? 'just updated'
+          : minutes < 60 ? `${minutes} min ago`
+          : minutes < 1440 ? `${Math.floor(minutes / 60)} hr ago`
+          : measured.toLocaleDateString([], {day: 'numeric', month: 'short'});
+        return minutes > staleMinutes ? `Stale · ${relative}` : `Updated ${relative}`;
       ]]]
     tap_action: { action: more-info }
     hold_action: { action: none }
@@ -634,7 +735,21 @@ button_card_templates:
         - line-height: 22px
       label:
         - justify-self: start
-        - color: var(--contrast9)
+        - color: |
+            [[[
+              if (!entity || ['unknown', 'unavailable'].includes(entity.state)) {
+                return 'var(--orange)';
+              }
+              const raw = entity.attributes?.date || entity.attributes?.endTime
+                || entity.attributes?.timestamp || entity.last_updated;
+              const normalized = typeof raw === 'number' && raw < 100000000000
+                ? raw * 1000 : raw;
+              const measured = new Date(normalized);
+              const age = Date.now() - measured.getTime();
+              return Number.isFinite(age)
+                && age > Number(variables.stale_hours || 26) * 3600000
+                ? 'var(--orange)' : 'var(--contrast9)';
+            ]]]
         - font-size: 11px
 
   family_commute:
@@ -2614,215 +2729,12 @@ views:
     theme: Family Dark
     max_columns: 3
     dense_section_placement: true
-    visible: !include ../access/generated/profile-abhimanyu-saharan-users.json
+    visible: !include ../access/generated/family-members-users.json
     sections:
+      - !include includes/health-abhimanyu.yaml
+      - !include includes/health-krishna.yaml
+      - !include includes/health-manisha.yaml
       - type: grid
         column_span: 3
-        visibility:
-          - condition: user
-            users: !include ../access/generated/profile-abhimanyu-saharan-users.json
-        cards:
-          - type: heading
-            heading: Health
-            heading_style: title
-            icon: mdi:heart-pulse
-            grid_options: { columns: 36, rows: 1 }
-          - type: markdown
-            content: >-
-              A private view of today's movement, latest measurements and sleep.
-            card_mod:
-              style: |
-                ha-card {
-                  border-radius: 22px;
-                  background: linear-gradient(120deg, color-mix(in srgb, var(--pink) 12%, var(--contrast2)), var(--contrast2));
-                  border: 1px solid color-mix(in srgb, var(--pink) 20%, transparent);
-                }
-            grid_options: { columns: 36, rows: auto }
-          - type: heading
-            heading: Today
-            heading_style: subtitle
-            icon: mdi:calendar-today-outline
-            grid_options: { columns: 36, rows: 1 }
-          - type: custom:family-responsive-grid-card
-            min_width: 220
-            cards:
-              - type: custom:button-card
-                template: health_metric
-                entity: sensor.pixel_8_daily_steps
-                name: Steps
-                icon: mdi:walk
-                variables: { format: steps }
-                styles:
-                  card: [{ "--health-accent": var(--green) }]
-              - type: custom:button-card
-                template: health_metric
-                entity: sensor.pixel_8_daily_distance
-                name: Distance
-                icon: mdi:map-marker-distance
-                variables: { format: distance }
-                styles:
-                  card: [{ "--health-accent": var(--blue) }]
-              - type: custom:button-card
-                template: health_metric
-                entity: sensor.pixel_8_total_calories_burned
-                name: Energy burned
-                icon: mdi:fire
-                variables: { format: calories }
-                styles:
-                  card: [{ "--health-accent": var(--orange) }]
-            grid_options: { columns: 36, rows: auto }
-          - type: heading
-            heading: Latest measurements
-            heading_style: subtitle
-            icon: mdi:heart-pulse
-            grid_options: { columns: 36, rows: 1 }
-          - type: custom:family-responsive-grid-card
-            min_width: 220
-            cards:
-              - type: custom:button-card
-                template: health_metric
-                entity: sensor.pixel_8_heart_rate
-                name: Heart rate
-                icon: mdi:heart-pulse
-                variables: { format: heart }
-                styles:
-                  card: [{ "--health-accent": var(--pink) }]
-              - type: custom:button-card
-                template: health_metric
-                entity: sensor.pixel_8_oxygen_saturation
-                name: Oxygen
-                icon: mdi:water-percent
-                variables: { format: percent }
-                styles:
-                  card: [{ "--health-accent": var(--blue) }]
-              - type: conditional
-                conditions:
-                  - condition: state
-                    entity: sensor.pixel_8_resting_heart_rate
-                    state_not: unknown
-                  - condition: state
-                    entity: sensor.pixel_8_resting_heart_rate
-                    state_not: unavailable
-                card:
-                  type: custom:button-card
-                  template: health_metric
-                  entity: sensor.pixel_8_resting_heart_rate
-                  name: Resting heart rate
-                  icon: mdi:heart-outline
-                  variables: { format: heart }
-                  styles:
-                    card: [{ "--health-accent": var(--purple) }]
-              - type: conditional
-                conditions:
-                  - condition: state
-                    entity: sensor.pixel_8_heart_rate_variability
-                    state_not: unknown
-                  - condition: state
-                    entity: sensor.pixel_8_heart_rate_variability
-                    state_not: unavailable
-                card:
-                  type: custom:button-card
-                  template: health_metric
-                  entity: sensor.pixel_8_heart_rate_variability
-                  name: Heart rate variability
-                  icon: mdi:chart-timeline-variant-shimmer
-                  styles:
-                    card: [{ "--health-accent": var(--teal) }]
-              - type: conditional
-                conditions:
-                  - condition: state
-                    entity: sensor.pixel_8_respiratory_rate
-                    state_not: unknown
-                  - condition: state
-                    entity: sensor.pixel_8_respiratory_rate
-                    state_not: unavailable
-                card:
-                  type: custom:button-card
-                  template: health_metric
-                  entity: sensor.pixel_8_respiratory_rate
-                  name: Breathing rate
-                  icon: mdi:lungs
-                  variables: { format: heart }
-                  styles:
-                    card: [{ "--health-accent": var(--green) }]
-            grid_options: { columns: 36, rows: auto }
-          - type: heading
-            heading: Sleep
-            heading_style: subtitle
-            icon: mdi:sleep
-            grid_options: { columns: 36, rows: 1 }
-          - type: custom:family-responsive-grid-card
-            min_width: 220
-            cards:
-              - type: custom:button-card
-                template: health_metric
-                entity: sensor.pixel_8_sleep_duration
-                name: Sleep duration
-                icon: mdi:sleep
-                variables: { format: duration }
-                styles:
-                  card: [{ "--health-accent": var(--purple) }]
-              - type: custom:button-card
-                template: health_metric
-                entity: sensor.pixel_8_sleep_confidence
-                name: Data confidence
-                icon: mdi:check-decagram-outline
-                variables: { format: percent }
-                styles:
-                  card: [{ "--health-accent": var(--teal) }]
-            grid_options: { columns: 36, rows: auto }
-          - type: markdown
-            content: >-
-              Heart, oxygen, breathing and sleep readings stay as current snapshots;
-              Home Assistant does not retain their history.
-            card_mod:
-              style: |
-                ha-card {
-                  border-radius: 18px;
-                  background: var(--contrast2);
-                  color: var(--contrast10);
-                }
-            grid_options: { columns: 36, rows: auto }
-          - type: heading
-            heading: Activity · 24 hours
-            heading_style: subtitle
-            icon: mdi:chart-line
-            grid_options: { columns: 36, rows: 1 }
-          - type: custom:family-responsive-grid-card
-            min_width: 280
-            cards:
-              - type: sensor
-                entity: sensor.pixel_8_daily_steps
-                name: Steps
-                graph: line
-                hours_to_show: 24
-                detail: 2
-                card_mod:
-                  style: |
-                    ha-card { border-radius: 22px; background: var(--contrast2); }
-              - type: sensor
-                entity: sensor.pixel_8_daily_distance
-                name: Distance
-                graph: line
-                hours_to_show: 24
-                detail: 2
-                card_mod:
-                  style: |
-                    ha-card { border-radius: 22px; background: var(--contrast2); }
-              - type: sensor
-                entity: sensor.pixel_8_total_calories_burned
-                name: Energy burned
-                graph: line
-                hours_to_show: 24
-                detail: 2
-                card_mod:
-                  style: |
-                    ha-card { border-radius: 22px; background: var(--contrast2); }
-            grid_options: { columns: 36, rows: auto }
-      - type: grid
-        column_span: 3
-        visibility:
-          - condition: user
-            users: !include ../access/generated/profile-abhimanyu-saharan-users.json
         cards:
           - *family_navigation

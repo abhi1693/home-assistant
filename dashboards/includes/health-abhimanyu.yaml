@@ -1,0 +1,235 @@
+type: grid
+column_span: 3
+visibility:
+  - condition: user
+    users: !include ../../access/generated/profile-abhimanyu-saharan-users.json
+cards:
+  - type: heading
+    heading: Abhimanyu · Health
+    heading_style: title
+    icon: mdi:heart-pulse
+    grid_options: { columns: 36, rows: 1 }
+  - type: custom:button-card
+    template: health_overview
+    variables:
+      person: Abhimanyu
+      source: Pixel 8 · Health Connect
+      entities:
+        - sensor.pixel_8_daily_steps
+        - sensor.pixel_8_daily_distance
+        - sensor.pixel_8_total_calories_burned
+        - sensor.pixel_8_heart_rate
+        - sensor.pixel_8_oxygen_saturation
+        - sensor.pixel_8_resting_heart_rate
+        - sensor.pixel_8_heart_rate_variability
+        - sensor.pixel_8_respiratory_rate
+        - sensor.pixel_8_sleep_duration
+        - sensor.pixel_8_sleep_confidence
+    grid_options: { columns: 36, rows: auto }
+  - type: heading
+    heading: Today
+    heading_style: subtitle
+    icon: mdi:calendar-today-outline
+    grid_options: { columns: 36, rows: 1 }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.pixel_8_daily_steps
+    name: Steps
+    icon: mdi:walk
+    variables: { format: steps, stale_hours: 26 }
+    styles:
+      card: [{ "--health-accent": var(--green) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.pixel_8_daily_distance
+    name: Distance
+    icon: mdi:map-marker-distance
+    variables: { format: distance, stale_hours: 26 }
+    styles:
+      card: [{ "--health-accent": var(--blue) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.pixel_8_total_calories_burned
+    name: Energy burned
+    icon: mdi:fire
+    variables: { format: calories, stale_hours: 26 }
+    styles:
+      card: [{ "--health-accent": var(--orange) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: heading
+    heading: Recovery
+    heading_style: subtitle
+    icon: mdi:sleep
+    grid_options: { columns: 36, rows: 1 }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.pixel_8_sleep_duration
+    name: Sleep duration
+    icon: mdi:sleep
+    variables: { format: duration, stale_hours: 36 }
+    styles:
+      card: [{ "--health-accent": var(--purple) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.pixel_8_sleep_confidence
+    name: Data confidence
+    icon: mdi:check-decagram-outline
+    variables: { format: percent, stale_hours: 36 }
+    styles:
+      card: [{ "--health-accent": var(--teal) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: heading
+    heading: Latest measurements
+    heading_style: subtitle
+    icon: mdi:heart-pulse
+    grid_options: { columns: 36, rows: 1 }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.pixel_8_heart_rate
+    name: Heart rate
+    icon: mdi:heart-pulse
+    variables: { format: heart, stale_hours: 8 }
+    styles:
+      card: [{ "--health-accent": var(--pink) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: custom:button-card
+    template: health_metric
+    entity: sensor.pixel_8_oxygen_saturation
+    name: Oxygen
+    icon: mdi:water-percent
+    variables: { format: percent, stale_hours: 24 }
+    styles:
+      card: [{ "--health-accent": var(--blue) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: sensor.pixel_8_resting_heart_rate
+        state_not: unknown
+      - condition: state
+        entity: sensor.pixel_8_resting_heart_rate
+        state_not: unavailable
+    card:
+      type: custom:button-card
+      template: health_metric
+      entity: sensor.pixel_8_resting_heart_rate
+      name: Resting heart rate
+      icon: mdi:heart-outline
+      variables: { format: heart, stale_hours: 26 }
+      styles:
+        card: [{ "--health-accent": var(--purple) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: sensor.pixel_8_heart_rate_variability
+        state_not: unknown
+      - condition: state
+        entity: sensor.pixel_8_heart_rate_variability
+        state_not: unavailable
+    card:
+      type: custom:button-card
+      template: health_metric
+      entity: sensor.pixel_8_heart_rate_variability
+      name: Heart rate variability
+      icon: mdi:chart-timeline-variant-shimmer
+      variables: { stale_hours: 26 }
+      styles:
+        card: [{ "--health-accent": var(--teal) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: sensor.pixel_8_respiratory_rate
+        state_not: unknown
+      - condition: state
+        entity: sensor.pixel_8_respiratory_rate
+        state_not: unavailable
+    card:
+      type: custom:button-card
+      template: health_metric
+      entity: sensor.pixel_8_respiratory_rate
+      name: Breathing rate
+      icon: mdi:lungs
+      variables: { format: breaths, stale_hours: 26 }
+      styles:
+        card: [{ "--health-accent": var(--green) }]
+    grid_options: { columns: 12, rows: auto }
+  - type: markdown
+    content: >-
+      Measurements and sleep remain current snapshots: Home Assistant does not
+      retain their history. Freshness reflects the measurement time supplied by
+      Health Connect, not merely the latest phone sync. Values are informational,
+      not medical guidance.
+    card_mod:
+      style: |
+        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
+    grid_options: { columns: 36, rows: auto }
+  - type: heading
+    heading: Movement · 7 days
+    heading_style: subtitle
+    icon: mdi:chart-bar
+    grid_options: { columns: 36, rows: 1 }
+  - type: statistics-graph
+    title: Steps
+    entities:
+      - entity: sensor.pixel_8_daily_steps
+        name: Daily steps
+        color: "#67c587"
+    days_to_show: 7
+    period: day
+    chart_type: bar
+    stat_types: [max]
+    hide_legend: true
+    min_y_axis: 0
+    fit_y_data: true
+    card_mod:
+      style: |
+        ha-card { border-radius: 22px; background: var(--contrast2); }
+    grid_options: { columns: 12, rows: 4 }
+  - type: statistics-graph
+    title: Distance
+    entities:
+      - entity: sensor.pixel_8_daily_distance
+        name: Daily distance
+        color: "#54a7e8"
+    days_to_show: 7
+    period: day
+    chart_type: bar
+    stat_types: [max]
+    hide_legend: true
+    min_y_axis: 0
+    fit_y_data: true
+    card_mod:
+      style: |
+        ha-card { border-radius: 22px; background: var(--contrast2); }
+    grid_options: { columns: 12, rows: 4 }
+  - type: statistics-graph
+    title: Energy burned
+    entities:
+      - entity: sensor.pixel_8_total_calories_burned
+        name: Daily energy
+        color: "#ef9f59"
+    days_to_show: 7
+    period: day
+    chart_type: bar
+    stat_types: [max]
+    hide_legend: true
+    min_y_axis: 0
+    fit_y_data: true
+    card_mod:
+      style: |
+        ha-card { border-radius: 22px; background: var(--contrast2); }
+    grid_options: { columns: 12, rows: 4 }
+  - type: markdown
+    content: >-
+      Daily bars replace the old rolling 24-hour lines, so midnight resets no
+      longer look like sudden activity drops. The baseline will become more useful
+      as hourly statistics accumulate.
+    card_mod:
+      style: |
+        ha-card { border-radius: 18px; background: var(--contrast2); color: var(--contrast10); }
+    grid_options: { columns: 36, rows: auto }

@@ -29,6 +29,18 @@ recorder:
       - sensor.*heart_rate*
       - sensor.*oxygen_saturation*
       - sensor.*respiratory_rate*
+      - sensor.*blood_glucose*
+      - sensor.*blood_pressure*
+      - sensor.*body_fat*
+      - sensor.*body_temperature*
+      - sensor.*body_water_mass*
+      - sensor.*basal_body_temperature*
+      - sensor.*basal_metabolic_rate*
+      - sensor.*bone_mass*
+      - sensor.*lean_body_mass*
+      - sensor.*weight*
+      - sensor.*vo2_max*
+      - sensor.*daily_hydration*
 
 frontend:
   themes: !include_dir_merge_named themes

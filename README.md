@@ -88,12 +88,29 @@ The family-facing dashboard combines:
 - Upcoming calendar events, announcements, shopping, and media requests.
 - Favorite-room summaries ordered per account.
 - Shared room, security, and people views.
-- An owner-only health view.
+- A private, personalized Health view for each family member.
 
 The layout uses the same information hierarchy at phone, tablet, and desktop
 widths. Custom cards provide responsive grids, room routing, announcements,
 agenda rendering, appliance controls, fan controls, media summaries, and Seerr
 request actions.
+
+The shared `/home-tablet/health` route renders a mutually exclusive personal
+section for Abhimanyu, Krishna, or Manisha. Each section starts with source and
+sync quality, separates movement, recovery, and measurements, marks stale
+readings using their measurement timestamp, and uses native seven-day daily
+statistics where the phone integration supplies statistics metadata. Android
+Health Connect pages include movement and sleep snapshots; Abhimanyu also has
+enabled vital snapshots. Manisha's iPhone page stays focused on Motion & Fitness
+data and explains why unsupported recovery and trend surfaces are absent.
+
+Health privacy is enforced independently of Lovelace visibility. Every declared
+health entity belongs to exactly one family profile. Non-owner permission groups
+receive only that profile's entities, while other family and non-family accounts
+receive none. The temporary browser-review account is retired during bootstrap
+after its identity is revalidated. Sensitive measurements and sleep remain
+excluded from Recorder; movement statistics retain only the existing activity
+history needed for honest daily trends.
 
 ### Rooms
 
@@ -295,7 +312,8 @@ Before deploying a source revision:
 - Home Assistant source changes belong here.
 - Credentials and integration sessions remain in encrypted Secrets or Home
   Assistant's persistent storage.
-- Recorder excludes raw location and selected private health entities.
+- Recorder excludes raw location and sensitive health measurements; movement
+  history remains available for daily trend cards.
 - Dashboard conditions improve presentation; backend policy provides access
   control.
 - Home Assistant remains a singleton to avoid duplicate automations and shared
