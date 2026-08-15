@@ -898,7 +898,7 @@ class BootstrapTests(unittest.TestCase):
             (Path(bootstrap.__file__).parent / "access/family-dashboard.json").read_text()
         )
         profiles = access["profiles"]
-        self.assertTrue(profiles["abhimanyu-saharan"]["all_cameras"])
+        self.assertFalse(profiles["abhimanyu-saharan"]["all_cameras"])
         self.assertEqual(
             profiles["abhimanyu-saharan"]["cameras"],
             ["hallway", "kitchen", "living-room", "outside"],
@@ -923,6 +923,15 @@ class BootstrapTests(unittest.TestCase):
         shared_cameras = ["hallway", "kitchen", "living-room", "outside"]
         self.assertEqual(profiles["abhimanyu-saharan"]["cameras"], shared_cameras)
         self.assertEqual(profiles["manisha"]["cameras"], shared_cameras)
+        self.assertEqual(
+            bootstrap._camera_keys_for_profile(
+                "abhimanyu-saharan",
+                profiles["abhimanyu-saharan"],
+                access["cameras"],
+                True,
+            ),
+            shared_cameras,
+        )
         self.assertTrue(profiles["manisha"]["enforce_camera_policy"])
         self.assertEqual(
             profiles["krishna"]["cameras"],

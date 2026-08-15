@@ -136,11 +136,11 @@ reconciled in Home Assistant's backend. Streams, event history, motion and smart
 detection entities, recording diagnostics, and camera speakers inherit the
 same grant as their camera, so a restricted room cannot leak metadata or media
 through another entity domain. Protect console and NVR storage entities remain
-administrator-only. The Master Bedroom camera and speaker are
-available to Krishna and the owner. Kitchen, Kitchen Balcony, Living Room, and
-Outside are shared with all three family accounts. An owner-only `all_cameras`
-capability adds every declared camera to the owner's generated grants without
-weakening another account.
+administrator-only. The Master Bedroom camera, event history, clips, and speaker
+are visible only to Krishna in the family Security surface. Kitchen, Kitchen
+Balcony, Living Room, and Outside are shared with all three family accounts. The
+owner profile uses that explicit shared-camera allowlist rather than the optional
+`all_cameras` capability.
 
 The Master Bedroom G4 Instant speaker has an explicit text composer with useful
 presets. The backend rechecks the caller's camera grant before using the local

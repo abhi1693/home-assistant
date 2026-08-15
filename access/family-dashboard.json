@@ -183,14 +183,14 @@
       "is_family_member": true,
       "is_owner": true,
       "default_dashboard": "home-tablet",
-      "all_cameras": true,
+      "all_cameras": false,
       "cameras": [
         "hallway",
         "kitchen",
         "living-room",
         "outside"
       ],
-      "notes": "Owner profile. The all_cameras capability makes every declared camera visible while preserving the explicit cameras list as the fallback when the flag is disabled."
+      "notes": "Owner profile. Camera visibility follows the explicit shared-camera list; Master Bedroom is visible only to Krishna in the family Security surface."
     },
     "krishna": {
       "user_id": "8117b77542614a06b4672a8ae1a979b5",
