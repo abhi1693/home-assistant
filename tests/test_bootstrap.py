@@ -1255,7 +1255,7 @@ class BootstrapTests(unittest.TestCase):
             "access/family-dashboard.json",
             json.dumps(
                 {
-                    "version": 2,
+                    "version": 3,
                     "default_dashboard": "home-tablet",
                     "profiles": {
                         "owner": {

@@ -1434,7 +1434,7 @@ def reconcile_family_access(source: Path, config: Path) -> None:
 
     atomic_json(
         config / FAMILY_ACCESS_STATE,
-        {"version": 2, "sha256": desired_hash},
+        {"version": 3, "sha256": desired_hash},
         mode=0o644,
     )
 
@@ -1443,7 +1443,7 @@ def reconcile_dashboard_defaults(source: Path, config: Path) -> None:
     """Reconcile the system and family profile default dashboard panels."""
     access_path = source / "access/family-dashboard.json"
     access = json.loads(access_path.read_text())
-    if access.get("version") != 2:
+    if access.get("version") != 3:
         raise RuntimeError("Unsupported family dashboard access schema")
 
     system_default = access.get("default_dashboard")
