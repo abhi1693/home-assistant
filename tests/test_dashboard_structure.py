@@ -633,20 +633,18 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertEqual(
             camera_view.count("type: custom:family-camera-events-card"), 1
         )
-        self.assertEqual(
-            camera_view.count("type: custom:family-camera-speaker-card"), 1
-        )
+        self.assertNotIn("type: custom:family-camera-speaker-card", camera_view)
         self.assertEqual(camera_view.count("camera-outside-users.json"), 2)
         self.assertEqual(camera_view.count("camera-hallway-users.json"), 2)
         self.assertEqual(camera_view.count("camera-kitchen-users.json"), 2)
         self.assertEqual(camera_view.count("camera-living-room-users.json"), 2)
-        self.assertEqual(camera_view.count("camera-master-bedroom-users.json"), 4)
+        self.assertEqual(camera_view.count("camera-master-bedroom-users.json"), 2)
         self.assertEqual(home.count("  - title: Security\n    path: security"), 1)
         self.assertNotIn("  - title: Cameras\n    path: cameras", home)
         self.assertNotIn("/home-tablet/cameras", home)
         self.assertIn("heading: Live cameras", camera_view)
         self.assertIn("heading: Camera health and recent activity", camera_view)
-        self.assertIn("heading: Master Bedroom speaker", camera_view)
+        self.assertNotIn("heading: Master Bedroom speaker", camera_view)
         for camera_key in (
             "kitchen",
             "kitchen_balcony",
@@ -660,9 +658,9 @@ class DashboardStructureTests(unittest.TestCase):
         for resource in (
             "/local/family-camera-wall-card.js?v=2.0.1",
             "/local/family-camera-events-card.js?v=1.1.0",
-            "/local/family-camera-speaker-card.js?v=1.0.0",
         ):
             self.assertIn(resource, configuration)
+        self.assertNotIn("family-camera-speaker-card.js", configuration)
         self.assertIn("platform: family_camera_events", configuration)
 
     def test_household_surfaces_are_bounded_and_access_aware(self):
@@ -1018,9 +1016,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("household_camera_recording_incident", package)
 
         master = streams["cameras"]["master-bedroom"]
-        self.assertEqual(
-            master["notify_profiles"], ["abhimanyu-saharan", "krishna"]
-        )
+        self.assertEqual(master["notify_profiles"], ["krishna"])
         self.assertEqual(
             master["speaker_entity_id"], "media_player.living_room_speaker"
         )

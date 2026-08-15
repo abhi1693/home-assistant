@@ -61,7 +61,6 @@ async function installComponents(page) {
       <div id="seerr"></div>
       <div id="camera-wall"></div>
       <div id="camera-events"></div>
-      <div id="camera-speaker"></div>
     </main>
   `);
   await page.evaluate(() => {
@@ -110,7 +109,6 @@ async function installComponents(page) {
     "family-seerr-requests-card.js",
     "family-camera-wall-card.js",
     "family-camera-events-card.js",
-    "family-camera-speaker-card.js",
   ]) {
     await page.addScriptTag({ path: path.join(ROOT, "www", source) });
   }
@@ -259,9 +257,6 @@ async function buildFixture(page) {
       ...cameraConfig, recording_entity:"sensor.outside_recording",
       dark_entity:"binary_sensor.outside_dark", microphone_entity:"sensor.outside_microphone",
     }] });
-    mount("#camera-speaker", "family-camera-speaker-card", {
-      camera_key:"outside", speaker:"media_player.camera_speaker", name:"Speak outside",
-    });
   }, { hassStates, eventStart: tomorrow.toISOString() });
   await page.waitForTimeout(100);
 }
@@ -425,18 +420,13 @@ async function validate(page, viewport) {
     call.type === "auth/sign_path" && call.path.endsWith("/camera-clip/video")));
   assert(signedClip, "Completed clip did not request a user-bound signed path");
 
-  const cameraSpeaker = page.locator("family-camera-speaker-card");
-  await assertTargets(cameraSpeaker.locator("input,button"));
-  await cameraSpeaker.locator('button[data-message="Dinner is ready."]').click();
-  await cameraSpeaker.locator(".send").click();
-
   const calls = await page.evaluate(() => window.__calls);
   const invoked = new Set(calls.map((call) => `${call.domain}.${call.service}`));
   for (const service of [
     "fan.turn_off", "fan.set_percentage", "light.turn_off", "switch.turn_on",
     "select.select_option", "family_announcements.dismiss",
     "family_announcements.publish", "family_seerr_requests.approve",
-    "family_seerr_requests.decline", "family_camera_events.announce",
+    "family_seerr_requests.decline",
   ]) {
     assert(invoked.has(service), `Service path was not exercised: ${service}`);
   }

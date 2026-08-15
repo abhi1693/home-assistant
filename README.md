@@ -133,22 +133,14 @@ marks the event complete.
 
 Camera grants come from the family access policy, and non-owner permissions are
 reconciled in Home Assistant's backend. Streams, event history, motion and smart
-detection entities, recording diagnostics, and camera speakers inherit the
-same grant as their camera, so a restricted room cannot leak metadata or media
-through another entity domain. Protect console and NVR storage entities remain
-administrator-only. The Master Bedroom camera, event history, clips, and speaker
-are visible only to Krishna in the family Security surface. Kitchen, Kitchen
-Balcony, Living Room, and Outside are shared with all three family accounts. The
-owner profile uses that explicit shared-camera allowlist rather than the optional
-`all_cameras` capability.
-
-The Master Bedroom G4 Instant speaker has an explicit text composer with useful
-presets. The backend rechecks the caller's camera grant before using the local
-Protect media-player entity, while bootstrap reconciles the zero-credential
-Google Translate TTS config entry. Speaker playback requires TCP `7004`
-from Home Assistant to the camera. Privacy mode is not surfaced because these
-cameras do not currently expose that entity; Protect Alarm Manager remains an
-administrator concern rather than a family control.
+detection entities, recording diagnostics, and camera speaker entities inherit
+the same grant as their camera, so a restricted room cannot leak metadata or
+controls through another entity domain. Protect console and NVR storage entities
+remain administrator-only. The Master Bedroom camera, event history, and clips
+are visible only to Krishna in the family Security surface; speaker controls are
+not exposed there. Kitchen, Kitchen Balcony, Living Room, and Outside are shared
+with all three family accounts. The owner profile uses that explicit
+shared-camera allowlist rather than the optional `all_cameras` capability.
 
 ### Rack
 

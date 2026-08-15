@@ -91,8 +91,6 @@ lovelace:
       type: module
     - url: /local/family-camera-events-card.js?v=1.1.0
       type: module
-    - url: /local/family-camera-speaker-card.js?v=1.0.0
-      type: module
     - url: /local/community/todo-swipe-card/todo-swipe-card.js?v=3.6.0
       type: module
   dashboards: !include dashboards/lovelace-dashboards.yaml

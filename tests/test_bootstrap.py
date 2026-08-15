@@ -897,6 +897,9 @@ class BootstrapTests(unittest.TestCase):
         access = json.loads(
             (Path(bootstrap.__file__).parent / "access/family-dashboard.json").read_text()
         )
+        streams = json.loads(
+            (Path(bootstrap.__file__).parent / "access/protect-streams.json").read_text()
+        )
         profiles = access["profiles"]
         self.assertFalse(profiles["abhimanyu-saharan"]["all_cameras"])
         self.assertEqual(
@@ -937,6 +940,18 @@ class BootstrapTests(unittest.TestCase):
             profiles["krishna"]["cameras"],
             ["master-bedroom", "hallway", "kitchen", "living-room", "outside"],
         )
+        for camera_key, camera in streams["cameras"].items():
+            for profile_key in camera["notify_profiles"]:
+                profile = profiles[profile_key]
+                self.assertIn(
+                    camera_key,
+                    bootstrap._camera_keys_for_profile(
+                        profile_key,
+                        profile,
+                        access["cameras"],
+                        profile["is_owner"],
+                    ),
+                )
         security_entities = access["camera_security_entities"]
         self.assertEqual(set(security_entities), set(access["cameras"]))
         self.assertIn(
