@@ -154,10 +154,12 @@ the family interface. Its triage-first status surface promotes unhealthy
 workloads, Fleet failures, degraded Longhorn volumes, unreachable monitoring
 targets, firing alerts, stale backups, UPS battery operation, and stale bridge
 data before routine metrics. Quieter sections summarize cluster health, UPS
-power, 24-hour power and temperature history, Home Assistant, Jellyfin, and
-database-backup health. Grafana and Rancher remain the dedicated diagnostic
-systems; live Protect streams stay on the Security page rather than being
-duplicated here.
+power, 24-hour power and temperature history, Home Assistant, and
+database-backup health. Incident cards deep-link to the relevant filtered
+workload or Fleet view, or directly to the applicable nodes, scrape failures,
+alerts, Longhorn, CloudNativePG, or UPS panel. Grafana and Rancher remain the
+dedicated diagnostic systems; live Protect streams stay on the Security page
+rather than being duplicated here.
 
 ## Repository layout
 

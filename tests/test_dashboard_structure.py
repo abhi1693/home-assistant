@@ -733,6 +733,22 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertEqual(rack.count("hours_to_show: 24"), 2)
         self.assertIn("url_path: http://grafana.home", rack)
         self.assertIn("url_path: https://rancher.home", rack)
+        for focused_target in (
+            "kubernetes-compute-resources-workload",
+            "rancher-cluster-nodes",
+            "fleet-bundle/fleet-bundle",
+            "longhorn-storage/longhorn-storage",
+            "prometheus-overview",
+            "alertmanager-overview/alertmanager-overview",
+            "cloudnative-pg/cloudnativepg",
+            "ups-nut-prometheus/ups-nut",
+        ):
+            self.assertIn(focused_target, rack)
+        self.assertIn("'var-namespace': namespace", rack)
+        self.assertIn("'var-workload': workload", rack)
+        self.assertIn("'var-name': match[2]", rack)
+        self.assertNotIn("destination: http://grafana.home\n", rack)
+        self.assertNotIn("destination: https://rancher.home\n", rack)
         self.assertLess(
             rack.index("heading: Open diagnostics"),
             rack.index("heading: Continuity"),

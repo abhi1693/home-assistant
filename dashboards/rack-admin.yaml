@@ -123,7 +123,8 @@ button_card_templates:
       plural: issues
       detail: Open the entity for source details
       detail_attribute: null
-      destination: http://grafana.home
+      destination: >-
+        http://grafana.home/d/9fa0d141-d019-4ad7-8bc5-42196ee308bd/prometheus-overview?orgId=1&from=now-1h&to=now
       state_text: null
     show_icon: true
     show_name: true
@@ -354,7 +355,8 @@ views:
                     ? 'Snapshot is stale' : 'Status data unavailable';
                 ]]]
               detail: Prometheus data is stale or unavailable
-              destination: http://grafana.home
+              destination: >-
+                http://grafana.home/d/a164a7f0339f99e89cea5cb47e9be617/kubernetes-compute-resources-workload?orgId=1&from=now-1h&to=now&var-datasource=prometheus&var-cluster=.*&var-namespace=home-assistant&var-type=deployment&var-workload=home-assistant-status-bridge
             visibility:
               - condition: state
                 entity: binary_sensor.rack_status_bridge_fresh
@@ -368,7 +370,8 @@ views:
             variables:
               state_text: Status data incomplete
               detail: One or more Rack inputs cannot be interpreted safely
-              destination: http://grafana.home
+              destination: >-
+                http://grafana.home/d/9fa0d141-d019-4ad7-8bc5-42196ee308bd/prometheus-overview?orgId=1&from=now-1h&to=now&viewPanel=8
             visibility:
               - condition: state
                 entity: binary_sensor.rack_status_bridge_fresh
@@ -385,9 +388,10 @@ views:
             variables:
               singular: node not ready
               plural: nodes not ready
-              detail: Open Rancher to inspect node conditions
+              detail: Open the cluster node health dashboard
               detail_attribute: unready_node_details
-              destination: https://rancher.home
+              destination: >-
+                http://grafana.home/d/rancher-cluster-nodes-1/rancher-cluster-nodes?orgId=1&from=now-1h&to=now
             visibility:
               - condition: numeric_state
                 entity: sensor.rack_unready_nodes
@@ -401,9 +405,24 @@ views:
             variables:
               singular: workload unhealthy
               plural: workloads unhealthy
-              detail: Open Grafana or Rancher to identify the affected workload
+              detail: Open the first affected workload
               detail_attribute: unhealthy_workload_details
-              destination: http://grafana.home
+              destination: |
+                [[[
+                  const details = entity?.attributes?.unhealthy_workload_details;
+                  const first = Array.isArray(details)
+                    ? details.find((detail) => !detail.startsWith('+')) : null;
+                  const [namespace, workload] = first?.split('/', 2) || [];
+                  const base = 'http://grafana.home/d/a164a7f0339f99e89cea5cb47e9be617/kubernetes-compute-resources-workload';
+                  if (!namespace || !workload) return `${base}?orgId=1&from=now-1h&to=now`;
+                  const params = new URLSearchParams({
+                    orgId: '1', from: 'now-1h', to: 'now',
+                    'var-datasource': 'prometheus', 'var-cluster': '.*',
+                    'var-namespace': namespace, 'var-type': '.*',
+                    'var-workload': workload,
+                  });
+                  return `${base}?${params.toString()}`;
+                ]]]
             visibility:
               - condition: numeric_state
                 entity: sensor.rack_unhealthy_workloads
@@ -417,9 +436,22 @@ views:
             variables:
               singular: bundle failing
               plural: bundles failing
-              detail: Rancher has desired state that is not Ready
+              detail: Open the first failing Fleet bundle
               detail_attribute: fleet_failure_details
-              destination: https://rancher.home
+              destination: |
+                [[[
+                  const details = entity?.attributes?.fleet_failure_details;
+                  const first = Array.isArray(details)
+                    ? details.find((detail) => !detail.startsWith('+')) : null;
+                  const match = first?.match(/^([^/]+)\/(.+?)(?:\s+\([^)]*\))?$/);
+                  const base = 'http://grafana.home/d/fleet-bundle/fleet-bundle';
+                  if (!match) return `${base}?orgId=1&from=now-1h&to=now`;
+                  const params = new URLSearchParams({
+                    orgId: '1', from: 'now-1h', to: 'now',
+                    'var-namespace': match[1], 'var-name': match[2],
+                  });
+                  return `${base}?${params.toString()}`;
+                ]]]
             visibility:
               - condition: numeric_state
                 entity: sensor.rack_fleet_failures
@@ -435,7 +467,8 @@ views:
               plural: volumes degraded
               detail: Inspect replica health before attempting a repair
               detail_attribute: longhorn_degraded_volume_details
-              destination: https://rancher.home
+              destination: >-
+                http://grafana.home/d/longhorn-storage/longhorn-storage?orgId=1&from=now-1h&to=now&viewPanel=15
             visibility:
               - condition: numeric_state
                 entity: sensor.rack_degraded_volumes
@@ -449,9 +482,10 @@ views:
             variables:
               singular: target unreachable
               plural: targets unreachable
-              detail: Grafana contains the affected scrape targets
+              detail: Open Prometheus scrape failures
               detail_attribute: unreachable_target_details
-              destination: http://grafana.home
+              destination: >-
+                http://grafana.home/d/9fa0d141-d019-4ad7-8bc5-42196ee308bd/prometheus-overview?orgId=1&from=now-1h&to=now&viewPanel=8
             visibility:
               - condition: numeric_state
                 entity: sensor.rack_unreachable_targets
@@ -467,7 +501,8 @@ views:
               plural: active alerts
               detail: Warning and critical alerts currently firing
               detail_attribute: active_alert_details
-              destination: http://grafana.home
+              destination: >-
+                http://grafana.home/d/alertmanager-overview/alertmanager-overview?orgId=1&from=now-1h&to=now&viewPanel=1
             visibility:
               - condition: numeric_state
                 entity: sensor.rack_active_alerts
@@ -482,7 +517,8 @@ views:
               singular: hour since backup
               plural: hours since backup
               detail: The latest CloudNativePG base backup is older than 24 hours
-              destination: http://grafana.home
+              destination: >-
+                http://grafana.home/d/cloudnative-pg/cloudnativepg?orgId=1&from=now-24h&to=now&viewPanel=360
             visibility:
               - condition: numeric_state
                 entity: sensor.rack_database_backup_age
@@ -496,7 +532,8 @@ views:
             variables:
               state_text: Running on battery
               detail: Check battery charge and remaining UPS capacity
-              destination: http://grafana.home
+              destination: >-
+                http://grafana.home/d/ups-nut-prometheus/ups-nut?orgId=1&from=now-6h&to=now&viewPanel=1
             visibility:
               - condition: state
                 entity: binary_sensor.rack_ups_on_battery
