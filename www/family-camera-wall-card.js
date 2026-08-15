@@ -24,9 +24,7 @@ class FamilyCameraWallCard extends HTMLElement {
       this.shadowRoot.innerHTML = `
         <style>
           :host { display:block; }
-          .wall { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
-          .wall.cols-1 { grid-template-columns:1fr; }
-          .wall.cols-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+          .wall { display:grid; grid-template-columns:repeat(var(--wall-columns,3),minmax(0,1fr)); gap:14px; }
           .camera { position:relative; min-width:0; overflow:hidden; border-radius:26px; background:var(--contrast2); }
           .camera.focused { grid-column:1 / -1; border:1px solid color-mix(in srgb,var(--pink) 60%,transparent); }
           .camera hui-picture-entity-card { display:block; }
@@ -38,7 +36,7 @@ class FamilyCameraWallCard extends HTMLElement {
           .offline ha-icon { width:34px; height:34px; margin-bottom:10px; color:var(--contrast8); }
           .offline strong { display:block; color:var(--contrast16); font-size:16px; margin-bottom:4px; }
           @media (max-width:900px) { .wall { grid-template-columns:1fr 1fr; } }
-          @media (max-width:620px) { .wall,.wall.cols-2 { grid-template-columns:1fr; } .camera.focused { grid-column:auto; } }
+          @media (max-width:620px) { .wall { grid-template-columns:1fr; } .camera.focused { grid-column:auto; } }
         </style>
         <div class="wall"></div>`;
     }
@@ -97,6 +95,12 @@ class FamilyCameraWallCard extends HTMLElement {
     return cameraWallAvailable(medium)
       ? camera.medium_entity
       : camera.high_entity;
+  }
+
+  _balancedGrid(visibleCount) {
+    const slots = visibleCount > 1 && visibleCount % 2 ? visibleCount + 1 : visibleCount;
+    const columns = slots <= 2 ? Math.max(1, slots) : slots / 2;
+    return { slots, columns };
   }
 
   _entry(camera) {
@@ -193,7 +197,10 @@ class FamilyCameraWallCard extends HTMLElement {
       this._entries.delete(key);
     }
     const wall = this.shadowRoot.querySelector(".wall");
-    wall.className = `wall cols-${Math.min(3, this._visible.length)}`;
+    const grid = this._balancedGrid(this._visible.length);
+    wall.style.setProperty("--wall-columns", String(grid.columns));
+    wall.dataset.visibleCount = String(this._visible.length);
+    wall.dataset.gridSlots = String(grid.slots);
     for (const camera of this._visible) {
       this._syncCamera(camera, camera.key === this._focusKey);
     }

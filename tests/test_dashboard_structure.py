@@ -656,7 +656,7 @@ class DashboardStructureTests(unittest.TestCase):
                 camera_view.count(f"sensor.family_camera_{camera_key}_activity"), 2
             )
         for resource in (
-            "/local/family-camera-wall-card.js?v=2.0.1",
+            "/local/family-camera-wall-card.js?v=2.1.0",
             "/local/family-camera-events-card.js?v=1.2.0",
         ):
             self.assertIn(resource, configuration)
@@ -983,6 +983,9 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("entry.signature !== signature", camera_wall)
         self.assertIn("window.loadCardHelpers()", camera_wall)
         self.assertIn("helpers.createCardElement(entry.desiredConfig)", camera_wall)
+        self.assertIn("_balancedGrid(visibleCount)", camera_wall)
+        self.assertIn("visibleCount % 2 ? visibleCount + 1", camera_wall)
+        self.assertIn('wall.dataset.gridSlots = String(grid.slots)', camera_wall)
         self.assertNotIn('document.createElement("hui-picture-entity-card")', camera_wall)
         self.assertEqual(camera_wall.count("this.shadowRoot.innerHTML ="), 1)
         self.assertEqual(home.count("template: family_camera_offline"), 3)

@@ -258,10 +258,17 @@ async function buildFixture(page) {
       key:"outside", name:"Outside", high_entity:"camera.outside_high",
       medium_entity:"camera.outside_medium", low_entity:"camera.outside_low",
       activity_entity:"sensor.outside_activity",
-      detectors:["binary_sensor.outside_person"], users:["owner"],
+      detectors:["binary_sensor.outside_person"], users:["owner", "krishna"],
     };
+    const ambientCamera = (key, name, users = ["owner", "krishna"]) => ({
+      ...cameraConfig, key, name, detectors:[], activity_entity:null, users,
+    });
     mount("#camera-wall", "family-camera-wall-card", { cameras:[
       cameraConfig,
+      ambientCamera("kitchen", "Kitchen"),
+      ambientCamera("balcony", "Kitchen Balcony"),
+      ambientCamera("living-room", "Living Room"),
+      ambientCamera("master-bedroom", "Master Bedroom", ["krishna"]),
       { ...cameraConfig, key:"private", name:"Private", high_entity:"camera.private_high", medium_entity:"camera.private_medium", users:["other"] },
     ] });
     mount("#camera-events", "family-camera-events-card", { cameras:[{
@@ -388,11 +395,49 @@ async function validate(page, viewport) {
   await seerr.locator('.action[aria-label="Confirm decline"]').click();
 
   const cameraWall = page.locator("family-camera-wall-card");
-  assert.equal(await cameraWall.locator(".camera").count(), 1, "Camera wall leaked a camera outside the signed-in account policy");
-  assert.equal(await cameraWall.locator("hui-picture-entity-card").count(), 1);
-  const ambientQuality = await cameraWall.locator("hui-picture-entity-card").evaluate((element) => element._config.camera_image);
+  await cameraWall.locator(".camera").nth(3).waitFor();
+  assert.equal(await cameraWall.locator(".camera").count(), 4, "Owner camera policy did not resolve to four shared cameras");
+  assert.equal(await cameraWall.getByText("Master Bedroom", { exact:true }).count(), 0, "Owner camera wall leaked Master Bedroom");
+  assert.equal(await cameraWall.getByText("Private", { exact:true }).count(), 0, "Camera wall leaked a camera outside the signed-in account policy");
+  const ownerWall = await boxes(cameraWall.locator(".camera"));
+  if (viewport.width <= 620) {
+    assert(ownerWall.slice(1).every((camera, index) => camera.y >= ownerWall[index].bottom), "Four-camera wall did not stack on phone");
+  } else {
+    assert(Math.abs(ownerWall[0].y - ownerWall[1].y) < 2, "Four-camera wall did not form its first pair");
+    assert(Math.abs(ownerWall[2].y - ownerWall[3].y) < 2, "Four-camera wall did not form its second pair");
+    assert(ownerWall[2].y >= ownerWall[0].bottom, "Four-camera wall did not balance as 2x2");
+  }
+  const ownerGrid = await cameraWall.locator(".wall").evaluate((wall) => ({
+    visible:wall.dataset.visibleCount, slots:wall.dataset.gridSlots,
+  }));
+  assert.deepEqual(ownerGrid, { visible:"4", slots:"4" });
+
+  await cameraWall.evaluate((wall) => {
+    wall._hass.user = { id:"krishna", name:"Krishna", is_admin:false };
+    wall.hass = wall._hass;
+  });
+  await cameraWall.locator(".camera").nth(4).waitFor();
+  assert.equal(await cameraWall.locator(".camera").count(), 5, "Krishna camera policy did not resolve to five cameras");
+  const krishnaGrid = await cameraWall.locator(".wall").evaluate((wall) => ({
+    visible:wall.dataset.visibleCount, slots:wall.dataset.gridSlots,
+  }));
+  assert.deepEqual(krishnaGrid, { visible:"5", slots:"6" });
+  const krishnaWall = await boxes(cameraWall.locator(".camera"));
+  if (viewport.width > 900) {
+    assert(krishnaWall.slice(0, 3).every((camera) => Math.abs(camera.y - krishnaWall[0].y) < 2), "Five-camera wall did not use three desktop columns");
+    assert(krishnaWall.slice(3).every((camera) => Math.abs(camera.y - krishnaWall[3].y) < 2), "Five-camera wall did not form its second row");
+    assert(krishnaWall[3].y >= krishnaWall[0].bottom, "Five-camera wall did not reserve a six-slot grid");
+  }
+  await cameraWall.evaluate((wall) => {
+    wall._hass.user = { id:"owner", name:"Abhimanyu", is_admin:true };
+    wall.hass = wall._hass;
+  });
+  await cameraWall.locator(".camera").nth(3).waitFor();
+  assert.equal(await cameraWall.locator(".camera").count(), 4);
+  assert.equal(await cameraWall.locator("hui-picture-entity-card").count(), 4);
+  const ambientQuality = await cameraWall.locator("hui-picture-entity-card").first().evaluate((element) => element._config.camera_image);
   assert.equal(ambientQuality, viewport.width <= 767 ? "camera.outside_low" : "camera.outside_medium");
-  const stablePlayer = await cameraWall.locator("hui-picture-entity-card").evaluate(async (element) => {
+  const stablePlayer = await cameraWall.locator("hui-picture-entity-card").first().evaluate(async (element) => {
     const wall = element.getRootNode().host;
     const hass = wall._hass;
     const original = element;

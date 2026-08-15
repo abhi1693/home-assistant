@@ -110,9 +110,11 @@ while room access is currently shared across authenticated family accounts.
 The combined Security surface presents household attention, five-camera
 coverage, account-filtered live streams, recording health, and a seven-day
 Protect event timeline in one place. The wall keeps each live player mounted
-across Home Assistant state updates, uses medium-resolution streams for its
-ambient desktop/tablet grid and low-resolution streams on phones, and switches
-only an active camera to high resolution. A current person, vehicle, animal,
+across Home Assistant state updates, balances each account's visible camera
+count into an even desktop grid (four as 2x2 and five in a six-slot 3x2 grid),
+uses medium-resolution streams for its ambient desktop/tablet grid and
+low-resolution streams on phones, and switches only an active camera to high
+resolution. A current person, vehicle, animal,
 sound, or motion event temporarily promotes that camera to the full-width focus
 position. Offline cameras remain visible as deliberate status tiles and recover
 without a dashboard edit.
