@@ -490,21 +490,13 @@ views:
                   const first = Array.isArray(details)
                     ? details.find((detail) => !detail.startsWith('+')) : null;
                   const match = first?.match(/^([^/]+)\/(.+?)(?:\s+×\d+)?$/);
-                  const escape = (value) => value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-                  const query = match
-                    ? `up{namespace="${escape(match[1])}",job="${escape(match[2])}"} == 0`
-                    : 'up == 0';
-                  const panes = {
-                    rack: {
-                      datasource: 'prometheus',
-                      queries: [{ refId: 'A', expr: query, editorMode: 'code', range: true }],
-                      range: { from: 'now-1h', to: 'now' },
-                    },
-                  };
+                  const base = 'http://grafana.home/d/rack-diagnostics/rack-diagnostics';
                   const params = new URLSearchParams({
-                    schemaVersion: '1', panes: JSON.stringify(panes), orgId: '1',
+                    orgId: '1', from: 'now-1h', to: 'now', viewPanel: '1',
+                    'var-target_namespace': match?.[1] || '.*',
+                    'var-target_job': match?.[2] || '.*',
                   });
-                  return `http://grafana.home/explore?${params.toString()}`;
+                  return `${base}?${params.toString()}`;
                 ]]]
             visibility:
               - condition: numeric_state
@@ -530,24 +522,13 @@ views:
                   const namespace = label.match(/\s+\(([^)]+)\)$/)?.[1];
                   label = label.replace(/\s+\([^)]+\)$/, '');
                   const alertname = label.replace(/^[^:]+:\s*/, '');
-                  const escape = (value) => value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-                  const labels = ['alertstate="firing"', 'severity=~"warning|critical"'];
-                  if (alertname) labels.push(`alertname="${escape(alertname)}"`);
-                  if (namespace) labels.push(`namespace="${escape(namespace)}"`);
-                  const panes = {
-                    rack: {
-                      datasource: 'prometheus',
-                      queries: [{
-                        refId: 'A', expr: `ALERTS{${labels.join(',')}}`,
-                        editorMode: 'code', range: true,
-                      }],
-                      range: { from: 'now-1h', to: 'now' },
-                    },
-                  };
+                  const base = 'http://grafana.home/d/rack-diagnostics/rack-diagnostics';
                   const params = new URLSearchParams({
-                    schemaVersion: '1', panes: JSON.stringify(panes), orgId: '1',
+                    orgId: '1', from: 'now-1h', to: 'now', viewPanel: '2',
+                    'var-alert_name': alertname || '.*',
+                    'var-alert_namespace': namespace || '.*',
                   });
-                  return `http://grafana.home/explore?${params.toString()}`;
+                  return `${base}?${params.toString()}`;
                 ]]]
             visibility:
               - condition: numeric_state
