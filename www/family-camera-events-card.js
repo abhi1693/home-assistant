@@ -117,8 +117,14 @@ class FamilyCameraEventsCard extends HTMLElement {
     try {
       video.src = await this._signedPath(button.dataset.video, 120);
       video.poster = await this._signedPath(button.dataset.thumbnail, 120);
-      message.textContent = button.dataset.title;
+      video.muted = true;
+      message.textContent = `${button.dataset.title} · High resolution · Muted`;
       dialog.showModal();
+      try {
+        await video.play();
+      } catch (_error) {
+        message.textContent = `${button.dataset.title} · High resolution · Press play to start`;
+      }
     } catch (_error) {
       message.textContent = "Clip could not be opened. Try again.";
       dialog.showModal();
@@ -156,11 +162,13 @@ class FamilyCameraEventsCard extends HTMLElement {
       const primary = event.types?.find((type) => type !== "motion") || event.types?.[0] || "motion";
       const [icon, label] = CAMERA_EVENT_META[primary] || ["mdi:cctv", primary.replaceAll("_", " ")];
       const action = event.active ? "Live" : "Play clip";
+      const title = `${label} · ${event.camera.name}`;
       return `<article class="event ${event.active ? "active" : ""}" data-camera="${cameraEventsEscape(event.camera.high_entity)}">
-        <div class="thumb"><img loading="lazy" data-source="${cameraEventsEscape(event.thumbnail)}" alt="${cameraEventsEscape(event.camera.name)} event"><ha-icon icon="${icon}"></ha-icon></div>
-        <div class="event-copy"><div class="event-title">${cameraEventsEscape(label)} · ${cameraEventsEscape(event.camera.name)}</div>
-          <div class="event-meta">${this._relative(event.start)}${event.active ? " · happening now" : ""}</div></div>
-        <button type="button" class="event-action" ${event.active ? 'data-live="true"' : `data-video="${cameraEventsEscape(event.video)}" data-thumbnail="${cameraEventsEscape(event.thumbnail)}" data-title="${cameraEventsEscape(`${label} · ${event.camera.name}`)}"`}>${action}<ha-icon icon="mdi:chevron-right"></ha-icon></button>
+        <button type="button" class="event-open" aria-label="${cameraEventsEscape(`${action}: ${title}`)}" ${event.active ? 'data-live="true"' : `data-video="${cameraEventsEscape(event.video)}" data-thumbnail="${cameraEventsEscape(event.thumbnail)}" data-title="${cameraEventsEscape(title)}"`}>
+          <div class="thumb"><img loading="lazy" data-source="${cameraEventsEscape(event.thumbnail)}" alt="${cameraEventsEscape(event.camera.name)} event"><ha-icon icon="${icon}"></ha-icon></div>
+          <div class="event-copy"><div class="event-title">${cameraEventsEscape(title)}</div>
+            <div class="event-footer"><span class="event-meta">${this._relative(event.start)}${event.active ? " · happening now" : ""}</span><span class="event-action">${action}<ha-icon icon="mdi:chevron-right"></ha-icon></span></div></div>
+        </button>
       </article>`;
     }).join("") : '<div class="empty"><ha-icon icon="mdi:shield-check-outline"></ha-icon><strong>No recorded activity yet</strong><span>New Protect events will appear here automatically.</span></div>';
 
@@ -178,17 +186,22 @@ class FamilyCameraEventsCard extends HTMLElement {
         .signals { display:flex; flex-wrap:wrap; gap:7px 12px; color:var(--contrast10); font-size:11px; text-transform:capitalize; }
         .signals span { display:flex; align-items:center; gap:4px; }
         .signals ha-icon { width:15px; height:15px; }
-        .timeline { display:grid; gap:9px; }
-        .event { display:grid; grid-template-columns:108px minmax(0,1fr) auto; align-items:center; gap:14px; min-height:76px; padding:8px; border-radius:18px; background:var(--contrast1); border:1px solid transparent; }
-        .event.active { border-color:color-mix(in srgb,var(--pink) 55%,transparent); }
-        .thumb { position:relative; height:62px; border-radius:13px; overflow:hidden; background:var(--contrast4); }
+        .timeline { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; gap:12px; }
+        .event { min-width:0; }
+        .event-open { display:grid; grid-template-rows:auto 1fr; width:100%; height:100%; min-height:44px; padding:0; overflow:hidden; text-align:left; color:inherit; font:inherit; border:1px solid transparent; border-radius:18px; background:var(--contrast1); cursor:pointer; }
+        .event.active .event-open { border-color:color-mix(in srgb,var(--pink) 55%,transparent); }
+        .event-open:hover { border-color:color-mix(in srgb,var(--pink) 40%,transparent); }
+        .event-open:focus-visible { outline:2px solid var(--pink); outline-offset:2px; }
+        .event-open:disabled { opacity:.55; cursor:wait; }
+        .thumb { position:relative; width:100%; aspect-ratio:16 / 9; overflow:hidden; background:var(--contrast4); }
         .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
         .thumb img.failed { display:none; }
-        .thumb ha-icon { position:absolute; left:7px; bottom:7px; width:18px; height:18px; color:white; filter:drop-shadow(0 1px 3px #000); }
+        .thumb ha-icon { position:absolute; left:10px; bottom:10px; width:22px; height:22px; color:white; filter:drop-shadow(0 1px 3px #000); }
+        .event-copy { display:grid; align-content:space-between; gap:12px; min-height:92px; padding:13px 14px 12px; }
         .event-title { font-size:14px; font-weight:700; color:var(--contrast18); }
-        .event-meta { margin-top:4px; color:var(--contrast9); font-size:11px; }
-        .event-action { display:flex; align-items:center; gap:2px; min-height:44px; border:0; background:transparent; color:var(--pink); text-decoration:none; font:inherit; font-size:12px; font-weight:700; padding:10px; cursor:pointer; }
-        .event-action:disabled { opacity:.55; cursor:wait; }
+        .event-footer { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+        .event-meta { color:var(--contrast9); font-size:11px; }
+        .event-action { display:flex; align-items:center; flex:0 0 auto; gap:2px; color:var(--pink); font-size:12px; font-weight:700; }
         .event-action ha-icon { width:18px; height:18px; }
         .clip-dialog { width:min(920px,calc(100vw - 32px)); padding:0; border:1px solid var(--contrast5); border-radius:24px; color:var(--contrast18); background:var(--contrast2); }
         .clip-dialog::backdrop { background:rgba(0,0,0,.78); backdrop-filter:blur(6px); }
@@ -200,17 +213,17 @@ class FamilyCameraEventsCard extends HTMLElement {
         .empty ha-icon { color:var(--green); width:30px; height:30px; }
         .empty strong { color:var(--contrast16); }
         .empty span { font-size:12px; }
+        @media (max-width:1100px) { .timeline { grid-template-columns:repeat(2,minmax(0,1fr)); } }
         @media (max-width:900px) { .health-grid { grid-template-columns:1fr 1fr; } }
         @media (max-width:620px) {
           ha-card { padding:12px; border-radius:22px; }
           .health-grid,.health-grid.cols-2 { grid-template-columns:1fr; }
-          .event { grid-template-columns:82px minmax(0,1fr); gap:10px; }
-          .event-action { grid-column:2; padding:0 4px 4px; justify-self:start; }
-          .thumb { height:66px; grid-row:1 / 3; }
+          .timeline { grid-template-columns:1fr; }
+          .event-copy { min-height:84px; }
         }
       </style>
       <ha-card><div class="health-grid cols-${Math.min(3, cameras.length)}">${health}</div><div class="timeline">${timeline}</div></ha-card>
-      <dialog class="clip-dialog"><div class="clip-head"><div class="clip-message">Recorded activity</div><button type="button" class="clip-close" aria-label="Close clip"><ha-icon icon="mdi:close"></ha-icon></button></div><video controls playsinline preload="none"></video></dialog>`;
+      <dialog class="clip-dialog"><div class="clip-head"><div class="clip-message">Recorded activity</div><button type="button" class="clip-close" aria-label="Close clip"><ha-icon icon="mdi:close"></ha-icon></button></div><video controls autoplay muted playsinline preload="metadata"></video></dialog>`;
     this.shadowRoot.querySelectorAll('button[data-live="true"]').forEach((button) => {
       button.addEventListener("click", (event) => {
         event.preventDefault();

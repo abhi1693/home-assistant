@@ -81,6 +81,11 @@ async function installComponents(page) {
     customElements.define("ha-card", HaCard);
     customElements.define("ha-icon", HaIcon);
     customElements.define("test-card", TestCard);
+    HTMLMediaElement.prototype.play = async function play() {
+      this.dataset.played = "true";
+    };
+    HTMLMediaElement.prototype.pause = function pause() {};
+    HTMLMediaElement.prototype.load = function load() {};
     window.loadCardHelpers = async () => {
       await new Promise((resolve) => setTimeout(resolve));
       if (!customElements.get("hui-picture-entity-card")) {
@@ -120,6 +125,7 @@ async function buildFixture(page) {
   tomorrow.setDate(now.getDate() + 1);
   tomorrow.setHours(10, 30, 0, 0);
   const previous = new Date(now.getTime() - 60000);
+  const earlier = new Date(now.getTime() - 120000);
   const hassStates = {
     "fan.office": state("fan.office", "on", { percentage: 66 }),
     "light.office": state("light.office", "on"),
@@ -178,6 +184,11 @@ async function buildFixture(page) {
         types:["motion"], start:previous.toISOString(), end:now.toISOString(), active:false,
         thumbnail:"data:image/gif;base64,R0lGODlhAQABAAAAACw=",
         video:"/api/family_camera_events/outside/camera-clip/video",
+      }, {
+        id:"camera-clip-earlier", camera_key:"outside", camera_name:"Outside",
+        types:["vehicle"], start:earlier.toISOString(), end:previous.toISOString(), active:false,
+        thumbnail:"data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+        video:"/api/family_camera_events/outside/camera-clip-earlier/video",
       }],
     }),
     "sensor.outside_recording": state("sensor.outside_recording", "detections"),
@@ -408,13 +419,29 @@ async function validate(page, viewport) {
   assert.equal(stablePlayer.calls, 2, "Camera player was configured more than once per quality change");
 
   const cameraEvents = page.locator("family-camera-events-card");
-  await cameraEvents.locator('.event-action[data-video]').waitFor({ state:"visible" });
-  await assertTargets(cameraEvents.locator(".event-action"));
-  await cameraEvents.locator('.event-action[data-live="true"]').click();
-  await cameraEvents.locator('.event-action[data-video]').click();
+  await cameraEvents.locator('.event-open[data-video]').first().waitFor({ state:"visible" });
+  await assertTargets(cameraEvents.locator(".event-open"));
+  const detectionCards = await boxes(cameraEvents.locator(".event-open"));
+  assert.equal(detectionCards.length, 3);
+  if (viewport.width <= 620) {
+    assert(detectionCards[1].y >= detectionCards[0].bottom, "Detection cards did not stack on phone");
+    assert(detectionCards[2].y >= detectionCards[1].bottom, "Detection cards did not stack on phone");
+  } else if (viewport.width <= 1100) {
+    assert(Math.abs(detectionCards[0].y - detectionCards[1].y) < 2, "Detection cards did not form a two-column grid");
+    assert(detectionCards[2].y >= detectionCards[0].bottom, "Detection grid did not wrap after two columns");
+  } else {
+    assert(detectionCards.every((card) => Math.abs(card.y - detectionCards[0].y) < 2), "Detection cards did not form a three-column grid");
+  }
+  await cameraEvents.locator('.event-open[data-live="true"]').click();
+  await cameraEvents.locator('.event-open[data-video]').first().click();
   const clipDialog = cameraEvents.locator("dialog.clip-dialog");
   await clipDialog.waitFor({ state:"visible" });
-  assert((await clipDialog.locator("video").getAttribute("src")).includes("authSig=test"));
+  const clipVideo = clipDialog.locator("video");
+  assert((await clipVideo.getAttribute("src")).includes("authSig=test"));
+  assert.equal(await clipVideo.getAttribute("autoplay"), "");
+  assert(await clipVideo.evaluate((video) => video.muted), "Autoplay clip was not muted");
+  assert.equal(await clipVideo.getAttribute("data-played"), "true", "Clip did not autoplay");
+  assert((await clipDialog.locator(".clip-message").textContent()).includes("High resolution"));
   await clipDialog.locator(".clip-close").click();
   const signedClip = await page.evaluate(() => window.__wsCalls.some((call) =>
     call.type === "auth/sign_path" && call.path.endsWith("/camera-clip/video")));

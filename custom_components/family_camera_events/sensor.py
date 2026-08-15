@@ -41,6 +41,7 @@ SERVICE_ANNOUNCE = "announce"
 STORE_KEY = "family_camera_events"
 STORE_VERSION = 1
 NOTIFICATION_MEDIA_EXPIRY = timedelta(minutes=30)
+PROTECT_HIGH_CHANNEL_INDEX = 0
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
@@ -606,7 +607,10 @@ class FamilyCameraVideoView(_FamilyCameraMediaView):
 
         try:
             await camera.get_video(
-                event.start, event.end, iterator_callback=write_chunk
+                event.start,
+                event.end,
+                channel_index=PROTECT_HIGH_CHANNEL_INDEX,
+                iterator_callback=write_chunk,
             )
         except Exception as err:
             _LOGGER.debug("Unable to fetch Protect clip %s: %s", event_id, err)

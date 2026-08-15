@@ -657,7 +657,7 @@ class DashboardStructureTests(unittest.TestCase):
             )
         for resource in (
             "/local/family-camera-wall-card.js?v=2.0.1",
-            "/local/family-camera-events-card.js?v=1.1.0",
+            "/local/family-camera-events-card.js?v=1.2.0",
         ):
             self.assertIn(resource, configuration)
         self.assertNotIn("family-camera-speaker-card.js", configuration)
@@ -1011,6 +1011,11 @@ class DashboardStructureTests(unittest.TestCase):
         events_card = (ROOT / "www/family-camera-events-card.js").read_text()
         self.assertIn('type: "auth/sign_path"', events_card)
         self.assertIn("dialog class=\"clip-dialog\"", events_card)
+        self.assertIn("grid-template-columns:repeat(3,minmax(0,1fr))", events_card)
+        self.assertIn("await video.play()", events_card)
+        self.assertIn("<video controls autoplay muted", events_card)
+        self.assertIn("channel_index=PROTECT_HIGH_CHANNEL_INDEX", sensor)
+        self.assertIn("PROTECT_HIGH_CHANNEL_INDEX = 0", sensor)
         self.assertNotIn("household_perimeter_person_event", package)
         self.assertIn("household_camera_recording_timers", package)
         self.assertIn("household_camera_recording_incident", package)

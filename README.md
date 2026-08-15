@@ -122,8 +122,11 @@ local event WebSocket rather than polling the cloud. It retains at most 20
 events per camera, seeds the feed from the previous 24 hours of local Protect
 history after startup, and proxies thumbnails and completed clips through
 authenticated account-aware endpoints. The dashboard requests short-lived
-user-bound signed paths before loading either media type and plays completed
-clips in place. Notification bookkeeping is never exposed as entity attributes.
+user-bound signed paths before loading either media type. Recent detections
+reflow as a three-, two-, or one-column grid, and selecting a completed event
+opens and automatically starts its high-resolution clip in a muted modal with
+normal playback controls. Notification bookkeeping is never exposed as entity
+attributes.
 Alerts are deduplicated per Protect event and detection type; historical
 backfill never sends an alert.
 Smoke, carbon-monoxide, and baby-cry alerts are immediate; person, vehicle, and
