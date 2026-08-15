@@ -2,6 +2,11 @@ type: custom:navbar-card
 grid_options:
   columns: 1
   rows: 1
+layout:
+  auto_padding:
+    enabled: true
+    desktop_px: 100
+    mobile_px: 96
 desktop:
   position: left
   min_width: 900

@@ -710,9 +710,11 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("heading: Operational status", rack)
         self.assertIn("template: rack_overview", rack)
         self.assertIn("Everything operational", rack)
-        self.assertIn("elapsed <= 180000", rack)
+        self.assertIn("binary_sensor.rack_status_bridge_fresh", rack)
+        self.assertIn("binary_sensor.rack_status_data_complete", rack)
         self.assertIn("above: 24", rack)
         for entity_id in (
+            "sensor.rack_unready_nodes",
             "sensor.rack_unhealthy_workloads",
             "sensor.rack_fleet_failures",
             "sensor.rack_degraded_volumes",
@@ -721,18 +723,43 @@ class DashboardStructureTests(unittest.TestCase):
         ):
             self.assertIn(f"entity: {entity_id}", rack)
         self.assertIn("entity: binary_sensor.rack_ups_on_battery", rack)
-        self.assertIn("heading: Cluster health", rack)
+        self.assertIn("heading: Continuity", rack)
         self.assertIn("heading: Power", rack)
         self.assertIn("heading: Environment", rack)
-        self.assertIn("heading: Services and backups", rack)
+        self.assertNotIn("heading: Cluster health", rack)
+        self.assertNotIn("heading: Services and backups", rack)
+        self.assertNotIn("Jellyfin clients", rack)
+        self.assertIn("name: UniFi local sensor", rack)
         self.assertEqual(rack.count("hours_to_show: 24"), 2)
         self.assertIn("url_path: http://grafana.home", rack)
         self.assertIn("url_path: https://rancher.home", rack)
+        self.assertLess(
+            rack.index("heading: Open diagnostics"),
+            rack.index("heading: Continuity"),
+        )
+        self.assertIn("hide_sidebar: true", rack)
+        self.assertIn("return hours > 0 ? `${hours}h` : '<1h';", rack)
+        for attribute in (
+            "unready_node_details",
+            "unhealthy_workload_details",
+            "fleet_failure_details",
+            "longhorn_degraded_volume_details",
+            "unreachable_target_details",
+            "active_alert_details",
+        ):
+            self.assertIn(attribute, infrastructure)
+            self.assertIn(attribute, rack)
         self.assertIn("generated_at", infrastructure)
         self.assertIn("links", infrastructure)
         self.assertNotIn("heading: Protect", rack)
         self.assertNotIn("type: picture-entity", rack)
         self.assertNotIn("camera.", rack)
+
+        navigation = (
+            ROOT / "dashboards/includes/family-navigation.yaml"
+        ).read_text()
+        self.assertIn("auto_padding:", navigation)
+        self.assertIn("mobile_px: 96", navigation)
 
     def test_health_view_is_owner_only_and_uses_available_sensors(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()

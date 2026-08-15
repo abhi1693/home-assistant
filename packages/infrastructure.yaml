@@ -12,35 +12,59 @@ rest:
         json_attributes:
           - total_nodes
 
+      - name: Rack unready nodes
+        unique_id: rack_unready_nodes
+        value_template: "{{ value_json.cluster.unready_nodes }}"
+        state_class: measurement
+        unit_of_measurement: nodes
+        json_attributes_path: "$.cluster"
+        json_attributes:
+          - unready_node_details
+
       - name: Rack unhealthy workloads
         unique_id: rack_unhealthy_workloads
         value_template: "{{ value_json.cluster.unhealthy_workloads }}"
         state_class: measurement
         unit_of_measurement: workloads
+        json_attributes_path: "$.cluster"
+        json_attributes:
+          - unhealthy_workload_details
 
       - name: Rack Fleet failures
         unique_id: rack_fleet_failures
         value_template: "{{ value_json.cluster.fleet_failures }}"
         state_class: measurement
         unit_of_measurement: bundles
+        json_attributes_path: "$.cluster"
+        json_attributes:
+          - fleet_failure_details
 
       - name: Rack degraded volumes
         unique_id: rack_degraded_volumes
         value_template: "{{ value_json.cluster.longhorn_degraded_volumes }}"
         state_class: measurement
         unit_of_measurement: volumes
+        json_attributes_path: "$.cluster"
+        json_attributes:
+          - longhorn_degraded_volume_details
 
       - name: Rack unreachable targets
         unique_id: rack_unreachable_targets
         value_template: "{{ value_json.monitoring.unreachable_targets }}"
         state_class: measurement
         unit_of_measurement: targets
+        json_attributes_path: "$.monitoring"
+        json_attributes:
+          - unreachable_target_details
 
       - name: Rack active alerts
         unique_id: rack_active_alerts
         value_template: "{{ value_json.monitoring.active_alerts }}"
         state_class: measurement
         unit_of_measurement: alerts
+        json_attributes_path: "$.monitoring"
+        json_attributes:
+          - active_alert_details
 
       - name: Rack database backup age
         unique_id: rack_database_backup_age
@@ -55,3 +79,33 @@ rest:
         json_attributes:
           - generated_at
           - links
+
+template:
+  - binary_sensor:
+      - name: Rack status bridge fresh
+        unique_id: rack_status_bridge_fresh
+        device_class: connectivity
+        state: >-
+          {% set generated = state_attr('sensor.rack_summary_status', 'generated_at') %}
+          {% set age = as_timestamp(now()) - as_timestamp(generated, 0) %}
+          {{ is_state('sensor.rack_summary_status', 'ok')
+             and generated is not none
+             and 0 <= age <= 180 }}
+
+      - name: Rack status data complete
+        unique_id: rack_status_data_complete
+        device_class: connectivity
+        state: >-
+          {% set numeric = [
+            states('sensor.rack_ready_nodes'),
+            states('sensor.rack_unready_nodes'),
+            states('sensor.rack_unhealthy_workloads'),
+            states('sensor.rack_fleet_failures'),
+            states('sensor.rack_degraded_volumes'),
+            states('sensor.rack_unreachable_targets'),
+            states('sensor.rack_active_alerts'),
+            states('sensor.rack_database_backup_age')
+          ] %}
+          {{ numeric | select('is_number') | list | count == numeric | count
+             and is_number(state_attr('sensor.rack_ready_nodes', 'total_nodes'))
+             and states('binary_sensor.rack_ups_on_battery') in ['on', 'off'] }}
