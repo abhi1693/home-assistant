@@ -89,6 +89,8 @@ lovelace:
       type: module
     - url: /local/family-seerr-requests-card.js?v=1.1.0
       type: module
+    - url: /local/family-daily-max-chart-card.js?v=1.0.0
+      type: module
     - url: /local/family-room-card.js?v=1.2.0
       type: module
     - url: /local/family-room-summary-card.js?v=1.0.0

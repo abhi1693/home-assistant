@@ -877,15 +877,33 @@ class DashboardStructureTests(unittest.TestCase):
             "sensor.iphone_average_active_pace",
         ):
             self.assertIn(entity_id, combined)
-        self.assertEqual(abhimanyu.count("type: statistics-graph"), 3)
-        self.assertEqual(krishna.count("type: statistics-graph"), 3)
+        self.assertEqual(
+            abhimanyu.count("type: custom:family-daily-max-chart-card"), 3
+        )
+        self.assertEqual(
+            krishna.count("type: custom:family-daily-max-chart-card"), 3
+        )
         self.assertNotIn("type: statistics-graph", manisha)
-        self.assertEqual(abhimanyu.count("stat_types: [sum]"), 3)
-        self.assertEqual(krishna.count("stat_types: [sum]"), 3)
-        self.assertNotIn("stat_types: [max]", "\n".join((abhimanyu, krishna)))
-        self.assertEqual(combined.count("days_to_show: 7"), 6)
+        self.assertNotIn("type: statistics-graph", "\n".join((abhimanyu, krishna)))
+        self.assertNotIn("stat_types:", "\n".join((abhimanyu, krishna)))
+        self.assertEqual(combined.count("days: 7"), 6)
+        abhimanyu_movement = abhimanyu.split("heading: Movement · 7 days", 1)[1]
+        krishna_movement = krishna.split("heading: Movement · 7 days", 1)[1]
+        self.assertEqual(abhimanyu_movement.count("format:"), 3)
+        self.assertEqual(krishna_movement.count("format:"), 3)
+        self.assertIn("format: steps", abhimanyu_movement)
+        self.assertIn("format: steps", krishna_movement)
+        self.assertIn("format: distance", abhimanyu)
+        self.assertIn("format: distance", krishna)
+        self.assertIn("format: calories", abhimanyu)
+        self.assertIn("format: floors", krishna)
         self.assertNotIn("hours_to_show: 24", combined)
         self.assertIn("format: breaths", abhimanyu)
+        daily_max_card = (ROOT / "www/family-daily-max-chart-card.js").read_text()
+        self.assertIn('customElements.define("family-daily-max-chart-card"', daily_max_card)
+        self.assertIn("history/period/", daily_max_card)
+        self.assertIn("Math.max(bucket.value, value)", daily_max_card)
+        self.assertIn("currentValue", daily_max_card)
         self.assertNotIn("Private to your account", home)
         self.assertNotIn("medical guidance", combined)
         self.assertNotIn("not available", combined)
@@ -1135,6 +1153,7 @@ class DashboardStructureTests(unittest.TestCase):
             "/local/family-fan-card.js?v=3.3.1",
             "/local/family-agenda-card.js?v=1.1.0",
             "/local/family-seerr-requests-card.js?v=1.1.0",
+            "/local/family-daily-max-chart-card.js?v=1.0.0",
             "/local/family-room-card.js?v=1.2.0",
             "/local/family-room-summary-card.js?v=1.0.0",
             "/local/family-appliance-card.js?v=1.0.0",

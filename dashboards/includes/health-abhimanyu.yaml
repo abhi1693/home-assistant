@@ -146,54 +146,24 @@ cards:
     heading_style: subtitle
     icon: mdi:chart-bar
     grid_options: { columns: 36, rows: 1 }
-  - type: statistics-graph
+  - type: custom:family-daily-max-chart-card
     title: Steps
-    entities:
-      - entity: sensor.pixel_8_daily_steps
-        name: Daily steps
-        color: "#67c587"
-    days_to_show: 7
-    period: day
-    chart_type: bar
-    stat_types: [sum]
-    hide_legend: true
-    min_y_axis: 0
-    fit_y_data: true
-    card_mod:
-      style: |
-        ha-card { border-radius: 22px; background: var(--contrast2); }
+    entity: sensor.pixel_8_daily_steps
+    days: 7
+    format: steps
+    color: "#67c587"
     grid_options: { columns: 12, rows: 4 }
-  - type: statistics-graph
+  - type: custom:family-daily-max-chart-card
     title: Distance
-    entities:
-      - entity: sensor.pixel_8_daily_distance
-        name: Daily distance
-        color: "#54a7e8"
-    days_to_show: 7
-    period: day
-    chart_type: bar
-    stat_types: [sum]
-    hide_legend: true
-    min_y_axis: 0
-    fit_y_data: true
-    card_mod:
-      style: |
-        ha-card { border-radius: 22px; background: var(--contrast2); }
+    entity: sensor.pixel_8_daily_distance
+    days: 7
+    format: distance
+    color: "#54a7e8"
     grid_options: { columns: 12, rows: 4 }
-  - type: statistics-graph
+  - type: custom:family-daily-max-chart-card
     title: Energy burned
-    entities:
-      - entity: sensor.pixel_8_total_calories_burned
-        name: Daily energy
-        color: "#ef9f59"
-    days_to_show: 7
-    period: day
-    chart_type: bar
-    stat_types: [sum]
-    hide_legend: true
-    min_y_axis: 0
-    fit_y_data: true
-    card_mod:
-      style: |
-        ha-card { border-radius: 22px; background: var(--contrast2); }
+    entity: sensor.pixel_8_total_calories_burned
+    days: 7
+    format: calories
+    color: "#ef9f59"
     grid_options: { columns: 12, rows: 4 }

@@ -283,6 +283,7 @@ class BootstrapTests(unittest.TestCase):
         self.write("www/family-responsive-grid-card.js", "export default {};\n")
         self.write("www/family-room-card.js", "export default {};\n")
         self.write("www/family-agenda-card.js", "export default {};\n")
+        self.write("www/family-daily-max-chart-card.js", "export default {};\n")
         self.write(
             "custom_components/family_dashboard_guard/__init__.py",
             "VALUE = 1\n",
@@ -342,6 +343,10 @@ class BootstrapTests(unittest.TestCase):
         )
         self.assertEqual(
             (self.config / "www/family-agenda-card.js").read_text(),
+            "export default {};\n",
+        )
+        self.assertEqual(
+            (self.config / "www/family-daily-max-chart-card.js").read_text(),
             "export default {};\n",
         )
 
