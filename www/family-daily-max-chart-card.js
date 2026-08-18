@@ -77,8 +77,14 @@ class FamilyDailyMaxChartCard extends HTMLElement {
   }
 
   _readNumber(state) {
-    const value = Number(state?.state);
+    const value = Number(state?.state ?? state?.s);
     return Number.isFinite(value) ? value : null;
+  }
+
+  _readTimestamp(state) {
+    const raw = state?.last_changed ?? state?.last_updated ?? state?.lc ?? state?.lu;
+    if (typeof raw === "number") return new Date(raw * 1000);
+    return new Date(raw);
   }
 
   _series() {
@@ -95,7 +101,7 @@ class FamilyDailyMaxChartCard extends HTMLElement {
     for (const row of this._history || []) {
       const value = this._readNumber(row);
       if (value === null) continue;
-      const changed = new Date(row.last_changed || row.last_updated);
+      const changed = this._readTimestamp(row);
       if (Number.isNaN(changed.getTime())) continue;
       const bucket = byKey.get(this._dayKey(changed));
       if (!bucket) continue;

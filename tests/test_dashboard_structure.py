@@ -902,6 +902,8 @@ class DashboardStructureTests(unittest.TestCase):
         daily_max_card = (ROOT / "www/family-daily-max-chart-card.js").read_text()
         self.assertIn('customElements.define("family-daily-max-chart-card"', daily_max_card)
         self.assertIn("history/period/", daily_max_card)
+        self.assertIn("state?.state ?? state?.s", daily_max_card)
+        self.assertIn("state?.last_changed ?? state?.last_updated ?? state?.lc ?? state?.lu", daily_max_card)
         self.assertIn("Math.max(bucket.value, value)", daily_max_card)
         self.assertIn("currentValue", daily_max_card)
         self.assertNotIn("Private to your account", home)
