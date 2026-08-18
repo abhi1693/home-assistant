@@ -1155,7 +1155,7 @@ class DashboardStructureTests(unittest.TestCase):
             "/local/family-fan-card.js?v=3.3.1",
             "/local/family-agenda-card.js?v=1.1.0",
             "/local/family-seerr-requests-card.js?v=1.1.0",
-            "/local/family-daily-max-chart-card.js?v=1.0.0",
+            "/local/family-daily-max-chart-card.js?v=1.0.1",
             "/local/family-room-card.js?v=1.2.0",
             "/local/family-room-summary-card.js?v=1.0.0",
             "/local/family-appliance-card.js?v=1.0.0",
