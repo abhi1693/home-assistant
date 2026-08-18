@@ -448,6 +448,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("binary_sensor.pixel_8_is_charging", access)
         self.assertIn("binary_sensor.pixel_10_pro_is_charging", access)
         self.assertIn("`mdi:battery-charging-${bucket}`", home)
+        self.assertIn("icon: charging ? `mdi:battery-charging-${bucket}`", home)
+        self.assertIn("color: charging ? 'var(--green)' : 'var(--red)'", home)
         self.assertIn("Math.min(100, Math.ceil(level / 10) * 10)", home)
         self.assertIn("var(--red)", home)
         self.assertIn("var(--yellow)", home)

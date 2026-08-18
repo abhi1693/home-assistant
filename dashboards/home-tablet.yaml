@@ -549,18 +549,37 @@ button_card_templates:
             name: 'Storm chance', label: `${Math.round(storm)}%`,
             icon: 'mdi:weather-lightning-rainy', color: storm >= 60 ? 'var(--red)' : 'var(--yellow)'
           };
-          const phoneBatteryEntity = user?.id === '8117b77542614a06b4672a8ae1a979b5'
-            ? 'sensor.pixel_10_pro_battery_level'
+          const phoneBattery = user?.id === '8117b77542614a06b4672a8ae1a979b5'
+            ? {
+              level: 'sensor.pixel_10_pro_battery_level',
+              state: 'sensor.pixel_10_pro_battery_state',
+              charging: 'binary_sensor.pixel_10_pro_is_charging'
+            }
             : user?.id === '734722ec932a41a68d47553b6c2f7f5d'
-              ? 'sensor.iphone_battery_level'
+              ? { level: 'sensor.iphone_battery_level', state: 'sensor.iphone_battery_state' }
             : user?.id === '9302d11f48c64fe796a3c9e5cb563650'
-                ? 'sensor.pixel_8_battery_level'
+                ? {
+                  level: 'sensor.pixel_8_battery_level',
+                  state: 'sensor.pixel_8_battery_state',
+                  charging: 'binary_sensor.pixel_8_is_charging'
+                }
                 : null;
-          const battery = Number(states[phoneBatteryEntity]?.state);
-          if (phoneBatteryEntity && Number.isFinite(battery) && battery < 25) return {
-            name: 'Phone battery', label: `${Math.round(battery)}%`,
-            icon: 'mdi:battery-alert-variant-outline', color: 'var(--red)'
-          };
+          const batteryEntity = phoneBattery ? states[phoneBattery.level] : null;
+          const battery = Number(batteryEntity?.state);
+          const batteryState = String(states[phoneBattery?.state]?.state || '').toLowerCase();
+          const chargingState = String(states[phoneBattery?.charging]?.state || '').toLowerCase();
+          const batteryIcon = String(batteryEntity?.attributes?.icon || '').toLowerCase();
+          const charging = ['on', 'true', 'charging'].includes(chargingState)
+            || ['charging', 'full', 'charged'].includes(batteryState)
+            || batteryIcon.includes('battery-charging');
+          if (phoneBattery && Number.isFinite(battery) && battery < 25) {
+            const bucket = Math.max(10, Math.min(100, Math.ceil(battery / 10) * 10));
+            return {
+              name: 'Phone battery', label: `${Math.round(battery)}%`,
+              icon: charging ? `mdi:battery-charging-${bucket}` : 'mdi:battery-alert-variant-outline',
+              color: charging ? 'var(--green)' : 'var(--red)'
+            };
+          }
           const apparent = Number(states['sensor.home_apparent_temperature']?.state);
           if (Number.isFinite(apparent) && apparent >= 38) return {
             name: 'Feels like', label: `${Math.round(apparent)}°C`,
