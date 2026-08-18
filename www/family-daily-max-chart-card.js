@@ -38,7 +38,8 @@ class FamilyDailyMaxChartCard extends HTMLElement {
   async _loadHistory() {
     if (!this._hass || !this._config || this._loading) return;
     const start = this._startDate();
-    const key = `${this._config.entity}:${start.toISOString()}:${this._config.days}`;
+    const end = new Date();
+    const key = `${this._config.entity}:${start.toISOString()}:${end.toISOString()}:${this._config.days}`;
     if (this._historyKey === key) return;
     this._loading = true;
     this._historyKey = key;
@@ -46,6 +47,7 @@ class FamilyDailyMaxChartCard extends HTMLElement {
     try {
       const query = new URLSearchParams({
         filter_entity_id: this._config.entity,
+        end_time: end.toISOString(),
         minimal_response: "1",
         no_attributes: "1",
       });

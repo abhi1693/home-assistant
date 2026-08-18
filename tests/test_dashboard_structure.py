@@ -902,6 +902,7 @@ class DashboardStructureTests(unittest.TestCase):
         daily_max_card = (ROOT / "www/family-daily-max-chart-card.js").read_text()
         self.assertIn('customElements.define("family-daily-max-chart-card"', daily_max_card)
         self.assertIn("history/period/", daily_max_card)
+        self.assertIn("end_time: end.toISOString()", daily_max_card)
         self.assertIn("state?.state ?? state?.s", daily_max_card)
         self.assertIn("state?.last_changed ?? state?.last_updated ?? state?.lc ?? state?.lu", daily_max_card)
         self.assertIn("Math.max(bucket.value, value)", daily_max_card)
@@ -1155,7 +1156,7 @@ class DashboardStructureTests(unittest.TestCase):
             "/local/family-fan-card.js?v=3.3.1",
             "/local/family-agenda-card.js?v=1.1.0",
             "/local/family-seerr-requests-card.js?v=1.1.0",
-            "/local/family-daily-max-chart-card.js?v=1.0.1",
+            "/local/family-daily-max-chart-card.js?v=1.0.2",
             "/local/family-room-card.js?v=1.2.0",
             "/local/family-room-summary-card.js?v=1.0.0",
             "/local/family-appliance-card.js?v=1.0.0",
