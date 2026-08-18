@@ -155,7 +155,7 @@ cards:
     days_to_show: 7
     period: day
     chart_type: bar
-    stat_types: [max]
+    stat_types: [sum]
     hide_legend: true
     min_y_axis: 0
     fit_y_data: true
@@ -172,7 +172,7 @@ cards:
     days_to_show: 7
     period: day
     chart_type: bar
-    stat_types: [max]
+    stat_types: [sum]
     hide_legend: true
     min_y_axis: 0
     fit_y_data: true
@@ -189,7 +189,7 @@ cards:
     days_to_show: 7
     period: day
     chart_type: bar
-    stat_types: [max]
+    stat_types: [sum]
     hide_legend: true
     min_y_axis: 0
     fit_y_data: true
