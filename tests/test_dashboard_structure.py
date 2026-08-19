@@ -577,96 +577,18 @@ class DashboardStructureTests(unittest.TestCase):
             self.assertIn(f"entity: {window}", card)
             self.assertIn('state: "on"', card)
 
-    def test_abhimanyu_journey_announcements_are_fresh_and_idempotent(self):
+    def test_dual_home_routes_do_not_send_notifications(self):
         commute = (ROOT / "packages/commute.yaml").read_text()
-        automation = commute.split(
-            "  - id: household_announce_abhimanyu_homeward_journey", 1
-        )[1].split("  - id: household_share_family_journeys", 1)[0]
-
-        self.assertIn("abhimanyu_homeward_journey_active:", commute)
-        helper = commute.split(
-            "  abhimanyu_homeward_journey_active:", 1
-        )[1].split("\nautomation:", 1)[0]
-        self.assertNotIn("initial:", helper)
-        self.assertIn("mode: queued", automation)
-        self.assertIn("to: towards", automation)
-        self.assertIn(
-            "sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel",
-            automation,
-        )
-        self.assertIn("from: towards", automation)
-        self.assertIn("condition: zone.not_in_zone", automation)
-        departure_gate = automation.split("          - conditions:", 1)[1].split(
-            "            sequence:", 1
-        )[0]
-        self.assertNotIn("person.krishna", departure_gate)
-        self.assertNotIn("person.manisha", departure_gate)
-        self.assertNotIn("notify.abhimanyu_s_echo_dot_announce", departure_gate)
-        self.assertIn("trigger: zone.entered", automation)
-        self.assertIn('for: "00:00:30"', automation)
-        self.assertEqual(
-            automation.count("action: google_travel_time.get_travel_times"), 1
-        )
-        self.assertIn("response_variable: departure_travel_home", automation)
-        self.assertIn("origin: device_tracker.abhimanyu_pixel_8_2", automation)
-        self.assertIn("destination: zone.home", automation)
-        self.assertIn("notify.abhimanyu_s_echo_dot_announce", automation)
-        self.assertEqual(automation.count("action: notify.mobile_app_pixel_10_pro"), 3)
-        self.assertEqual(automation.count("action: notify.mobile_app_iphone"), 3)
-        self.assertNotIn("entity_id: notify.pixel_10_pro", automation)
-        self.assertNotIn("entity_id: notify.iphone", automation)
-        self.assertIn("Abhimanyu has left for home.", automation)
-        self.assertIn("Abhimanyu is home.", automation)
-        self.assertIn("Abhimanyu is coming home", automation)
-        self.assertIn("Abhimanyu arrived home", automation)
-        self.assertEqual(automation.count("tag: abhimanyu-homeward-journey"), 6)
-        self.assertNotIn("url: /home-tablet/home", automation)
-        self.assertNotIn("clickAction:", automation)
-        self.assertEqual(automation.count("condition: zone.not_in_zone"), 7)
-        self.assertEqual(automation.count("              - parallel:"), 3)
-        self.assertIn("person.krishna", automation)
-        self.assertIn("person.manisha", automation)
-        self.assertGreaterEqual(
-            automation.count("input_boolean.abhimanyu_homeward_journey_active"),
-            5,
-        )
-
-    def test_dual_home_journeys_are_destination_aware_for_everyone(self):
-        commute = (ROOT / "packages/commute.yaml").read_text()
-        automation = commute.split(
-            "  - id: household_share_family_journeys", 1
-        )[1].split("\ntemplate:", 1)[0]
 
         self.assertIn("name: Manzil Apartment", commute)
         self.assertIn("latitude: 28.5815757", commute)
         self.assertIn("longitude: 77.0663691", commute)
         self.assertEqual(commute.count("destination: zone.manzil_apartment"), 3)
-        self.assertIn("script.household_share_family_journey", automation)
-        self.assertIn("home_towards and not manzil_towards", automation)
-        self.assertIn("manzil_towards and not home_towards", automation)
-        self.assertIn('for: "00:00:30"', automation)
-        for helper in (
-            "krishna_homeward_journey_active",
-            "manisha_homeward_journey_active",
-            "abhimanyu_manzil_journey_active",
-            "krishna_manzil_journey_active",
-            "manisha_manzil_journey_active",
-        ):
-            self.assertIn(f"{helper}:", commute)
-        for notification_action in (
-            "notify.mobile_app_pixel_8",
-            "notify.mobile_app_pixel_10_pro",
-            "notify.mobile_app_iphone",
-        ):
-            self.assertIn(f"action: {notification_action}", commute)
-        for entity_notification in (
-            "notify.abhimanyu_pixel_8",
-            "notify.pixel_10_pro",
-            "notify.iphone",
-        ):
-            self.assertNotIn(f"entity_id: {entity_notification}", commute)
-        self.assertNotIn("url: /home-tablet/home", commute)
-        self.assertNotIn("clickAction:", commute)
+        self.assertNotIn("notify.", commute)
+        self.assertNotIn("household_share_family_journey", commute)
+        self.assertNotIn("homeward_journey_active", commute)
+        self.assertNotIn("manzil_journey_active", commute)
+        self.assertNotIn("family-journey", commute)
 
     def test_camera_wall_applies_each_camera_user_gate(self):
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
