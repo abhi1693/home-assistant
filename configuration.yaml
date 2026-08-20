@@ -1,6 +1,11 @@
 # Loads Home Assistant's default integrations.
 default_config:
 
+go2rtc:
+  url: http://home-assistant-go2rtc.home-assistant.svc.cluster.local:1984/
+  username: !env_var GO2RTC_USERNAME
+  password: !env_var GO2RTC_PASSWORD
+
 homeassistant:
   # G3-012, Indiabulls Centrum Park, Sector 103, Gurugram, Haryana, India - 122006
   name: Home

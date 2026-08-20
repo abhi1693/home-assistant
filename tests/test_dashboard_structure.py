@@ -382,6 +382,18 @@ class DashboardStructureTests(unittest.TestCase):
         )
         self.assertNotIn("postgresql://", configuration)
 
+    def test_go2rtc_uses_authenticated_cluster_relay(self):
+        configuration = (ROOT / "configuration.yaml").read_text()
+
+        self.assertIn("go2rtc:\n", configuration)
+        self.assertIn(
+            "url: http://home-assistant-go2rtc.home-assistant.svc.cluster.local:1984/",
+            configuration,
+        )
+        self.assertIn("username: !env_var GO2RTC_USERNAME", configuration)
+        self.assertIn("password: !env_var GO2RTC_PASSWORD", configuration)
+        self.assertNotIn("192.168.3.17", configuration)
+
     def test_family_agenda_uses_permission_aware_calendar_responses(self):
         configuration = (ROOT / "configuration.yaml").read_text()
         manifest = (ROOT / "bootstrap/manifest.json").read_text()

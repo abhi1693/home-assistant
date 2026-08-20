@@ -70,6 +70,11 @@ verifies that archive and runs the bootstrap before Home Assistant starts.
 Rancher Fleet owns the Kubernetes deployment; this repository does not contain
 cluster credentials or mutate the cluster directly.
 
+Live camera signaling uses an authenticated, cluster-only go2rtc API supplied
+through `GO2RTC_USERNAME` and `GO2RTC_PASSWORD`. The deployment repository owns
+the relay and its fixed LAN WebRTC candidate; browsers receive media through
+that dedicated endpoint instead of an unreachable Kubernetes pod address.
+
 Home Assistant runs as one replica with a persistent configuration volume.
 Recorder uses a dedicated PostgreSQL database supplied through
 `HOME_ASSISTANT_RECORDER_DB_URL`.
@@ -272,6 +277,8 @@ template. Before adapting it:
 
 The deployment currently supplies:
 
+- `GO2RTC_USERNAME`
+- `GO2RTC_PASSWORD`
 - `HOME_ASSISTANT_RECORDER_DB_URL`
 - `SEERR_API_KEY`
 - Private work-location coordinates used during bootstrap
