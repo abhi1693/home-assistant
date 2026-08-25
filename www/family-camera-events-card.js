@@ -81,12 +81,21 @@ class FamilyCameraEventsCard extends HTMLElement {
   _closeClip() {
     const dialog = this.shadowRoot.querySelector("dialog.clip-dialog");
     const video = dialog?.querySelector("video");
+    this._clipRequest = (this._clipRequest || 0) + 1;
+    this._clipActive = false;
     if (video) {
       video.pause();
       video.removeAttribute("src");
       video.load();
     }
-    if (dialog?.open) dialog.close();
+    if (dialog?.open) {
+      dialog.close();
+      return;
+    }
+    if (this._pendingRender) {
+      this._pendingRender = false;
+      this._render(true);
+    }
   }
 
   async _openClip(button) {
@@ -94,14 +103,22 @@ class FamilyCameraEventsCard extends HTMLElement {
     const video = dialog?.querySelector("video");
     const message = dialog?.querySelector(".clip-message");
     if (!dialog || !video || !message) return;
+    const request = (this._clipRequest || 0) + 1;
+    this._clipRequest = request;
+    this._clipActive = true;
     button.disabled = true;
     message.textContent = "Preparing clip…";
+    dialog.showModal();
     try {
-      video.src = await this._signedPath(button.dataset.video, 120);
-      video.poster = await this._signedPath(button.dataset.thumbnail, 120);
+      const [videoPath, thumbnailPath] = await Promise.all([
+        this._signedPath(button.dataset.video, 120),
+        this._signedPath(button.dataset.thumbnail, 120),
+      ]);
+      if (request !== this._clipRequest || !dialog.open || !dialog.isConnected) return;
+      video.src = videoPath;
+      video.poster = thumbnailPath;
       video.muted = true;
       message.textContent = `${button.dataset.title} · High resolution · Muted`;
-      dialog.showModal();
       try {
         await video.play();
       } catch (_error) {
@@ -109,9 +126,8 @@ class FamilyCameraEventsCard extends HTMLElement {
       }
     } catch (_error) {
       message.textContent = "Clip could not be opened. Try again.";
-      dialog.showModal();
     } finally {
-      button.disabled = false;
+      if (button.isConnected) button.disabled = false;
     }
   }
 
@@ -134,6 +150,11 @@ class FamilyCameraEventsCard extends HTMLElement {
       }),
     });
     if (!force && signature === this._signature) return;
+    if (this._clipActive || this.shadowRoot.querySelector("dialog.clip-dialog")?.open) {
+      this._pendingRender = true;
+      return;
+    }
+    this._pendingRender = false;
     this._signature = signature;
     const cameraEvents = new Map(cameras.map((camera) => {
       const state = this._hass.states[camera.activity_entity];

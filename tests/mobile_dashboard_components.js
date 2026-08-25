@@ -530,7 +530,38 @@ async function validate(page, viewport) {
   assert(await clipVideo.evaluate((video) => video.muted), "Autoplay clip was not muted");
   assert.equal(await clipVideo.getAttribute("data-played"), "true", "Clip did not autoplay");
   assert((await clipDialog.locator(".clip-message").textContent()).includes("High resolution"));
+  const stableClip = await clipDialog.evaluate((dialog) => {
+    const card = dialog.getRootNode().host;
+    const originalVideo = dialog.querySelector("video");
+    const hass = card._hass;
+    const activity = hass.states["sensor.outside_activity"];
+    hass.states["sensor.outside_activity"] = {
+      ...activity,
+      attributes: {
+        ...activity.attributes,
+        last_event: new Date().toISOString(),
+        events: activity.attributes.events.map((event, index) => (
+          index === 0 ? { ...event, active:false, end:new Date().toISOString() } : event
+        )),
+      },
+    };
+    card.hass = hass;
+    const currentDialog = card.shadowRoot.querySelector("dialog.clip-dialog");
+    return {
+      sameDialog: currentDialog === dialog,
+      sameVideo: currentDialog.querySelector("video") === originalVideo,
+      open: currentDialog.open,
+      pendingRender: card._pendingRender,
+    };
+  });
+  assert(stableClip.sameDialog, "Clip dialog was replaced during a camera state update");
+  assert(stableClip.sameVideo, "Playing video was replaced during a camera state update");
+  assert(stableClip.open, "Clip dialog closed during a camera state update");
+  assert(stableClip.pendingRender, "Timeline refresh was not deferred while the clip was open");
   await clipDialog.locator(".clip-close").click();
+  await page.waitForFunction(() => !document.querySelector("family-camera-events-card")._pendingRender);
+  await cameraEvents.locator('[data-camera-filter="all"]').waitFor({ state:"visible" });
+  assert.equal(await cameraEvents.evaluate((card) => card._pendingRender), false, "Deferred timeline refresh did not run after closing the clip");
   const signedClip = await page.evaluate(() => window.__wsCalls.some((call) =>
     call.type === "auth/sign_path" && call.path.endsWith("/camera-clip/video")));
   assert(signedClip, "Completed clip did not request a user-bound signed path");

@@ -641,7 +641,7 @@ class DashboardStructureTests(unittest.TestCase):
             )
         for resource in (
             "/local/family-camera-wall-card.js?v=2.1.0",
-            "/local/family-camera-events-card.js?v=1.4.0",
+            "/local/family-camera-events-card.js?v=1.4.1",
         ):
             self.assertIn(resource, configuration)
         self.assertNotIn("family-camera-speaker-card.js", configuration)
@@ -1188,6 +1188,8 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('aria-label="Filter recent activity by camera"', events_card)
         self.assertIn('data-camera-filter="${cameraEventsEscape(key)}"', events_card)
         self.assertIn('this._selectedCamera = "all"', events_card)
+        self.assertIn("this._pendingRender = true", events_card)
+        self.assertIn("Promise.all([", events_card)
         self.assertNotIn("health-grid", events_card)
         self.assertNotIn("recording_entity", events_card)
         self.assertIn("channel_index=PROTECT_HIGH_CHANNEL_INDEX", sensor)
