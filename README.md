@@ -156,7 +156,9 @@ Protect history after startup or recovery, and proxies thumbnails and completed
 clips through authenticated account-aware endpoints. The dashboard requests
 short-lived user-bound signed paths before loading either media type. Clip
 dialogs open immediately and defer timeline refreshes until playback closes, so
-new detections cannot tear down an in-progress video request. Recent
+new detections cannot tear down an in-progress video request. Completed clips
+use a bounded private server cache with HTTP byte-range delivery, allowing
+mobile playback to seek backward without re-exporting the whole clip. Recent
 detections can be filtered by any camera authorized for the signed-in account,
 reflow as a three-, two-, or one-column grid, and selecting a completed event
 opens and automatically starts its high-resolution clip in a muted modal with

@@ -20,7 +20,11 @@ from homeassistant.components.http import KEY_HASS_USER, HomeAssistantView
 from homeassistant.components.http.auth import async_sign_path
 from homeassistant.components.sensor import PLATFORM_SCHEMA, SensorEntity
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-from homeassistant.const import CONF_ENTITY_ID, EVENT_HOMEASSISTANT_STARTED
+from homeassistant.const import (
+    CONF_ENTITY_ID,
+    EVENT_HOMEASSISTANT_STARTED,
+    EVENT_HOMEASSISTANT_STOP,
+)
 from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
@@ -32,6 +36,7 @@ from homeassistant.util import dt as dt_util
 from uiprotect.events import EventChange, ProtectEvent
 
 from . import DOMAIN
+from .media import VIDEO_RESPONSE_HEADERS, VideoClipCache
 from .model import event_types, mark_notified, merge_event, public_records
 
 _LOGGER = logging.getLogger(__name__)
@@ -78,6 +83,11 @@ _EVENT_LABELS = {
 }
 
 
+def _video_file_response(path: Path) -> web.FileResponse:
+    """Serve an authorized private MP4 with aiohttp Range support."""
+    return web.FileResponse(path, headers=VIDEO_RESPONSE_HEADERS)
+
+
 def _path(hass: HomeAssistant, configured: str) -> Path:
     path = Path(configured)
     return path if path.is_absolute() else Path(hass.config.path(path.as_posix()))
@@ -114,9 +124,14 @@ class FamilyCameraEventManager:
         self._attach_lock = asyncio.Lock()
         self._attach_retry: Callable[[], None] | None = None
         self._speaker_lock = asyncio.Lock()
+        self._video_cache: VideoClipCache | None = None
 
     async def async_initialize(self) -> None:
         """Restore history and attach after Protect finishes starting."""
+        self._video_cache = await asyncio.to_thread(VideoClipCache)
+        self.hass.bus.async_listen_once(
+            EVENT_HOMEASSISTANT_STOP, self._async_stopped
+        )
         stored = await self._store.async_load() or {}
         for key in self.cameras:
             records = stored.get("cameras", {}).get(key, [])
@@ -162,6 +177,30 @@ class FamilyCameraEventManager:
 
     async def _async_started(self, _event: Event) -> None:
         await self._async_attach()
+
+    async def _async_stopped(self, _event: Event) -> None:
+        if self._video_cache is not None:
+            await self._video_cache.async_close()
+
+    async def async_cached_video_path(
+        self, key: str, event_id: str
+    ) -> Path | None:
+        if self._video_cache is None:
+            return None
+        return await self._video_cache.async_cached_path(key, event_id)
+
+    async def async_cache_video(
+        self, key: str, event_id: str, event: Any, camera: Any
+    ) -> Path:
+        if self._video_cache is None:
+            raise RuntimeError("Video cache is not initialized")
+        return await self._video_cache.async_get(
+            key,
+            event_id,
+            event,
+            camera,
+            PROTECT_HIGH_CHANNEL_INDEX,
+        )
 
     @callback
     def _config_entry_state_changed(self, entry: ConfigEntry) -> None:
@@ -666,6 +705,10 @@ class FamilyCameraVideoView(_FamilyCameraMediaView):
     ) -> web.StreamResponse:
         if not self._allowed(request, camera_key, event_id):
             raise web.HTTPNotFound()
+        if cached := await self.manager.async_cached_video_path(
+            camera_key, event_id
+        ):
+            return _video_file_response(cached)
         api = self.manager.api_for(camera_key)
         if api is None:
             raise web.HTTPServiceUnavailable()
@@ -679,29 +722,14 @@ class FamilyCameraVideoView(_FamilyCameraMediaView):
         if camera is None:
             raise web.HTTPNotFound()
 
-        response = web.StreamResponse(headers={"Content-Type": "video/mp4"})
-
-        async def write_chunk(total: int, chunk: bytes | None) -> None:
-            if not response.prepared:
-                response.content_length = total
-                await response.prepare(request)
-            if chunk is not None:
-                await response.write(chunk)
-
         try:
-            await camera.get_video(
-                event.start,
-                event.end,
-                channel_index=PROTECT_HIGH_CHANNEL_INDEX,
-                iterator_callback=write_chunk,
+            path = await self.manager.async_cache_video(
+                camera_key, event_id, event, camera
             )
         except Exception as err:
             _LOGGER.debug("Unable to fetch Protect clip %s: %s", event_id, err)
-            if not response.prepared:
-                raise web.HTTPNotFound() from err
-        if response.prepared:
-            await response.write_eof()
-        return response
+            raise web.HTTPNotFound() from err
+        return _video_file_response(path)
 
 
 async def async_setup_platform(
