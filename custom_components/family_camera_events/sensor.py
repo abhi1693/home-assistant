@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from functools import partial
 import json
 import logging
 from pathlib import Path
@@ -13,10 +14,12 @@ from urllib.parse import quote
 
 from aiohttp import web
 import voluptuous as vol
+from uiprotect.websocket import WebsocketState
 
 from homeassistant.components.http import KEY_HASS_USER, HomeAssistantView
 from homeassistant.components.http.auth import async_sign_path
 from homeassistant.components.sensor import PLATFORM_SCHEMA, SensorEntity
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import CONF_ENTITY_ID, EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError
@@ -105,11 +108,11 @@ class FamilyCameraEventManager:
         self._entities: dict[str, FamilyCameraActivitySensor] = {}
         self._camera_by_device_id: dict[str, str] = {}
         self._api_by_camera: dict[str, Any] = {}
-        self._subscriptions: list[Callable[[], None]] = []
-        self._subscribed_entries: set[str] = set()
-        self._backfilled_entries: set[str] = set()
+        self._entry_apis: dict[str, Any] = {}
+        self._entry_subscriptions: dict[str, list[Callable[[], None]]] = {}
+        self._entry_state_subscriptions: list[Callable[[], None]] = []
+        self._attach_lock = asyncio.Lock()
         self._attach_retry: Callable[[], None] | None = None
-        self._attached = False
         self._speaker_lock = asyncio.Lock()
 
     async def async_initialize(self) -> None:
@@ -135,6 +138,13 @@ class FamilyCameraEventManager:
                     if not str(item.get("id", "")).startswith("__prune__")
                 ]
 
+        for entry in self.hass.config_entries.async_entries("unifiprotect"):
+            self._entry_state_subscriptions.append(
+                entry.async_on_state_change(
+                    lambda entry=entry: self._config_entry_state_changed(entry)
+                )
+            )
+
         if self.hass.is_running:
             await self._async_attach()
         else:
@@ -153,67 +163,140 @@ class FamilyCameraEventManager:
     async def _async_started(self, _event: Event) -> None:
         await self._async_attach()
 
-    async def _async_attach(self) -> None:
-        if self._attached:
+    @callback
+    def _config_entry_state_changed(self, entry: ConfigEntry) -> None:
+        """Reconcile subscriptions after Protect reloads a config entry."""
+        if entry.state is not ConfigEntryState.LOADED:
             return
-        registry = er.async_get(self.hass)
-        for entry in self.hass.config_entries.async_entries("unifiprotect"):
-            data = getattr(entry, "runtime_data", None)
-            api = getattr(data, "api", None)
-            if api is None or not getattr(api, "has_public_bootstrap", False):
-                continue
+        self.hass.async_create_task(
+            self._async_attach(),
+            f"reattach private Protect events for {entry.title}",
+        )
 
-            matched = False
-            matched_keys: list[str] = []
-            for key, camera in self.cameras.items():
-                high = registry.async_get(camera["high_entity_id"])
-                if high is None or high.config_entry_id != entry.entry_id:
+    @callback
+    def _events_websocket_state_changed(
+        self, entry_id: str, api: Any, state: WebsocketState
+    ) -> None:
+        """Catch up events missed while Protect's events socket was offline."""
+        if (
+            state is not WebsocketState.CONNECTED
+            or self._entry_apis.get(entry_id) is not api
+        ):
+            return
+        self.hass.async_create_task(
+            self._async_backfill(api),
+            f"catch up private Protect events for {entry_id}",
+        )
+
+    @callback
+    def _drop_entry_subscriptions(self, entry_id: str) -> None:
+        """Detach callbacks from an API object replaced during entry reload."""
+        for unsubscribe in self._entry_subscriptions.pop(entry_id, []):
+            try:
+                unsubscribe()
+            except (KeyError, ValueError):
+                pass
+        self._entry_apis.pop(entry_id, None)
+
+    async def _async_attach(self) -> None:
+        async with self._attach_lock:
+            registry = er.async_get(self.hass)
+            for entry in self.hass.config_entries.async_entries("unifiprotect"):
+                if entry.state is not ConfigEntryState.LOADED:
                     continue
-                wanted_mac = _normal_mac(high.unique_id.removesuffix("_0"))
-                public = next(
-                    (
-                        item
-                        for item in api.public_bootstrap.cameras.values()
-                        if _normal_mac(item.mac) == wanted_mac
-                    ),
-                    None,
-                )
-                if public is None:
-                    _LOGGER.warning("Protect camera mapping is not ready for %s", key)
+                data = getattr(entry, "runtime_data", None)
+                api = getattr(data, "api", None)
+                if api is None or not getattr(api, "has_public_bootstrap", False):
                     continue
-                self._camera_by_device_id[public.id] = key
-                self._api_by_camera[key] = api
-                matched = True
-                matched_keys.append(key)
-            if matched and entry.entry_id not in self._subscribed_entries:
-                try:
-                    self._subscriptions.append(
-                        api.subscribe_events(self._event_changed)
+
+                matched_keys = [
+                    key
+                    for key, camera in self.cameras.items()
+                    if (
+                        (high := registry.async_get(camera["high_entity_id"]))
+                        is not None
+                        and high.config_entry_id == entry.entry_id
                     )
-                    self._subscribed_entries.add(entry.entry_id)
-                    if entry.entry_id not in self._backfilled_entries:
-                        self._backfilled_entries.add(entry.entry_id)
-                        self.hass.async_create_task(
-                            self._async_backfill(api),
-                            f"backfill recent Protect events for {entry.title}",
+                ]
+                if not matched_keys:
+                    continue
+
+                for device_id, key in list(self._camera_by_device_id.items()):
+                    if key in matched_keys:
+                        self._camera_by_device_id.pop(device_id, None)
+                for key in matched_keys:
+                    self._api_by_camera.pop(key, None)
+
+                mapped_keys: list[str] = []
+                for key in matched_keys:
+                    high = registry.async_get(self.cameras[key]["high_entity_id"])
+                    if high is None:
+                        continue
+                    wanted_mac = _normal_mac(high.unique_id.removesuffix("_0"))
+                    public = next(
+                        (
+                            item
+                            for item in api.public_bootstrap.cameras.values()
+                            if _normal_mac(item.mac) == wanted_mac
+                        ),
+                        None,
+                    )
+                    if public is None:
+                        _LOGGER.warning(
+                            "Protect camera mapping is not ready for %s", key
                         )
+                        continue
+                    self._camera_by_device_id[public.id] = key
+                    self._api_by_camera[key] = api
+                    mapped_keys.append(key)
+
+                if not mapped_keys or self._entry_apis.get(entry.entry_id) is api:
+                    continue
+
+                self._drop_entry_subscriptions(entry.entry_id)
+                try:
+                    event_unsubscribe = api.subscribe_events(self._event_changed)
+                    try:
+                        state_unsubscribe = api.subscribe_events_websocket_state(
+                            partial(
+                                self._events_websocket_state_changed,
+                                entry.entry_id,
+                                api,
+                            )
+                        )
+                    except Exception:
+                        event_unsubscribe()
+                        raise
                 except Exception:
-                    for key in matched_keys:
+                    for key in mapped_keys:
                         self._api_by_camera.pop(key, None)
                     _LOGGER.exception(
                         "Protect event stream is not ready for %s", entry.title
                     )
+                    continue
 
-        missing = sorted(set(self.cameras) - set(self._api_by_camera))
-        if missing:
-            _LOGGER.warning("Protect event feeds are not attached for: %s", missing)
-            if self._attach_retry is None:
-                self._attach_retry = async_call_later(
-                    self.hass, 30, self._async_retry_attach
+                self._entry_apis[entry.entry_id] = api
+                self._entry_subscriptions[entry.entry_id] = [
+                    event_unsubscribe,
+                    state_unsubscribe,
+                ]
+                self.hass.async_create_task(
+                    self._async_backfill(api),
+                    f"backfill recent Protect events for {entry.title}",
                 )
-        else:
-            self._attached = True
-            _LOGGER.info("Attached private Protect event feeds for %d cameras", len(self.cameras))
+
+            missing = sorted(set(self.cameras) - set(self._api_by_camera))
+            if missing:
+                _LOGGER.warning("Protect event feeds are not attached for: %s", missing)
+                if self._attach_retry is None:
+                    self._attach_retry = async_call_later(
+                        self.hass, 30, self._async_retry_attach
+                    )
+            else:
+                _LOGGER.info(
+                    "Attached private Protect event feeds for %d cameras",
+                    len(self.cameras),
+                )
 
     @callback
     def _async_retry_attach(self, _now: datetime) -> None:

@@ -641,7 +641,7 @@ class DashboardStructureTests(unittest.TestCase):
             )
         for resource in (
             "/local/family-camera-wall-card.js?v=2.1.0",
-            "/local/family-camera-events-card.js?v=1.3.0",
+            "/local/family-camera-events-card.js?v=1.4.0",
         ):
             self.assertIn(resource, configuration)
         self.assertNotIn("family-camera-speaker-card.js", configuration)
@@ -1152,6 +1152,10 @@ class DashboardStructureTests(unittest.TestCase):
             self.assertEqual(camera["qualities"], ["high", "medium", "low"])
             self.assertTrue(camera["low_entity_id"].startswith("camera."))
         self.assertIn("api.subscribe_events", sensor)
+        self.assertIn("entry.async_on_state_change", sensor)
+        self.assertIn("api.subscribe_events_websocket_state", sensor)
+        self.assertIn("state is not WebsocketState.CONNECTED", sensor)
+        self.assertIn("self._entry_apis.get(entry_id) is not api", sensor)
         self.assertIn("await api.get_events(", sensor)
         self.assertIn("start=now - timedelta(hours=24)", sensor)
         self.assertIn("use_content_user=True", sensor)
@@ -1166,6 +1170,9 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("grid-template-columns:repeat(3,minmax(0,1fr))", events_card)
         self.assertIn("await video.play()", events_card)
         self.assertIn("<video controls autoplay muted", events_card)
+        self.assertIn('aria-label="Filter recent activity by camera"', events_card)
+        self.assertIn('data-camera-filter="${cameraEventsEscape(key)}"', events_card)
+        self.assertIn('this._selectedCamera = "all"', events_card)
         self.assertNotIn("health-grid", events_card)
         self.assertNotIn("recording_entity", events_card)
         self.assertIn("channel_index=PROTECT_HIGH_CHANNEL_INDEX", sensor)

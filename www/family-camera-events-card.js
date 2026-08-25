@@ -28,6 +28,7 @@ class FamilyCameraEventsCard extends HTMLElement {
       throw new Error("Family camera events requires cameras");
     }
     this.config = config;
+    this._selectedCamera = "all";
     this.attachShadow({ mode: "open" });
     this._timer = setInterval(() => this._render(true), 60000);
   }
@@ -117,8 +118,12 @@ class FamilyCameraEventsCard extends HTMLElement {
   _render(force = false) {
     if (!this.shadowRoot || !this._hass) return;
     const cameras = this._visible();
+    if (this._selectedCamera !== "all" && !cameras.some((camera) => camera.key === this._selectedCamera)) {
+      this._selectedCamera = "all";
+    }
     const signature = JSON.stringify({
       user: this._hass.user?.id,
+      selectedCamera: this._selectedCamera,
       cameras: cameras.map((camera) => {
         const activity = this._hass.states[camera.activity_entity];
         return {
@@ -130,10 +135,24 @@ class FamilyCameraEventsCard extends HTMLElement {
     });
     if (!force && signature === this._signature) return;
     this._signature = signature;
-    const events = cameras.flatMap((camera) => {
+    const cameraEvents = new Map(cameras.map((camera) => {
       const state = this._hass.states[camera.activity_entity];
-      return (state?.attributes?.events || []).map((event) => ({ ...event, camera }));
-    }).sort((a, b) => String(b.start).localeCompare(String(a.start))).slice(0, 12);
+      return [camera.key, (state?.attributes?.events || []).map((event) => ({ ...event, camera }))];
+    }));
+    const selectedCameras = this._selectedCamera === "all"
+      ? cameras
+      : cameras.filter((camera) => camera.key === this._selectedCamera);
+    const events = selectedCameras.flatMap((camera) => cameraEvents.get(camera.key) || [])
+      .sort((a, b) => String(b.start).localeCompare(String(a.start))).slice(0, 12);
+    const filterButton = (key, label, count) => {
+      const selected = this._selectedCamera === key;
+      return `<button type="button" class="camera-filter ${selected ? "selected" : ""}" data-camera-filter="${cameraEventsEscape(key)}" aria-pressed="${selected}" aria-label="Show ${cameraEventsEscape(label)} activity">${cameraEventsEscape(label)}<span>${count}</span></button>`;
+    };
+    const totalEvents = [...cameraEvents.values()].reduce((total, items) => total + items.length, 0);
+    const filters = [filterButton("all", "All cameras", totalEvents), ...cameras.map((camera) => (
+      filterButton(camera.key, camera.name, cameraEvents.get(camera.key)?.length || 0)
+    ))].join("");
+    const selectedCamera = cameras.find((camera) => camera.key === this._selectedCamera);
     const timeline = events.length ? events.map((event) => {
       const primary = event.types?.find((type) => type !== "motion") || event.types?.[0] || "motion";
       const [icon, label] = CAMERA_EVENT_META[primary] || ["mdi:cctv", primary.replaceAll("_", " ")];
@@ -146,12 +165,19 @@ class FamilyCameraEventsCard extends HTMLElement {
             <div class="event-footer"><span class="event-meta">${this._relative(event.start)}${event.active ? " · happening now" : ""}</span><span class="event-action">${action}<ha-icon icon="mdi:chevron-right"></ha-icon></span></div></div>
         </button>
       </article>`;
-    }).join("") : '<div class="empty"><ha-icon icon="mdi:shield-check-outline"></ha-icon><strong>No recorded activity yet</strong><span>New Protect events will appear here automatically.</span></div>';
+    }).join("") : `<div class="empty"><ha-icon icon="mdi:shield-check-outline"></ha-icon><strong>${selectedCamera ? `No ${cameraEventsEscape(selectedCamera.name)} activity found` : "No recorded activity yet"}</strong><span>${selectedCamera ? "Choose another camera or check back after the next detection." : "New Protect events will appear here automatically."}</span></div>`;
 
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display:block; }
-        ha-card { padding:18px; border-radius:28px; background:var(--contrast2); }
+        :host { display:block; width:100%; min-width:0; max-width:100%; overflow:hidden; contain:inline-size; }
+        ha-card { min-width:0; padding:18px; overflow:hidden; border-radius:28px; background:var(--contrast2); }
+        .filters { min-width:0; max-width:100%; display:flex; gap:8px; margin:0 0 14px; padding:1px; overflow-x:auto; scrollbar-width:thin; }
+        .camera-filter { min-width:max-content; min-height:44px; display:flex; align-items:center; gap:7px; padding:0 14px; border:1px solid var(--contrast5); border-radius:999px; color:var(--contrast12); background:var(--contrast1); font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+        .camera-filter:hover { border-color:color-mix(in srgb,var(--pink) 45%,var(--contrast5)); color:var(--contrast18); }
+        .camera-filter:focus-visible { outline:2px solid var(--pink); outline-offset:2px; }
+        .camera-filter.selected { border-color:color-mix(in srgb,var(--pink) 65%,transparent); color:var(--contrast18); background:color-mix(in srgb,var(--pink) 15%,var(--contrast1)); }
+        .camera-filter span { min-width:20px; height:20px; display:grid; place-items:center; padding:0 5px; border-radius:999px; color:var(--contrast11); background:var(--contrast4); font-size:11px; }
+        .camera-filter.selected span { color:var(--contrast18); background:color-mix(in srgb,var(--pink) 24%,var(--contrast3)); }
         .timeline { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; gap:12px; }
         .event { min-width:0; }
         .event-open { display:grid; grid-template-rows:auto 1fr; width:100%; height:100%; min-height:44px; padding:0; overflow:hidden; text-align:left; color:inherit; font:inherit; border:1px solid transparent; border-radius:18px; background:var(--contrast1); cursor:pointer; }
@@ -182,12 +208,20 @@ class FamilyCameraEventsCard extends HTMLElement {
         @media (max-width:1100px) { .timeline { grid-template-columns:repeat(2,minmax(0,1fr)); } }
         @media (max-width:620px) {
           ha-card { padding:12px; border-radius:22px; }
+          .filters { margin-bottom:12px; }
           .timeline { grid-template-columns:1fr; }
           .event-copy { min-height:84px; }
         }
       </style>
-      <ha-card><div class="timeline">${timeline}</div></ha-card>
+      <ha-card><nav class="filters" aria-label="Filter recent activity by camera">${filters}</nav><div class="timeline" aria-live="polite">${timeline}</div></ha-card>
       <dialog class="clip-dialog"><div class="clip-head"><div class="clip-message">Recorded activity</div><button type="button" class="clip-close" aria-label="Close clip"><ha-icon icon="mdi:close"></ha-icon></button></div><video controls autoplay muted playsinline preload="metadata"></video></dialog>`;
+    this.shadowRoot.querySelectorAll("button[data-camera-filter]").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (this._selectedCamera === button.dataset.cameraFilter) return;
+        this._selectedCamera = button.dataset.cameraFilter;
+        this._render(true);
+      });
+    });
     this.shadowRoot.querySelectorAll('button[data-live="true"]').forEach((button) => {
       button.addEventListener("click", (event) => {
         event.preventDefault();

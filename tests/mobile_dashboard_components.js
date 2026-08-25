@@ -126,6 +126,7 @@ async function buildFixture(page) {
   tomorrow.setHours(10, 30, 0, 0);
   const previous = new Date(now.getTime() - 60000);
   const earlier = new Date(now.getTime() - 120000);
+  const oldest = new Date(now.getTime() - 180000);
   const hassStates = {
     "fan.office": state("fan.office", "on", { percentage: 66 }),
     "light.office": state("light.office", "on"),
@@ -170,6 +171,7 @@ async function buildFixture(page) {
     "camera.outside_high": state("camera.outside_high", "recording"),
     "camera.outside_medium": state("camera.outside_medium", "recording"),
     "camera.outside_low": state("camera.outside_low", "recording"),
+    "camera.kitchen_high": state("camera.kitchen_high", "recording"),
     "camera.private_high": state("camera.private_high", "recording"),
     "camera.private_medium": state("camera.private_medium", "recording"),
     "sensor.outside_activity": state("sensor.outside_activity", "1", {
@@ -189,6 +191,15 @@ async function buildFixture(page) {
         types:["vehicle"], start:earlier.toISOString(), end:previous.toISOString(), active:false,
         thumbnail:"data:image/gif;base64,R0lGODlhAQABAAAAACw=",
         video:"/api/family_camera_events/outside/camera-clip-earlier/video",
+      }],
+    }),
+    "sensor.kitchen_activity": state("sensor.kitchen_activity", "1", {
+      last_event: oldest.toISOString(),
+      events: [{
+        id:"kitchen-clip", camera_key:"kitchen", camera_name:"Kitchen",
+        types:["vehicle"], start:oldest.toISOString(), end:earlier.toISOString(), active:false,
+        thumbnail:"data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+        video:"/api/family_camera_events/kitchen/kitchen-clip/video",
       }],
     }),
     "sensor.outside_recording": state("sensor.outside_recording", "detections"),
@@ -274,6 +285,12 @@ async function buildFixture(page) {
     mount("#camera-events", "family-camera-events-card", { cameras:[{
       ...cameraConfig, recording_entity:"sensor.outside_recording",
       dark_entity:"binary_sensor.outside_dark", microphone_entity:"sensor.outside_microphone",
+    }, {
+      ...cameraConfig, key:"kitchen", name:"Kitchen", high_entity:"camera.kitchen_high",
+      activity_entity:"sensor.kitchen_activity",
+    }, {
+      ...cameraConfig, key:"private", name:"Private", high_entity:"camera.private_high",
+      activity_entity:"sensor.private_activity", users:["other"],
     }] });
   }, { hassStates, eventStart: tomorrow.toISOString() });
   await page.waitForTimeout(100);
@@ -297,7 +314,17 @@ async function assertTargets(locator, minimum = 44) {
 }
 
 async function validate(page, viewport) {
-  const doc = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: innerWidth }));
+  const doc = await page.evaluate(() => ({
+    width: document.documentElement.scrollWidth,
+    viewport: innerWidth,
+    overflowing: [...document.querySelectorAll("*")].filter((element) => {
+      const box = element.getBoundingClientRect();
+      return box.right > innerWidth + 1 || box.left < -1;
+    }).slice(0, 8).map((element) => ({
+      tag: element.tagName.toLowerCase(), id: element.id, className: String(element.className),
+      left: Math.round(element.getBoundingClientRect().left), right: Math.round(element.getBoundingClientRect().right),
+    })),
+  }));
   assert(doc.width <= doc.viewport, `Horizontal overflow at ${viewport.name}: ${JSON.stringify(doc)}`);
 
   const responsive = page.locator("family-responsive-grid-card");
@@ -465,19 +492,34 @@ async function validate(page, viewport) {
 
   const cameraEvents = page.locator("family-camera-events-card");
   assert.equal(await cameraEvents.locator(".health-grid").count(), 0, "Camera health grid was still rendered");
+  await cameraEvents.locator(".camera-filter").first().waitFor({ state:"visible" });
+  await assertTargets(cameraEvents.locator(".camera-filter"));
+  assert.equal(await cameraEvents.locator(".camera-filter").count(), 3, "Camera filters did not match the signed-in account policy");
+  assert.equal(await cameraEvents.getByText("Private", { exact:true }).count(), 0, "Camera filters leaked an unauthorized camera");
   await cameraEvents.locator('.event-open[data-video]').first().waitFor({ state:"visible" });
   await assertTargets(cameraEvents.locator(".event-open"));
   const detectionCards = await boxes(cameraEvents.locator(".event-open"));
-  assert.equal(detectionCards.length, 3);
+  assert.equal(detectionCards.length, 4);
   if (viewport.width <= 620) {
-    assert(detectionCards[1].y >= detectionCards[0].bottom, "Detection cards did not stack on phone");
-    assert(detectionCards[2].y >= detectionCards[1].bottom, "Detection cards did not stack on phone");
+    detectionCards.slice(1).forEach((card, index) => {
+      assert(card.y >= detectionCards[index].bottom, "Detection cards did not stack on phone");
+    });
   } else if (viewport.width <= 1100) {
     assert(Math.abs(detectionCards[0].y - detectionCards[1].y) < 2, "Detection cards did not form a two-column grid");
     assert(detectionCards[2].y >= detectionCards[0].bottom, "Detection grid did not wrap after two columns");
+    assert(Math.abs(detectionCards[2].y - detectionCards[3].y) < 2, "Detection grid did not retain two columns on its second row");
   } else {
-    assert(detectionCards.every((card) => Math.abs(card.y - detectionCards[0].y) < 2), "Detection cards did not form a three-column grid");
+    assert(detectionCards.slice(0, 3).every((card) => Math.abs(card.y - detectionCards[0].y) < 2), "Detection cards did not form a three-column grid");
+    assert(detectionCards[3].y >= detectionCards[0].bottom, "Detection grid did not wrap after three columns");
   }
+  await cameraEvents.locator('[data-camera-filter="outside"]').click();
+  assert.equal(await cameraEvents.locator(".event-open").count(), 3, "Outside filter did not isolate Outside events");
+  assert.equal(await cameraEvents.locator('[data-camera-filter="outside"]').getAttribute("aria-pressed"), "true");
+  await cameraEvents.locator('[data-camera-filter="kitchen"]').click();
+  assert.equal(await cameraEvents.locator(".event-open").count(), 1, "Kitchen filter did not isolate Kitchen events");
+  assert((await cameraEvents.locator(".event-title").textContent()).includes("Kitchen"));
+  await cameraEvents.locator('[data-camera-filter="all"]').click();
+  assert.equal(await cameraEvents.locator(".event-open").count(), 4, "All cameras filter did not restore the combined feed");
   await cameraEvents.locator('.event-open[data-live="true"]').click();
   await cameraEvents.locator('.event-open[data-video]').first().click();
   const clipDialog = cameraEvents.locator("dialog.clip-dialog");
