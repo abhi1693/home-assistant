@@ -1160,7 +1160,13 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             if (
                 not isinstance(entity_id, str)
                 or entity_id.partition(".")[0]
-                not in {"binary_sensor", "event", "media_player", "sensor"}
+                not in {
+                    "binary_sensor",
+                    "event",
+                    "media_player",
+                    "select",
+                    "sensor",
+                }
                 or (entity is None and not source_owned)
                 or (
                     entity is not None

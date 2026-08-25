@@ -445,6 +445,7 @@ class BootstrapTests(unittest.TestCase):
                         "master-bedroom": [
                             "event.master_bedroom_motion",
                             "binary_sensor.master_bedroom_person",
+                            "select.master_bedroom_recording_mode",
                         ],
                         "hallway": ["event.hallway_motion"],
                     },
@@ -621,6 +622,11 @@ class BootstrapTests(unittest.TestCase):
                         "disabled_by": None,
                     },
                     {
+                        "entity_id": "select.master_bedroom_recording_mode",
+                        "platform": "unifiprotect",
+                        "disabled_by": None,
+                    },
+                    {
                         "entity_id": "event.hallway_motion",
                         "platform": "unifiprotect",
                         "disabled_by": None,
@@ -719,6 +725,7 @@ class BootstrapTests(unittest.TestCase):
                 "camera.master_bedroom_medium": True,
                 "event.master_bedroom_motion": True,
                 "binary_sensor.master_bedroom_person": True,
+                "select.master_bedroom_recording_mode": True,
                 "calendar.birthdays": True,
                 "sensor.office_temperature": True,
                 "sensor.owner_steps": True,

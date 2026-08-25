@@ -27,7 +27,7 @@
       "binary_sensor.kitchen_co_alarm_detected",
       "binary_sensor.kitchen_speaking_detected",
       "binary_sensor.g5_turret_ultra_is_dark_2",
-      "sensor.g5_turret_ultra_recording_mode_2",
+      "select.kitchen_g5_turret_ultra_recording_mode",
       "sensor.kitchen_microphone_level",
       "sensor.family_camera_kitchen_activity"
     ],
@@ -62,7 +62,7 @@
       "binary_sensor.hallway_co_alarm_detected",
       "binary_sensor.hallway_speaking_detected",
       "binary_sensor.hallway_is_dark",
-      "sensor.hallway_recording_mode",
+      "select.kitchen_kitchen_balcony_g5_flex_recording_mode",
       "sensor.hallway_microphone_level",
       "sensor.family_camera_kitchen_balcony_activity"
     ],
@@ -79,7 +79,7 @@
       "binary_sensor.living_room_co_alarm_detected_2",
       "binary_sensor.living_room_speaking_detected_2",
       "binary_sensor.g5_turret_ultra_is_dark_3",
-      "sensor.g5_turret_ultra_recording_mode_3",
+      "select.living_room_g5_turret_ultra_recording_mode",
       "sensor.living_room_microphone_level_2",
       "sensor.family_camera_living_room_activity"
     ],
@@ -96,7 +96,7 @@
       "binary_sensor.g5_turret_ultra_co_alarm_detected",
       "binary_sensor.g5_turret_ultra_speaking_detected",
       "binary_sensor.g5_turret_ultra_is_dark",
-      "sensor.g5_turret_ultra_recording_mode",
+      "select.outside_g5_turret_ultra_recording_mode",
       "sensor.g5_turret_ultra_microphone_level",
       "sensor.family_camera_outside_activity"
     ]

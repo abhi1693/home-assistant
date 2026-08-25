@@ -1151,6 +1151,14 @@ class DashboardStructureTests(unittest.TestCase):
         for camera in streams["cameras"].values():
             self.assertEqual(camera["qualities"], ["high", "medium", "low"])
             self.assertTrue(camera["low_entity_id"].startswith("camera."))
+        for camera_key in ("outside", "hallway", "kitchen", "living-room"):
+            recording_mode = streams["cameras"][camera_key][
+                "recording_mode_entity_id"
+            ]
+            self.assertTrue(recording_mode.startswith("select."))
+            self.assertIn(
+                recording_mode, access["camera_security_entities"][camera_key]
+            )
         self.assertIn("api.subscribe_events", sensor)
         self.assertIn("entry.async_on_state_change", sensor)
         self.assertIn("api.subscribe_events_websocket_state", sensor)

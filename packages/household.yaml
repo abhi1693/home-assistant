@@ -701,7 +701,7 @@ automation:
             target: { entity_id: timer.master_bedroom_camera_offline }
       - if:
           - condition: state
-            entity_id: sensor.g5_turret_ultra_recording_mode
+            entity_id: select.outside_g5_turret_ultra_recording_mode
             state: never
           - condition: template
             value_template: >-
@@ -715,7 +715,7 @@ automation:
             target: { entity_id: timer.outside_camera_not_recording }
       - if:
           - condition: state
-            entity_id: sensor.hallway_recording_mode
+            entity_id: select.kitchen_kitchen_balcony_g5_flex_recording_mode
             state: never
           - condition: template
             value_template: >-
@@ -729,7 +729,7 @@ automation:
             target: { entity_id: timer.hallway_camera_not_recording }
       - if:
           - condition: state
-            entity_id: sensor.g5_turret_ultra_recording_mode_2
+            entity_id: select.kitchen_g5_turret_ultra_recording_mode
             state: never
           - condition: template
             value_template: >-
@@ -743,7 +743,7 @@ automation:
             target: { entity_id: timer.kitchen_camera_not_recording }
       - if:
           - condition: state
-            entity_id: sensor.g5_turret_ultra_recording_mode_3
+            entity_id: select.living_room_g5_turret_ultra_recording_mode
             state: never
           - condition: template
             value_template: >-
@@ -777,16 +777,16 @@ automation:
     max: 10
     triggers:
       - trigger: state
-        entity_id: sensor.g5_turret_ultra_recording_mode
+        entity_id: select.outside_g5_turret_ultra_recording_mode
         id: outside
       - trigger: state
-        entity_id: sensor.hallway_recording_mode
+        entity_id: select.kitchen_kitchen_balcony_g5_flex_recording_mode
         id: hallway
       - trigger: state
-        entity_id: sensor.g5_turret_ultra_recording_mode_2
+        entity_id: select.kitchen_g5_turret_ultra_recording_mode
         id: kitchen
       - trigger: state
-        entity_id: sensor.g5_turret_ultra_recording_mode_3
+        entity_id: select.living_room_g5_turret_ultra_recording_mode
         id: living-room
       - trigger: state
         entity_id: sensor.living_room_recording_mode
@@ -848,7 +848,7 @@ automation:
           camera_entity: >-
             {{ {'outside': 'camera.g5_turret_ultra_high_resolution_channel', 'hallway': 'camera.hallway_high_resolution_channel', 'kitchen': 'camera.g5_turret_ultra_high_resolution_channel_2', 'living-room': 'camera.g5_turret_ultra_high_resolution_channel_3', 'master-bedroom': 'camera.living_room_high_resolution_channel'}[trigger.id] }}
           recording_entity: >-
-            {{ {'outside': 'sensor.g5_turret_ultra_recording_mode', 'hallway': 'sensor.hallway_recording_mode', 'kitchen': 'sensor.g5_turret_ultra_recording_mode_2', 'living-room': 'sensor.g5_turret_ultra_recording_mode_3', 'master-bedroom': 'sensor.living_room_recording_mode'}[trigger.id] }}
+            {{ {'outside': 'select.outside_g5_turret_ultra_recording_mode', 'hallway': 'select.kitchen_kitchen_balcony_g5_flex_recording_mode', 'kitchen': 'select.kitchen_g5_turret_ultra_recording_mode', 'living-room': 'select.living_room_g5_turret_ultra_recording_mode', 'master-bedroom': 'sensor.living_room_recording_mode'}[trigger.id] }}
       - condition: template
         value_template: >-
           {{ states(camera_entity) not in ['unknown', 'unavailable'] and states(recording_entity) == 'never' }}
