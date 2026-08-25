@@ -1164,6 +1164,7 @@ def reconcile_family_access(source: Path, config: Path) -> None:
                     "binary_sensor",
                     "event",
                     "media_player",
+                    "number",
                     "select",
                     "sensor",
                 }

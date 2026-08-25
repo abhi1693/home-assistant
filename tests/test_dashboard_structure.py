@@ -1159,6 +1159,13 @@ class DashboardStructureTests(unittest.TestCase):
             self.assertIn(
                 recording_mode, access["camera_security_entities"][camera_key]
             )
+            microphone_level = streams["cameras"][camera_key][
+                "microphone_level_entity_id"
+            ]
+            self.assertTrue(microphone_level.startswith("number."))
+            self.assertIn(
+                microphone_level, access["camera_security_entities"][camera_key]
+            )
         self.assertIn("api.subscribe_events", sensor)
         self.assertIn("entry.async_on_state_change", sensor)
         self.assertIn("api.subscribe_events_websocket_state", sensor)

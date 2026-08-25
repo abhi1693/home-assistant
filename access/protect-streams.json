@@ -13,7 +13,7 @@
       "animal_entity_id": "binary_sensor.kitchen_animal_detected",
       "recording_mode_entity_id": "select.kitchen_g5_turret_ultra_recording_mode",
       "is_dark_entity_id": "binary_sensor.g5_turret_ultra_is_dark_2",
-      "microphone_level_entity_id": "sensor.kitchen_microphone_level",
+      "microphone_level_entity_id": "number.kitchen_g5_turret_ultra_microphone_level",
       "qualities": [
         "high",
         "medium",
@@ -47,7 +47,7 @@
       "animal_entity_id": "binary_sensor.hallway_animal_detected",
       "recording_mode_entity_id": "select.kitchen_kitchen_balcony_g5_flex_recording_mode",
       "is_dark_entity_id": "binary_sensor.hallway_is_dark",
-      "microphone_level_entity_id": "sensor.hallway_microphone_level",
+      "microphone_level_entity_id": "number.kitchen_kitchen_balcony_g5_flex_microphone_level",
       "qualities": [
         "high",
         "medium",
@@ -82,7 +82,7 @@
       "animal_entity_id": "binary_sensor.living_room_animal_detected_2",
       "recording_mode_entity_id": "select.living_room_g5_turret_ultra_recording_mode",
       "is_dark_entity_id": "binary_sensor.g5_turret_ultra_is_dark_3",
-      "microphone_level_entity_id": "sensor.living_room_microphone_level_2",
+      "microphone_level_entity_id": "number.living_room_g5_turret_ultra_microphone_level",
       "qualities": [
         "high",
         "medium",
@@ -149,7 +149,7 @@
       "animal_entity_id": "binary_sensor.g5_turret_ultra_animal_detected",
       "recording_mode_entity_id": "select.outside_g5_turret_ultra_recording_mode",
       "is_dark_entity_id": "binary_sensor.g5_turret_ultra_is_dark",
-      "microphone_level_entity_id": "sensor.g5_turret_ultra_microphone_level",
+      "microphone_level_entity_id": "number.outside_g5_turret_ultra_microphone_level",
       "qualities": [
         "high",
         "medium",
