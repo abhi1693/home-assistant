@@ -211,11 +211,23 @@ async function buildFixture(page) {
   await page.evaluate(({ hassStates, eventStart }) => {
     window.__calls = [];
     window.__wsCalls = [];
+    window.__apiCalls = [];
     const hass = {
       states: hassStates,
       user: { id: "owner", name: "Abhimanyu", is_admin: true },
       callService: async (domain, service, data, target) => {
         window.__calls.push({ domain, service, data, target });
+      },
+      callApi: async (method, path) => {
+        window.__apiCalls.push({ method, path });
+        if (path.startsWith("family_camera_events/history?")) {
+          return {
+            events: Object.values(hassStates).flatMap((item) => item.attributes?.events || [])
+              .filter((event) => !event.active),
+            max_range_days: 31,
+          };
+        }
+        return [];
       },
       callWS: async (message) => {
         window.__wsCalls.push(message);
@@ -492,6 +504,9 @@ async function validate(page, viewport) {
 
   const cameraEvents = page.locator("family-camera-events-card");
   assert.equal(await cameraEvents.locator(".health-grid").count(), 0, "Camera health grid was still rendered");
+  await cameraEvents.locator(".history-controls").waitFor({ state:"visible" });
+  assert.equal(await cameraEvents.locator('input[type="date"]').count(), 2, "Date range controls were missing");
+  assert((await cameraEvents.locator(".history-status").textContent()).includes("Maximum 1 month"));
   await cameraEvents.locator(".camera-filter").first().waitFor({ state:"visible" });
   await assertTargets(cameraEvents.locator(".camera-filter"));
   assert.equal(await cameraEvents.locator(".camera-filter").count(), 3, "Camera filters did not match the signed-in account policy");
@@ -499,7 +514,7 @@ async function validate(page, viewport) {
   await cameraEvents.locator('.event-open[data-video]').first().waitFor({ state:"visible" });
   await assertTargets(cameraEvents.locator(".event-open"));
   const detectionCards = await boxes(cameraEvents.locator(".event-open"));
-  assert.equal(detectionCards.length, 4);
+  assert.equal(detectionCards.length, 3);
   if (viewport.width <= 620) {
     detectionCards.slice(1).forEach((card, index) => {
       assert(card.y >= detectionCards[index].bottom, "Detection cards did not stack on phone");
@@ -507,20 +522,17 @@ async function validate(page, viewport) {
   } else if (viewport.width <= 1100) {
     assert(Math.abs(detectionCards[0].y - detectionCards[1].y) < 2, "Detection cards did not form a two-column grid");
     assert(detectionCards[2].y >= detectionCards[0].bottom, "Detection grid did not wrap after two columns");
-    assert(Math.abs(detectionCards[2].y - detectionCards[3].y) < 2, "Detection grid did not retain two columns on its second row");
   } else {
-    assert(detectionCards.slice(0, 3).every((card) => Math.abs(card.y - detectionCards[0].y) < 2), "Detection cards did not form a three-column grid");
-    assert(detectionCards[3].y >= detectionCards[0].bottom, "Detection grid did not wrap after three columns");
+    assert(detectionCards.every((card) => Math.abs(card.y - detectionCards[0].y) < 2), "Detection cards did not form a three-column grid");
   }
   await cameraEvents.locator('[data-camera-filter="outside"]').click();
-  assert.equal(await cameraEvents.locator(".event-open").count(), 3, "Outside filter did not isolate Outside events");
+  assert.equal(await cameraEvents.locator(".event-open").count(), 2, "Outside filter did not isolate Outside clips");
   assert.equal(await cameraEvents.locator('[data-camera-filter="outside"]').getAttribute("aria-pressed"), "true");
   await cameraEvents.locator('[data-camera-filter="kitchen"]').click();
   assert.equal(await cameraEvents.locator(".event-open").count(), 1, "Kitchen filter did not isolate Kitchen events");
   assert((await cameraEvents.locator(".event-title").textContent()).includes("Kitchen"));
   await cameraEvents.locator('[data-camera-filter="all"]').click();
-  assert.equal(await cameraEvents.locator(".event-open").count(), 4, "All cameras filter did not restore the combined feed");
-  await cameraEvents.locator('.event-open[data-live="true"]').click();
+  assert.equal(await cameraEvents.locator(".event-open").count(), 3, "All cameras filter did not restore the combined clip history");
   await cameraEvents.locator('.event-open[data-video]').first().click();
   const clipDialog = cameraEvents.locator("dialog.clip-dialog");
   await clipDialog.waitFor({ state:"visible" });
@@ -565,6 +577,33 @@ async function validate(page, viewport) {
   const signedClip = await page.evaluate(() => window.__wsCalls.some((call) =>
     call.type === "auth/sign_path" && call.path.endsWith("/camera-clip/video")));
   assert(signedClip, "Completed clip did not request a user-bound signed path");
+  const historyLoaded = await page.evaluate(() => window.__apiCalls.some((call) =>
+    call.method === "GET" && call.path.startsWith("family_camera_events/history?")));
+  assert(historyLoaded, "Clip history did not query the account-aware date endpoint");
+  const rangeRejected = await cameraEvents.evaluate((card) => {
+    try { card._historyBounds("2026-01-01", "2026-02-01"); return false; }
+    catch (error) { return error.message.includes("one month or less"); }
+  });
+  assert(rangeRejected, "Clip history accepted a date range longer than one month");
+  await cameraEvents.evaluate((card) => {
+    Object.values(card._hass.states).forEach((item) => {
+      if (item.attributes?.events) item.attributes.events = [];
+    });
+    const now = card._localDate(card._fromDate);
+    now.setHours(12, 0, 0, 0);
+    card._history = Array.from({ length:15 }, (_item, index) => ({
+      id:`history-${index}`, camera_key:"outside", camera_name:"Outside", types:["motion"],
+      start:new Date(now.getTime() - index * 60000).toISOString(),
+      end:new Date(now.getTime() - index * 60000 + 30000).toISOString(), active:false,
+      thumbnail:"data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+      video:`/api/family_camera_events/outside/history-${index}/video`,
+    }));
+    card._visibleLimit = 12;
+    card._render(true);
+  });
+  assert.equal(await cameraEvents.locator(".event-open").count(), 12, "Clip history did not keep the first batch readable");
+  await cameraEvents.locator(".load-more").click();
+  assert.equal(await cameraEvents.locator(".event-open").count(), 15, "Show more did not reveal every matching clip");
 
   const calls = await page.evaluate(() => window.__calls);
   const invoked = new Set(calls.map((call) => `${call.domain}.${call.service}`));

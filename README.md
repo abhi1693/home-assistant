@@ -136,7 +136,7 @@ while room access is currently shared across authenticated family accounts.
 ### Security and cameras
 
 The combined Security surface presents household attention, five-camera
-coverage, account-filtered live streams, and a seven-day Protect event timeline
+coverage, account-filtered live streams, and on-demand Protect clip history
 in one place. The wall keeps each live player mounted
 across Home Assistant state updates, balances each account's visible camera
 count into an even desktop grid (four as 2x2 and five in a six-slot 3x2 grid),
@@ -153,12 +153,17 @@ config entry reloads and backfills after event-WebSocket reconnections so a
 recovered recorder cannot leave the custom timeline stale. It retains at most
 20 events per camera, seeds the feed from the previous 24 hours of local
 Protect history after startup or recovery, and proxies thumbnails and completed
-clips through authenticated account-aware endpoints. The dashboard requests
+clips through authenticated account-aware endpoints. The lightweight entity
+state remains capped, while an authenticated history endpoint queries every
+completed Protect clip in the selected inclusive date range. Family members can
+filter by start date, end date, and any camera authorized for their account;
+each query is capped at 31 days and longer result sets expand in batches of 12
+without hiding any matching clips. The dashboard requests
 short-lived user-bound signed paths before loading either media type. Clip
 dialogs open immediately and defer timeline refreshes until playback closes, so
 new detections cannot tear down an in-progress video request. Completed clips
 use a bounded private server cache with HTTP byte-range delivery, allowing
-mobile playback to seek backward without re-exporting the whole clip. Recent
+mobile playback to seek backward without re-exporting the whole clip. Matching
 detections can be filtered by any camera authorized for the signed-in account,
 reflow as a three-, two-, or one-column grid, and selecting a completed event
 opens and automatically starts its high-resolution clip in a muted modal with

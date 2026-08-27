@@ -2405,7 +2405,7 @@ views:
               columns: 48
               rows: auto
           - type: heading
-            heading: Recent activity
+            heading: Clip history
             heading_style: title
             icon: mdi:motion-sensor
             grid_options: { columns: 48, rows: 1 }

@@ -114,6 +114,18 @@ class FamilyCameraEventModelTests(unittest.TestCase):
         self.assertEqual(marked[0]["notified_types"], ["motion", "person"])
         self.assertNotIn("notified_types", MODEL.public_records(marked)[0])
 
+    def test_history_range_is_timezone_aware_and_capped_at_one_month(self):
+        start = datetime(2026, 7, 1, tzinfo=UTC)
+        end = start + timedelta(days=31)
+
+        self.assertEqual(MODEL.validate_history_range(start, end), (start, end))
+        with self.assertRaisesRegex(ValueError, "cannot exceed 31 days"):
+            MODEL.validate_history_range(start, end + timedelta(seconds=1))
+        with self.assertRaisesRegex(ValueError, "must be after start"):
+            MODEL.validate_history_range(end, start)
+        with self.assertRaisesRegex(ValueError, "must include a timezone"):
+            MODEL.validate_history_range(start.replace(tzinfo=None), end)
+
 
 if __name__ == "__main__":
     unittest.main()

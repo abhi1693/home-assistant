@@ -626,7 +626,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("  - title: Cameras\n    path: cameras", home)
         self.assertNotIn("/home-tablet/cameras", home)
         self.assertIn("heading: Live cameras", camera_view)
-        self.assertIn("heading: Recent activity", camera_view)
+        self.assertIn("heading: Clip history", camera_view)
         self.assertNotIn("heading: Camera health and recent activity", camera_view)
         self.assertNotIn("heading: Master Bedroom speaker", camera_view)
         for camera_key in (
@@ -641,7 +641,7 @@ class DashboardStructureTests(unittest.TestCase):
             )
         for resource in (
             "/local/family-camera-wall-card.js?v=2.1.0",
-            "/local/family-camera-events-card.js?v=1.4.1",
+            "/local/family-camera-events-card.js?v=1.5.0",
         ):
             self.assertIn(resource, configuration)
         self.assertNotIn("family-camera-speaker-card.js", configuration)
@@ -1173,6 +1173,10 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("self._entry_apis.get(entry_id) is not api", sensor)
         self.assertIn("await api.get_events(", sensor)
         self.assertIn("start=now - timedelta(hours=24)", sensor)
+        self.assertIn('url = "/api/family_camera_events/history"', sensor)
+        self.assertIn("validate_history_range(start, end)", sensor)
+        self.assertIn("descriptions=False", sensor)
+        self.assertIn("HISTORY_MEDIA_EXPIRY = timedelta(hours=2)", sensor)
         self.assertIn("use_content_user=True", sensor)
         self.assertIn("self.manager.can_access(user.id, key)", sensor)
         self.assertIn('"input_boolean.empty_home_confirmed", "on"', sensor)
@@ -1185,7 +1189,11 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("grid-template-columns:repeat(3,minmax(0,1fr))", events_card)
         self.assertIn("await video.play()", events_card)
         self.assertIn("<video controls autoplay muted", events_card)
-        self.assertIn('aria-label="Filter recent activity by camera"', events_card)
+        self.assertIn('aria-label="Filter clip history by date"', events_card)
+        self.assertIn('aria-label="Filter clip history by camera"', events_card)
+        self.assertIn("CAMERA_HISTORY_MAX_DAYS = 31", events_card)
+        self.assertIn('this._hass.callApi("GET", `family_camera_events/history?', events_card)
+        self.assertIn("this._visibleLimit += CAMERA_HISTORY_PAGE_SIZE", events_card)
         self.assertIn('data-camera-filter="${cameraEventsEscape(key)}"', events_card)
         self.assertIn('this._selectedCamera = "all"', events_card)
         self.assertIn("this._pendingRender = true", events_card)

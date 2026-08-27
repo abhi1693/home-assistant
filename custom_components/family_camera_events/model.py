@@ -8,6 +8,7 @@ from typing import Any, Iterable
 
 MAX_EVENTS_PER_CAMERA = 20
 EVENT_RETENTION = timedelta(days=7)
+HISTORY_MAX_RANGE = timedelta(days=31)
 
 _TYPE_OVERRIDES = {
     "alrm_baby_cry": "baby_cry",
@@ -104,6 +105,21 @@ def public_records(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
         {key: value for key, value in item.items() if key != "notified_types"}
         for item in records
     ]
+
+
+def validate_history_range(
+    start: datetime, end: datetime
+) -> tuple[datetime, datetime]:
+    """Return one timezone-aware UTC history range capped at one month."""
+    if start.tzinfo is None or end.tzinfo is None:
+        raise ValueError("History dates must include a timezone")
+    start_utc = start.astimezone(UTC)
+    end_utc = end.astimezone(UTC)
+    if end_utc <= start_utc:
+        raise ValueError("History end must be after start")
+    if end_utc - start_utc > HISTORY_MAX_RANGE:
+        raise ValueError("History range cannot exceed 31 days")
+    return start_utc, end_utc
 
 
 def _timestamp(value: Any) -> datetime:

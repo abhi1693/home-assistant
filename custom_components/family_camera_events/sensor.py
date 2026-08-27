@@ -37,7 +37,14 @@ from uiprotect.events import EventChange, ProtectEvent
 
 from . import DOMAIN
 from .media import VIDEO_RESPONSE_HEADERS, VideoClipCache
-from .model import event_types, mark_notified, merge_event, public_records
+from .model import (
+    HISTORY_MAX_RANGE,
+    event_types,
+    mark_notified,
+    merge_event,
+    public_records,
+    validate_history_range,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +56,7 @@ SERVICE_ANNOUNCE = "announce"
 STORE_KEY = "family_camera_events"
 STORE_VERSION = 1
 NOTIFICATION_MEDIA_EXPIRY = timedelta(minutes=30)
+HISTORY_MEDIA_EXPIRY = timedelta(hours=2)
 PROTECT_HIGH_CHANNEL_INDEX = 0
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
@@ -125,6 +133,7 @@ class FamilyCameraEventManager:
         self._attach_retry: Callable[[], None] | None = None
         self._speaker_lock = asyncio.Lock()
         self._video_cache: VideoClipCache | None = None
+        self._history_event_expiries: dict[tuple[str, str], datetime] = {}
 
     async def async_initialize(self) -> None:
         """Restore history and attach after Protect finishes starting."""
@@ -174,6 +183,81 @@ class FamilyCameraEventManager:
     @callback
     def records(self, key: str) -> list[dict[str, Any]]:
         return public_records(self._records.get(key, []))
+
+    @callback
+    def _record(self, key: str, event: Any) -> dict[str, Any] | None:
+        """Convert one mapped Protect event to the private dashboard contract."""
+        types = event_types(event)
+        if not types or event.start is None:
+            return None
+        end = event.end.astimezone(UTC).isoformat() if event.end else None
+        return {
+            "id": event.id,
+            "camera_key": key,
+            "camera_name": self.cameras[key]["name"],
+            "types": types,
+            "start": event.start.astimezone(UTC).isoformat(),
+            "end": end,
+            "active": end is None,
+            "thumbnail": f"/api/family_camera_events/{key}/{event.id}/thumbnail",
+            "video": f"/api/family_camera_events/{key}/{event.id}/video",
+        }
+
+    async def async_history(
+        self, user_id: str, start: datetime, end: datetime
+    ) -> list[dict[str, Any]]:
+        """Load every completed clip in a bounded range for authorized cameras."""
+        authorized = {
+            key for key in self.cameras if self.can_access(user_id, key)
+        }
+        grouped: dict[int, tuple[Any, set[str]]] = {}
+        for key in authorized:
+            api = self.api_for(key)
+            if api is None:
+                continue
+            group = grouped.setdefault(id(api), (api, set()))
+            group[1].add(key)
+
+        async def load(api: Any, keys: set[str]) -> list[dict[str, Any]]:
+            events = await api.get_events(
+                start=start,
+                end=end,
+                sorting="desc",
+                descriptions=False,
+            )
+            records = []
+            for event in events:
+                key = self._camera_by_device_id.get(
+                    event.camera_id or event.device_id
+                )
+                if key not in keys or event.end is None:
+                    continue
+                if record := self._record(key, event):
+                    records.append(record)
+            return records
+
+        batches = await asyncio.gather(
+            *(load(api, keys) for api, keys in grouped.values())
+        )
+        records = [record for batch in batches for record in batch]
+        records.sort(key=lambda item: item["start"], reverse=True)
+        self._remember_history(records)
+        return records
+
+    @callback
+    def _remember_history(self, records: list[dict[str, Any]]) -> None:
+        """Allow returned history media for a short, private viewing window."""
+        now = datetime.now(UTC)
+        self._history_event_expiries = {
+            identity: expiry
+            for identity, expiry in self._history_event_expiries.items()
+            if expiry > now
+        }
+        expiry = now + HISTORY_MEDIA_EXPIRY
+        for record in records:
+            self._history_event_expiries[
+                (record["camera_key"], record["id"])
+            ] = expiry
 
     async def _async_started(self, _event: Event) -> None:
         await self._async_attach()
@@ -359,23 +443,8 @@ class FamilyCameraEventManager:
                 key = self._camera_by_device_id.get(
                     event.camera_id or event.device_id
                 )
-                types = event_types(event)
-                if key is None or not types or event.start is None:
+                if key is None or (incoming := self._record(key, event)) is None:
                     continue
-                end = event.end.astimezone(UTC).isoformat() if event.end else None
-                incoming = {
-                    "id": event.id,
-                    "camera_key": key,
-                    "camera_name": self.cameras[key]["name"],
-                    "types": types,
-                    "start": event.start.astimezone(UTC).isoformat(),
-                    "end": end,
-                    "active": end is None,
-                    "thumbnail": (
-                        f"/api/family_camera_events/{key}/{event.id}/thumbnail"
-                    ),
-                    "video": f"/api/family_camera_events/{key}/{event.id}/video",
-                }
                 self._records[key], _ = merge_event(
                     self._records[key], incoming, now
                 )
@@ -408,23 +477,11 @@ class FamilyCameraEventManager:
         key = self._camera_by_device_id.get(event.device_id)
         if key is None or change is EventChange.REMOVED:
             return
-        types = event_types(event)
-        if not types:
+        if (incoming := self._record(key, event)) is None:
             return
 
         now = datetime.now(UTC)
-        end = event.end.astimezone(UTC).isoformat() if event.end else None
-        incoming = {
-            "id": event.id,
-            "camera_key": key,
-            "camera_name": self.cameras[key]["name"],
-            "types": types,
-            "start": event.start.astimezone(UTC).isoformat(),
-            "end": end,
-            "active": change is not EventChange.ENDED and end is None,
-            "thumbnail": f"/api/family_camera_events/{key}/{event.id}/thumbnail",
-            "video": f"/api/family_camera_events/{key}/{event.id}/video",
-        }
+        incoming["active"] = change is not EventChange.ENDED and event.end is None
         self._records[key], newly_seen = merge_event(
             self._records[key], incoming, now
         )
@@ -567,7 +624,10 @@ class FamilyCameraEventManager:
         return False
 
     def known_event(self, key: str, event_id: str) -> bool:
-        return any(item.get("id") == event_id for item in self._records.get(key, []))
+        if any(item.get("id") == event_id for item in self._records.get(key, [])):
+            return True
+        expiry = self._history_event_expiries.get((key, event_id))
+        return expiry is not None and expiry > datetime.now(UTC)
 
     def api_for(self, key: str) -> Any | None:
         return self._api_by_camera.get(key)
@@ -732,6 +792,44 @@ class FamilyCameraVideoView(_FamilyCameraMediaView):
         return _video_file_response(path)
 
 
+class FamilyCameraHistoryView(HomeAssistantView):
+    """Return on-demand, account-filtered Protect clips for a date range."""
+
+    requires_auth = True
+    url = "/api/family_camera_events/history"
+    name = "api:family_camera_events:history"
+
+    def __init__(self, manager: FamilyCameraEventManager) -> None:
+        self.manager = manager
+
+    async def get(self, request: web.Request) -> web.Response:
+        user = request[KEY_HASS_USER]
+        if not user.is_active:
+            raise web.HTTPUnauthorized()
+        start = dt_util.parse_datetime(request.query.get("start", ""))
+        end = dt_util.parse_datetime(request.query.get("end", ""))
+        if start is None or end is None:
+            raise web.HTTPBadRequest(text="Valid start and end dates are required")
+        try:
+            start, end = validate_history_range(start, end)
+        except ValueError as err:
+            raise web.HTTPBadRequest(text=str(err)) from err
+        try:
+            events = await self.manager.async_history(user.id, start, end)
+        except Exception as err:
+            _LOGGER.warning("Unable to load Protect clip history: %s", err)
+            raise web.HTTPServiceUnavailable(
+                text="Protect clip history is temporarily unavailable"
+            ) from err
+        return web.json_response(
+            {
+                "events": events,
+                "max_range_days": HISTORY_MAX_RANGE.days,
+            },
+            headers={"Cache-Control": "private, no-store"},
+        )
+
+
 async def async_setup_platform(
     hass: HomeAssistant,
     config: dict[str, Any],
@@ -768,3 +866,4 @@ async def async_setup_platform(
     )
     hass.http.register_view(FamilyCameraThumbnailView(manager))
     hass.http.register_view(FamilyCameraVideoView(manager))
+    hass.http.register_view(FamilyCameraHistoryView(manager))
