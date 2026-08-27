@@ -641,7 +641,7 @@ class DashboardStructureTests(unittest.TestCase):
             )
         for resource in (
             "/local/family-camera-wall-card.js?v=2.1.0",
-            "/local/family-camera-events-card.js?v=1.6.0",
+            "/local/family-camera-events-card.js?v=1.7.0",
         ):
             self.assertIn(resource, configuration)
         self.assertNotIn("family-camera-speaker-card.js", configuration)
@@ -1197,6 +1197,12 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('aria-label="Filter clip history by date"', events_card)
         self.assertIn('aria-label="Filter clip history by camera"', events_card)
         self.assertIn("CAMERA_HISTORY_MAX_DAYS = 31", events_card)
+        self.assertIn('class="date-filter"', events_card)
+        self.assertIn('class="day-group"', events_card)
+        self.assertIn('class="day-heading"', events_card)
+        self.assertIn("position:sticky", events_card)
+        self.assertNotIn('class="date-from"', events_card)
+        self.assertNotIn('class="date-to"', events_card)
         self.assertIn('this._hass.callApi("GET", `family_camera_events/history?', events_card)
         self.assertIn('query.set("cursor", this._historyCursor)', events_card)
         self.assertIn("new IntersectionObserver", events_card)

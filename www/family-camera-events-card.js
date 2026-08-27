@@ -19,9 +19,7 @@ class FamilyCameraEventsCard extends HTMLElement {
     if (!Array.isArray(config.cameras) || !config.cameras.length) throw new Error("Family camera events requires cameras");
     this.config = config;
     this._selectedCamera = "all";
-    const today = this._dateValue(new Date());
-    this._fromDate = today; this._toDate = today;
-    this._draftFromDate = today; this._draftToDate = today;
+    this._selectedDate = "";
     this._history = []; this._historyLoaded = false; this._historyLoading = false; this._historyError = "";
     this._historyCursor = null; this._historyHasMore = false;
     this._signedPaths = new Map();
@@ -55,16 +53,17 @@ class FamilyCameraEventsCard extends HTMLElement {
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
-  _historyBounds(from = this._fromDate, to = this._toDate) {
-    const start = this._localDate(from);
-    const selectedEnd = this._localDate(to);
-    if (!start || !selectedEnd || selectedEnd < start) throw new Error("Choose an end date on or after the start date.");
-    const calendarDays = Math.round((Date.UTC(selectedEnd.getFullYear(), selectedEnd.getMonth(), selectedEnd.getDate())
-      - Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) / 86400000) + 1;
-    if (calendarDays > CAMERA_HISTORY_MAX_DAYS) throw new Error("Choose a date range of one month or less.");
-    const end = new Date(selectedEnd);
+  _historyBounds(dateValue = this._selectedDate) {
+    const selected = dateValue ? this._localDate(dateValue) : null;
+    if (dateValue && !selected) throw new Error("Choose a valid date.");
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (selected && selected > today) throw new Error("Choose today or an earlier date.");
+    const end = selected ? new Date(selected) : new Date();
+    end.setHours(0, 0, 0, 0);
     end.setDate(end.getDate() + 1);
-    return { start, end, calendarDays };
+    const start = selected ? new Date(selected) : new Date(end);
+    if (!selected) start.setDate(start.getDate() - CAMERA_HISTORY_MAX_DAYS);
+    return { start, end, calendarDays: selected ? 1 : CAMERA_HISTORY_MAX_DAYS };
   }
 
   async _loadHistory({ append = false } = {}) {
@@ -74,7 +73,7 @@ class FamilyCameraEventsCard extends HTMLElement {
     try { bounds = this._historyBounds(); }
     catch (error) { this._historyError = error.message; this._historyLoaded = false; this._render(true); return; }
     const visibleKeys = new Set(this._visible().map((camera) => camera.key));
-    const key = `${this._fromDate}:${this._toDate}:${[...visibleKeys].sort().join(",")}`;
+    const key = `${this._selectedDate || "latest"}:${[...visibleKeys].sort().join(",")}`;
     if (!append && this._historyLoaded && this._historyKey === key) return;
     const request = (this._historyRequest || 0) + 1;
     this._historyRequest = request;
@@ -125,6 +124,23 @@ class FamilyCameraEventsCard extends HTMLElement {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
     return date.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+
+  _dayKey(value) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "unknown" : this._dateValue(date);
+  }
+
+  _dayHeading(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Earlier clips";
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+    const eventDay = new Date(date); eventDay.setHours(0, 0, 0, 0);
+    const formatted = date.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    if (eventDay.getTime() === today.getTime()) return `Today · ${formatted}`;
+    if (eventDay.getTime() === yesterday.getTime()) return `Yesterday · ${formatted}`;
+    return formatted;
   }
 
   async _signedPath(path, expires = 90) {
@@ -215,7 +231,7 @@ class FamilyCameraEventsCard extends HTMLElement {
     const cameras = this._visible();
     if (this._selectedCamera !== "all" && !cameras.some((camera) => camera.key === this._selectedCamera)) this._selectedCamera = "all";
     const signature = JSON.stringify({
-      user: this._hass.user?.id, selectedCamera: this._selectedCamera, from: this._fromDate, to: this._toDate,
+      user: this._hass.user?.id, selectedCamera: this._selectedCamera, selectedDate: this._selectedDate,
       historyKey: this._historyKey, historyLoading: this._historyLoading, historyError: this._historyError,
       historyCount: this._history.length, historyCursor: this._historyCursor, historyHasMore: this._historyHasMore,
       cameras: cameras.map((camera) => {
@@ -241,7 +257,7 @@ class FamilyCameraEventsCard extends HTMLElement {
     const selectedCamera = cameras.find((camera) => camera.key === this._selectedCamera);
     let timeline;
     if (events.length) {
-      timeline = events.map((event) => {
+      const eventCard = (event) => {
         const primary = event.types?.find((type) => type !== "motion") || event.types?.[0] || "motion";
         const [icon, label] = CAMERA_EVENT_META[primary] || ["mdi:cctv", primary.replaceAll("_", " ")];
         const action = event.active ? "Live" : "Play clip";
@@ -251,26 +267,40 @@ class FamilyCameraEventsCard extends HTMLElement {
             <div class="thumb"><img loading="lazy" data-source="${cameraEventsEscape(event.thumbnail)}" alt="${cameraEventsEscape(event.camera.name)} event"><ha-icon icon="${icon}"></ha-icon></div>
             <div class="event-copy"><div class="event-title">${cameraEventsEscape(title)}</div><div class="event-footer"><span class="event-meta">${cameraEventsEscape(this._absolute(event.start))} · ${this._relative(event.start)}${event.active ? " · happening now" : ""}</span><span class="event-action">${action}<ha-icon icon="mdi:chevron-right"></ha-icon></span></div></div>
           </button></article>`;
-      }).join("");
+      };
+      const dayGroups = new Map();
+      events.forEach((event) => {
+        const key = this._dayKey(event.start);
+        if (!dayGroups.has(key)) dayGroups.set(key, []);
+        dayGroups.get(key).push(event);
+      });
+      timeline = [...dayGroups.values()].map((dayEvents) => `
+        <section class="day-group" data-day="${cameraEventsEscape(this._dayKey(dayEvents[0].start))}">
+          <h3 class="day-heading"><span>${cameraEventsEscape(this._dayHeading(dayEvents[0].start))}</span><small>${dayEvents.length} clip${dayEvents.length === 1 ? "" : "s"}</small></h3>
+          <div class="day-grid">${dayEvents.map(eventCard).join("")}</div>
+        </section>`).join("");
     } else {
       const emptyTitle = this._historyLoading ? "Loading clips…" : selectedCamera ? `No ${selectedCamera.name} clips found` : "No clips found";
-      const emptyCopy = this._historyError || "Try another camera or date range.";
+      const emptyCopy = this._historyError || "Try another camera or clear the date filter.";
       timeline = `<div class="empty"><ha-icon icon="${this._historyError ? "mdi:alert-circle-outline" : "mdi:shield-check-outline"}"></ha-icon><strong>${cameraEventsEscape(emptyTitle)}</strong><span>${cameraEventsEscape(emptyCopy)}</span></div>`;
     }
     const resultStatus = this._historyLoading
-      ? (events.length ? `Loading more clips… ${events.length} shown` : "Loading first clips…")
-      : this._historyError || `${events.length} clip${events.length === 1 ? "" : "s"} loaded${this._historyHasMore ? " · Scroll for more" : ""}`;
+      ? (events.length ? `Loading older clips… ${events.length} shown` : "Loading latest clips…")
+      : this._historyError || `${events.length} clip${events.length === 1 ? "" : "s"} loaded${this._historyHasMore ? " · Scroll for older" : ""}`;
     const historyTail = this._historyError && this._historyHasMore
-      ? `<button type="button" class="history-tail history-retry"><ha-icon icon="mdi:reload"></ha-icon><span>Retry loading more clips</span></button>`
+      ? `<button type="button" class="history-tail history-retry"><ha-icon icon="mdi:reload"></ha-icon><span>Retry loading older clips</span></button>`
       : this._historyHasMore || this._historyLoading
-        ? `<div class="history-tail" role="status"><ha-icon icon="${this._historyLoading ? "mdi:loading" : "mdi:chevron-down"}"></ha-icon><span>${this._historyLoading ? "Loading more clips…" : "Scroll for more clips"}</span></div>` : "";
+        ? `<div class="history-tail" role="status"><ha-icon icon="${this._historyLoading ? "mdi:loading" : "mdi:chevron-down"}"></ha-icon><span>${this._historyLoading ? "Loading older clips…" : "Scroll for older clips"}</span></div>` : "";
     const today = this._dateValue(new Date());
+    const rangeLabel = this._selectedDate
+      ? this._dayHeading(this._localDate(this._selectedDate))
+      : `Latest ${CAMERA_HISTORY_MAX_DAYS} days`;
 
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display:block; width:100%; min-width:0; max-width:100%; overflow:hidden; contain:inline-size; }
-        ha-card { min-width:0; padding:18px; overflow:hidden; border-radius:28px; background:var(--contrast2); }
-        .history-controls { display:grid; grid-template-columns:minmax(145px,1fr) minmax(145px,1fr) auto; gap:10px; align-items:end; margin-bottom:14px; }
+        :host { display:block; width:100%; min-width:0; max-width:100%; overflow:visible; contain:inline-size; }
+        ha-card { min-width:0; padding:18px; overflow:visible; border-radius:28px; background:var(--contrast2); }
+        .history-controls { position:sticky; top:8px; z-index:5; display:grid; grid-template-columns:minmax(220px,360px) auto 1fr; gap:10px; align-items:end; margin:-6px -6px 14px; padding:6px; border:1px solid color-mix(in srgb,var(--contrast5) 70%,transparent); border-radius:17px; background:color-mix(in srgb,var(--contrast2) 92%,transparent); backdrop-filter:blur(14px); }
         .date-field { display:grid; gap:5px; color:var(--contrast11); font-size:12px; font-weight:700; }
         .date-field input { min-width:0; height:44px; box-sizing:border-box; padding:0 12px; border:1px solid var(--contrast5); border-radius:13px; color:var(--contrast18); background:var(--contrast1); font:inherit; color-scheme:dark; }
         .date-field input:focus-visible,.history-action:focus-visible { outline:2px solid var(--pink); outline-offset:2px; }
@@ -286,7 +316,11 @@ class FamilyCameraEventsCard extends HTMLElement {
         .camera-filter.selected { border-color:color-mix(in srgb,var(--pink) 65%,transparent); color:var(--contrast18); background:color-mix(in srgb,var(--pink) 15%,var(--contrast1)); }
         .camera-filter span { min-width:20px; height:20px; display:grid; place-items:center; padding:0 5px; border-radius:999px; color:var(--contrast11); background:var(--contrast4); font-size:11px; }
         .camera-filter.selected span { color:var(--contrast18); background:color-mix(in srgb,var(--pink) 24%,var(--contrast3)); }
-        .timeline { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; gap:12px; }
+        .timeline { display:grid; gap:22px; }
+        .day-group { min-width:0; display:grid; gap:10px; }
+        .day-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0; padding:0 2px; color:var(--contrast18); font-size:15px; }
+        .day-heading small { color:var(--contrast9); font-size:11px; font-weight:600; white-space:nowrap; }
+        .day-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; gap:12px; }
         .event { min-width:0; }
         .event-open { display:grid; grid-template-rows:auto 1fr; width:100%; height:100%; min-height:44px; padding:0; overflow:hidden; text-align:left; color:inherit; font:inherit; border:1px solid transparent; border-radius:18px; background:var(--contrast1); cursor:pointer; }
         .event.active .event-open { border-color:color-mix(in srgb,var(--pink) 55%,transparent); }
@@ -319,39 +353,33 @@ class FamilyCameraEventsCard extends HTMLElement {
         .empty ha-icon { color:var(--green); width:30px; height:30px; }
         .empty strong { color:var(--contrast16); }
         .empty span { font-size:12px; }
-        @media (max-width:1100px) { .timeline { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-        @media (max-width:720px) { .history-controls { grid-template-columns:1fr 1fr; } .history-action { width:100%; } }
-        @media (max-width:620px) { ha-card { padding:12px; border-radius:22px; } .history-controls { gap:8px; } .filters { margin-bottom:12px; } .timeline { grid-template-columns:1fr; } .event-copy { min-height:84px; } .event-footer { align-items:flex-end; } }
+        @media (max-width:1100px) { .day-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+        @media (max-width:720px) { .history-controls { grid-template-columns:1fr auto; } .history-action { width:auto; } }
+        @media (max-width:620px) { ha-card { padding:12px; border-radius:22px; } .history-controls { gap:8px; margin:-4px -4px 12px; padding:4px; } .filters { margin-bottom:12px; } .day-grid { grid-template-columns:1fr; } .event-copy { min-height:84px; } .event-footer { align-items:flex-end; } }
       </style>
       <ha-card><section class="history-controls" aria-label="Filter clip history by date">
-        <label class="date-field">From<input type="date" class="date-from" value="${cameraEventsEscape(this._draftFromDate)}" max="${today}"></label>
-        <label class="date-field">To<input type="date" class="date-to" value="${cameraEventsEscape(this._draftToDate)}" max="${today}"></label>
-        <button type="button" class="history-action today">Today</button>
-        <div class="history-status ${this._historyError ? "error" : ""}" role="status">${cameraEventsEscape(resultStatus)} · Maximum 1 month</div>
+        <label class="date-field">Date (optional)<input type="date" class="date-filter" value="${cameraEventsEscape(this._selectedDate)}" max="${today}" aria-describedby="clip-date-status"></label>
+        ${this._selectedDate ? '<button type="button" class="history-action clear-date">Latest</button>' : ""}
+        <div id="clip-date-status" class="history-status ${this._historyError ? "error" : ""}" role="status">${cameraEventsEscape(resultStatus)} · ${cameraEventsEscape(rangeLabel)}</div>
       </section><nav class="filters" aria-label="Filter clip history by camera">${filters}</nav><div class="timeline" aria-live="polite">${timeline}</div>${historyTail}</ha-card>
       <dialog class="clip-dialog"><div class="clip-head"><div class="clip-message">Recorded activity</div><button type="button" class="clip-close" aria-label="Close clip"><ha-icon icon="mdi:close"></ha-icon></button></div><video controls autoplay muted playsinline preload="metadata"></video></dialog>`;
 
-    const fromInput = this.shadowRoot.querySelector(".date-from");
-    const toInput = this.shadowRoot.querySelector(".date-to");
-    const datesChanged = () => {
-      this._draftFromDate = fromInput.value;
-      this._draftToDate = toInput.value;
-      try { this._historyBounds(this._draftFromDate, this._draftToDate); }
+    const dateInput = this.shadowRoot.querySelector(".date-filter");
+    const dateChanged = () => {
+      try { this._historyBounds(dateInput.value); }
       catch (error) {
         const status = this.shadowRoot.querySelector(".history-status");
-        status.textContent = `${error.message} · Maximum 1 month`;
+        status.textContent = error.message;
         status.classList.add("error");
         return;
       }
-      this._fromDate = this._draftFromDate; this._toDate = this._draftToDate;
+      this._selectedDate = dateInput.value;
       this._historyLoaded = false; this._historyError = "";
       void this._loadHistory();
     };
-    fromInput.addEventListener("change", datesChanged);
-    toInput.addEventListener("change", datesChanged);
-    this.shadowRoot.querySelector(".today").addEventListener("click", () => {
-      const value = this._dateValue(new Date());
-      this._fromDate = value; this._toDate = value; this._draftFromDate = value; this._draftToDate = value;
+    dateInput.addEventListener("change", dateChanged);
+    this.shadowRoot.querySelector(".clear-date")?.addEventListener("click", () => {
+      this._selectedDate = "";
       this._historyLoaded = false; this._historyError = "";
       void this._loadHistory();
     });
@@ -382,4 +410,4 @@ class FamilyCameraEventsCard extends HTMLElement {
 
 customElements.define("family-camera-events-card", FamilyCameraEventsCard);
 window.customCards = window.customCards || [];
-window.customCards.push({ type: "family-camera-events-card", name: "Family Camera Events", description: "Private Protect clip history with camera and date filters." });
+window.customCards.push({ type: "family-camera-events-card", name: "Family Camera Events", description: "Private Protect clip history grouped by date with an optional day filter." });

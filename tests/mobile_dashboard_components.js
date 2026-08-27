@@ -512,16 +512,20 @@ async function validate(page, viewport) {
   const cameraEvents = page.locator("family-camera-events-card");
   assert.equal(await cameraEvents.locator(".health-grid").count(), 0, "Camera health grid was still rendered");
   await cameraEvents.locator(".history-controls").waitFor({ state:"visible" });
-  assert.equal(await cameraEvents.locator('input[type="date"]').count(), 2, "Date range controls were missing");
-  assert((await cameraEvents.locator(".history-status").textContent()).includes("Maximum 1 month"));
+  assert.equal(await cameraEvents.locator('input[type="date"]').count(), 1, "The optional single-date filter was missing");
+  assert.equal(await cameraEvents.locator(".date-filter").inputValue(), "", "Clip history did not start in latest-to-oldest mode");
+  assert((await cameraEvents.locator(".history-status").textContent()).includes("Latest 31 days"));
   const apiCallsBeforeDateChange = await page.evaluate(() => window.__apiCalls.length);
-  await cameraEvents.locator(".date-from").evaluate((input) => {
-    const [year, month, day] = input.max.split("-").map(Number);
-    const previous = new Date(year, month - 1, day - 1);
-    input.value = `${previous.getFullYear()}-${String(previous.getMonth() + 1).padStart(2, "0")}-${String(previous.getDate()).padStart(2, "0")}`;
+  await cameraEvents.locator(".date-filter").evaluate((input) => {
+    input.value = input.max;
     input.dispatchEvent(new Event("change", { bubbles:true }));
   });
   await page.waitForFunction((before) => window.__apiCalls.length > before, apiCallsBeforeDateChange);
+  assert.equal(await cameraEvents.locator(".clear-date").count(), 1, "Selected-date mode could not return to the latest clips");
+  const apiCallsBeforeClear = await page.evaluate(() => window.__apiCalls.length);
+  await cameraEvents.locator(".clear-date").click();
+  await page.waitForFunction((before) => window.__apiCalls.length > before, apiCallsBeforeClear);
+  assert.equal(await cameraEvents.locator(".date-filter").inputValue(), "", "Latest mode did not clear the date filter");
   assert.equal(await cameraEvents.locator(".apply-dates").count(), 0, "Date filtering still required a confirmation button");
   await cameraEvents.locator(".camera-filter").first().waitFor({ state:"visible" });
   await assertTargets(cameraEvents.locator(".camera-filter"));
@@ -596,29 +600,39 @@ async function validate(page, viewport) {
   const historyLoaded = await page.evaluate(() => window.__apiCalls.some((call) =>
     call.method === "GET" && call.path.startsWith("family_camera_events/history?")));
   assert(historyLoaded, "Clip history did not query the account-aware date endpoint");
-  const rangeRejected = await cameraEvents.evaluate((card) => {
-    try { card._historyBounds("2026-01-01", "2026-02-01"); return false; }
-    catch (error) { return error.message.includes("one month or less"); }
+  const historyRanges = await cameraEvents.evaluate((card) => {
+    const latest = card._historyBounds("");
+    const selected = card._historyBounds(card._dateValue(new Date()));
+    return {
+      latestDays:Math.round((latest.end - latest.start) / 86400000),
+      selectedDays:Math.round((selected.end - selected.start) / 86400000),
+    };
   });
-  assert(rangeRejected, "Clip history accepted a date range longer than one month");
+  assert.deepEqual(historyRanges, { latestDays:31, selectedDays:1 }, "Optional date filtering used the wrong server range");
+  const futureDateRejected = await cameraEvents.evaluate((card) => {
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    try { card._historyBounds(card._dateValue(tomorrow)); return false; }
+    catch (error) { return error.message.includes("today or an earlier date"); }
+  });
+  assert(futureDateRejected, "Optional date filtering accepted a future day");
   await cameraEvents.evaluate((card) => {
     Object.values(card._hass.states).forEach((item) => {
       if (item.attributes?.events) item.attributes.events = [];
     });
-    const now = card._localDate(card._fromDate);
+    const now = new Date();
     now.setHours(12, 0, 0, 0);
     card._history = Array.from({ length:15 }, (_item, index) => ({
       id:`history-${index}`, camera_key:"outside", camera_name:"Outside", types:["motion"],
-      start:new Date(now.getTime() - index * 60000).toISOString(),
-      end:new Date(now.getTime() - index * 60000 + 30000).toISOString(), active:false,
+      start:new Date(now.getTime() - index * 21600000).toISOString(),
+      end:new Date(now.getTime() - index * 21600000 + 30000).toISOString(), active:false,
       thumbnail:"data:image/gif;base64,R0lGODlhAQABAAAAACw=",
       video:`/api/family_camera_events/outside/history-${index}/video`,
     }));
     window.__nextHistoryPage = {
       events: Array.from({ length:3 }, (_item, index) => ({
         id:`history-${index + 12}`, camera_key:"outside", camera_name:"Outside", types:["motion"],
-        start:new Date(now.getTime() - (index + 12) * 60000).toISOString(),
-        end:new Date(now.getTime() - (index + 12) * 60000 + 30000).toISOString(), active:false,
+        start:new Date(now.getTime() - (index + 12) * 21600000).toISOString(),
+        end:new Date(now.getTime() - (index + 12) * 21600000 + 30000).toISOString(), active:false,
         thumbnail:"data:image/gif;base64,R0lGODlhAQABAAAAACw=",
         video:`/api/family_camera_events/outside/history-${index + 12}/video`,
       })),
@@ -632,6 +646,8 @@ async function validate(page, viewport) {
     card._render(true);
   });
   assert.equal(await cameraEvents.locator(".event-open").count(), 12, "Clip history did not render the first server page");
+  assert((await cameraEvents.locator(".day-group").count()) >= 3, "Newest-to-oldest clips were not grouped into date sections");
+  assert((await cameraEvents.locator(".day-heading").first().textContent()).includes("Today"), "The newest date section was not labelled Today");
   assert.equal(await cameraEvents.locator(".load-more").count(), 0, "Clip history still required a Show more button");
   await cameraEvents.evaluate((card) => {
     card._historyCursor = "page-2";
@@ -641,6 +657,11 @@ async function validate(page, viewport) {
   await cameraEvents.locator(".history-tail").scrollIntoViewIfNeeded();
   await page.waitForFunction(() => document.querySelector("family-camera-events-card")._history.length === 15);
   assert.equal(await cameraEvents.locator(".event-open").count(), 15, "Infinite scroll did not append the next server page");
+  await cameraEvents.locator(".history-controls").scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollBy(0, 300));
+  await page.waitForTimeout(50);
+  const stickyControls = await cameraEvents.locator(".history-controls").boundingBox();
+  assert(stickyControls && stickyControls.y >= 0 && stickyControls.y <= 24, "The optional date filter did not remain reachable while browsing older clips");
   const pagedHistoryLoaded = await page.evaluate(() => window.__apiCalls.some((call) =>
     call.path.includes("family_camera_events/history?") && call.path.includes("cursor=page-2")));
   assert(pagedHistoryLoaded, "Infinite scroll did not send the server cursor");
