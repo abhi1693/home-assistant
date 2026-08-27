@@ -507,6 +507,15 @@ async function validate(page, viewport) {
   await cameraEvents.locator(".history-controls").waitFor({ state:"visible" });
   assert.equal(await cameraEvents.locator('input[type="date"]').count(), 2, "Date range controls were missing");
   assert((await cameraEvents.locator(".history-status").textContent()).includes("Maximum 1 month"));
+  const apiCallsBeforeDateChange = await page.evaluate(() => window.__apiCalls.length);
+  await cameraEvents.locator(".date-from").evaluate((input) => {
+    const [year, month, day] = input.max.split("-").map(Number);
+    const previous = new Date(year, month - 1, day - 1);
+    input.value = `${previous.getFullYear()}-${String(previous.getMonth() + 1).padStart(2, "0")}-${String(previous.getDate()).padStart(2, "0")}`;
+    input.dispatchEvent(new Event("change", { bubbles:true }));
+  });
+  await page.waitForFunction((before) => window.__apiCalls.length > before, apiCallsBeforeDateChange);
+  assert.equal(await cameraEvents.locator(".apply-dates").count(), 0, "Date filtering still required a confirmation button");
   await cameraEvents.locator(".camera-filter").first().waitFor({ state:"visible" });
   await assertTargets(cameraEvents.locator(".camera-filter"));
   assert.equal(await cameraEvents.locator(".camera-filter").count(), 3, "Camera filters did not match the signed-in account policy");

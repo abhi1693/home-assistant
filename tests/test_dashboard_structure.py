@@ -641,7 +641,7 @@ class DashboardStructureTests(unittest.TestCase):
             )
         for resource in (
             "/local/family-camera-wall-card.js?v=2.1.0",
-            "/local/family-camera-events-card.js?v=1.5.0",
+            "/local/family-camera-events-card.js?v=1.5.1",
         ):
             self.assertIn(resource, configuration)
         self.assertNotIn("family-camera-speaker-card.js", configuration)

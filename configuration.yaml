@@ -108,7 +108,7 @@ lovelace:
       type: module
     - url: /local/family-camera-wall-card.js?v=2.1.0
       type: module
-    - url: /local/family-camera-events-card.js?v=1.5.0
+    - url: /local/family-camera-events-card.js?v=1.5.1
       type: module
     - url: /local/community/todo-swipe-card/todo-swipe-card.js?v=3.6.0
       type: module

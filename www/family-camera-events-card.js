@@ -64,25 +64,34 @@ class FamilyCameraEventsCard extends HTMLElement {
   }
 
   async _loadHistory() {
-    if (!this._hass || this._historyLoading) return;
+    if (!this._hass) return;
     let bounds;
     try { bounds = this._historyBounds(); }
     catch (error) { this._historyError = error.message; this._historyLoaded = false; this._render(true); return; }
     const visibleKeys = new Set(this._visible().map((camera) => camera.key));
     const key = `${this._fromDate}:${this._toDate}:${[...visibleKeys].sort().join(",")}`;
     if (this._historyLoaded && this._historyKey === key) return;
+    const request = (this._historyRequest || 0) + 1;
+    this._historyRequest = request;
     this._historyLoading = true; this._historyError = ""; this._render(true);
     try {
       const query = new URLSearchParams({ start: bounds.start.toISOString(), end: bounds.end.toISOString() });
       const response = await this._hass.callApi("GET", `family_camera_events/history?${query.toString()}`);
+      if (request !== this._historyRequest) return;
       this._history = Array.isArray(response?.events)
         ? response.events.filter((event) => visibleKeys.has(event.camera_key) && !event.active) : [];
       this._historyKey = key;
       this._historyLoaded = true;
     } catch (_error) {
+      if (request !== this._historyRequest) return;
       this._history = []; this._historyLoaded = false;
       this._historyError = "Clip history could not be loaded. Try again.";
-    } finally { this._historyLoading = false; this._render(true); }
+    } finally {
+      if (request === this._historyRequest) {
+        this._historyLoading = false;
+        this._render(true);
+      }
+    }
   }
 
   _relative(value) {
@@ -226,7 +235,7 @@ class FamilyCameraEventsCard extends HTMLElement {
       <style>
         :host { display:block; width:100%; min-width:0; max-width:100%; overflow:hidden; contain:inline-size; }
         ha-card { min-width:0; padding:18px; overflow:hidden; border-radius:28px; background:var(--contrast2); }
-        .history-controls { display:grid; grid-template-columns:minmax(145px,1fr) minmax(145px,1fr) auto auto; gap:10px; align-items:end; margin-bottom:14px; }
+        .history-controls { display:grid; grid-template-columns:minmax(145px,1fr) minmax(145px,1fr) auto; gap:10px; align-items:end; margin-bottom:14px; }
         .date-field { display:grid; gap:5px; color:var(--contrast11); font-size:12px; font-weight:700; }
         .date-field input { min-width:0; height:44px; box-sizing:border-box; padding:0 12px; border:1px solid var(--contrast5); border-radius:13px; color:var(--contrast18); background:var(--contrast1); font:inherit; color-scheme:dark; }
         .date-field input:focus-visible,.history-action:focus-visible,.load-more:focus-visible { outline:2px solid var(--pink); outline-offset:2px; }
@@ -278,7 +287,6 @@ class FamilyCameraEventsCard extends HTMLElement {
       <ha-card><section class="history-controls" aria-label="Filter clip history by date">
         <label class="date-field">From<input type="date" class="date-from" value="${cameraEventsEscape(this._draftFromDate)}" max="${today}"></label>
         <label class="date-field">To<input type="date" class="date-to" value="${cameraEventsEscape(this._draftToDate)}" max="${today}"></label>
-        <button type="button" class="history-action primary apply-dates" ${this._historyLoading ? "disabled" : ""}>View clips</button>
         <button type="button" class="history-action today" ${this._historyLoading ? "disabled" : ""}>Today</button>
         <div class="history-status ${this._historyError ? "error" : ""}" role="status">${cameraEventsEscape(resultStatus)} · Maximum 1 month</div>
       </section><nav class="filters" aria-label="Filter clip history by camera">${filters}</nav><div class="timeline" aria-live="polite">${timeline}</div>${loadMore}</ha-card>
@@ -286,15 +294,22 @@ class FamilyCameraEventsCard extends HTMLElement {
 
     const fromInput = this.shadowRoot.querySelector(".date-from");
     const toInput = this.shadowRoot.querySelector(".date-to");
-    fromInput.addEventListener("change", () => { this._draftFromDate = fromInput.value; });
-    toInput.addEventListener("change", () => { this._draftToDate = toInput.value; });
-    this.shadowRoot.querySelector(".apply-dates").addEventListener("click", () => {
+    const datesChanged = () => {
+      this._draftFromDate = fromInput.value;
+      this._draftToDate = toInput.value;
       try { this._historyBounds(this._draftFromDate, this._draftToDate); }
-      catch (error) { this._historyError = error.message; this._render(true); return; }
+      catch (error) {
+        const status = this.shadowRoot.querySelector(".history-status");
+        status.textContent = `${error.message} · Maximum 1 month`;
+        status.classList.add("error");
+        return;
+      }
       this._fromDate = this._draftFromDate; this._toDate = this._draftToDate;
       this._historyLoaded = false; this._historyError = ""; this._visibleLimit = CAMERA_HISTORY_PAGE_SIZE;
       void this._loadHistory();
-    });
+    };
+    fromInput.addEventListener("change", datesChanged);
+    toInput.addEventListener("change", datesChanged);
     this.shadowRoot.querySelector(".today").addEventListener("click", () => {
       const value = this._dateValue(new Date());
       this._fromDate = value; this._toDate = value; this._draftFromDate = value; this._draftToDate = value;
