@@ -641,7 +641,7 @@ class DashboardStructureTests(unittest.TestCase):
             )
         for resource in (
             "/local/family-camera-wall-card.js?v=2.1.0",
-            "/local/family-camera-events-card.js?v=1.5.1",
+            "/local/family-camera-events-card.js?v=1.6.0",
         ):
             self.assertIn(resource, configuration)
         self.assertNotIn("family-camera-speaker-card.js", configuration)
@@ -1175,6 +1175,11 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("start=now - timedelta(hours=24)", sensor)
         self.assertIn('url = "/api/family_camera_events/history"', sensor)
         self.assertIn("validate_history_range(start, end)", sensor)
+        self.assertIn("validate_history_page_size", sensor)
+        self.assertIn("limit=fetch_size", sensor)
+        self.assertIn("offset=offset", sensor)
+        self.assertIn("types=PROTECT_CLIP_EVENT_TYPES", sensor)
+        self.assertIn('"next_cursor": next_cursor', sensor)
         self.assertIn("descriptions=False", sensor)
         self.assertIn("HISTORY_MEDIA_EXPIRY = timedelta(hours=2)", sensor)
         self.assertIn("use_content_user=True", sensor)
@@ -1193,7 +1198,10 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn('aria-label="Filter clip history by camera"', events_card)
         self.assertIn("CAMERA_HISTORY_MAX_DAYS = 31", events_card)
         self.assertIn('this._hass.callApi("GET", `family_camera_events/history?', events_card)
-        self.assertIn("this._visibleLimit += CAMERA_HISTORY_PAGE_SIZE", events_card)
+        self.assertIn('query.set("cursor", this._historyCursor)', events_card)
+        self.assertIn("new IntersectionObserver", events_card)
+        self.assertIn('this._loadHistory({ append: true })', events_card)
+        self.assertNotIn("Show more", events_card)
         self.assertIn('data-camera-filter="${cameraEventsEscape(key)}"', events_card)
         self.assertIn('this._selectedCamera = "all"', events_card)
         self.assertIn("this._pendingRender = true", events_card)

@@ -126,6 +126,32 @@ class FamilyCameraEventModelTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must include a timezone"):
             MODEL.validate_history_range(start.replace(tzinfo=None), end)
 
+    def test_history_page_size_is_small_and_bounded(self):
+        self.assertEqual(
+            MODEL.validate_history_page_size(None),
+            MODEL.HISTORY_DEFAULT_PAGE_SIZE,
+        )
+        self.assertEqual(MODEL.validate_history_page_size("6"), 6)
+        for value in ("invalid", "0", str(MODEL.HISTORY_MAX_PAGE_SIZE + 1)):
+            with self.assertRaisesRegex(ValueError, "History page size"):
+                MODEL.validate_history_page_size(value)
+
+    def test_history_cursor_is_range_bound_and_validates_offsets(self):
+        start = datetime(2026, 8, 1, tzinfo=UTC)
+        end = start + timedelta(days=2)
+        cursor = MODEL.encode_history_cursor(start, end, {"0": 12, "1": 4})
+
+        self.assertEqual(
+            MODEL.decode_history_cursor(cursor, start, end, {"0", "1"}),
+            {"0": 12, "1": 4},
+        )
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            MODEL.decode_history_cursor(
+                cursor, start, end + timedelta(days=1), {"0", "1"}
+            )
+        with self.assertRaisesRegex(ValueError, "invalid"):
+            MODEL.decode_history_cursor("not-a-cursor", start, end, {"0", "1"})
+
 
 if __name__ == "__main__":
     unittest.main()

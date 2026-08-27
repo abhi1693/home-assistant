@@ -14,6 +14,7 @@ from urllib.parse import quote
 
 from aiohttp import web
 import voluptuous as vol
+from uiprotect.data.types import EventType
 from uiprotect.websocket import WebsocketState
 
 from homeassistant.components.http import KEY_HASS_USER, HomeAssistantView
@@ -39,10 +40,13 @@ from . import DOMAIN
 from .media import VIDEO_RESPONSE_HEADERS, VideoClipCache
 from .model import (
     HISTORY_MAX_RANGE,
+    decode_history_cursor,
+    encode_history_cursor,
     event_types,
     mark_notified,
     merge_event,
     public_records,
+    validate_history_page_size,
     validate_history_range,
 )
 
@@ -57,7 +61,15 @@ STORE_KEY = "family_camera_events"
 STORE_VERSION = 1
 NOTIFICATION_MEDIA_EXPIRY = timedelta(minutes=30)
 HISTORY_MEDIA_EXPIRY = timedelta(hours=2)
+HISTORY_FETCH_MULTIPLIER = 2
 PROTECT_HIGH_CHANNEL_INDEX = 0
+PROTECT_CLIP_EVENT_TYPES = [
+    EventType.MOTION,
+    EventType.RING,
+    EventType.SMART_AUDIO_DETECT,
+    EventType.SMART_DETECT,
+    EventType.SMART_DETECT_LINE,
+]
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
@@ -204,45 +216,105 @@ class FamilyCameraEventManager:
         }
 
     async def async_history(
-        self, user_id: str, start: datetime, end: datetime
-    ) -> list[dict[str, Any]]:
-        """Load every completed clip in a bounded range for authorized cameras."""
+        self,
+        user_id: str,
+        start: datetime,
+        end: datetime,
+        page_size: int,
+        cursor: str | None,
+    ) -> tuple[list[dict[str, Any]], str | None]:
+        """Load one newest-first page of authorized completed clips."""
         authorized = {
             key for key in self.cameras if self.can_access(user_id, key)
         }
         grouped: dict[int, tuple[Any, set[str]]] = {}
-        for key in authorized:
+        for key in sorted(authorized):
             api = self.api_for(key)
             if api is None:
                 continue
             group = grouped.setdefault(id(api), (api, set()))
             group[1].add(key)
 
-        async def load(api: Any, keys: set[str]) -> list[dict[str, Any]]:
+        recorder_groups = {
+            str(index): group
+            for index, group in enumerate(
+                sorted(grouped.values(), key=lambda item: min(item[1]))
+            )
+        }
+        offsets = decode_history_cursor(
+            cursor, start, end, set(recorder_groups)
+        )
+        fetch_size = page_size * HISTORY_FETCH_MULTIPLIER
+
+        async def load(
+            group_key: str, api: Any, keys: set[str]
+        ) -> tuple[str, list[tuple[dict[str, Any], int]], int, bool]:
+            offset = offsets[group_key]
             events = await api.get_events(
                 start=start,
                 end=end,
+                limit=fetch_size,
+                offset=offset,
+                types=PROTECT_CLIP_EVENT_TYPES,
                 sorting="desc",
                 descriptions=False,
             )
-            records = []
-            for event in events:
+            records: list[tuple[dict[str, Any], int]] = []
+            for index, event in enumerate(events, start=1):
                 key = self._camera_by_device_id.get(
                     event.camera_id or event.device_id
                 )
                 if key not in keys or event.end is None:
                     continue
                 if record := self._record(key, event):
-                    records.append(record)
-            return records
+                    records.append((record, offset + index))
+            return group_key, records, offset + len(events), len(events) < fetch_size
 
         batches = await asyncio.gather(
-            *(load(api, keys) for api, keys in grouped.values())
+            *(
+                load(group_key, api, keys)
+                for group_key, (api, keys) in recorder_groups.items()
+            )
         )
-        records = [record for batch in batches for record in batch]
-        records.sort(key=lambda item: item["start"], reverse=True)
+        candidates = [
+            (record, group_key, raw_offset)
+            for group_key, records, _scanned_offset, _exhausted in batches
+            for record, raw_offset in records
+        ]
+        candidates.sort(
+            key=lambda item: (item[0]["start"], item[0]["id"]), reverse=True
+        )
+        page = candidates[:page_size]
+        records = [record for record, _group_key, _raw_offset in page]
+
+        next_offsets = dict(offsets)
+        for group_key, group_records, scanned_offset, _exhausted in batches:
+            returned_offsets = [
+                raw_offset
+                for _record, returned_group, raw_offset in page
+                if returned_group == group_key
+            ]
+            if returned_offsets:
+                next_offsets[group_key] = max(returned_offsets)
+            elif not group_records:
+                next_offsets[group_key] = scanned_offset
+
+        returned_identities = {
+            (group_key, raw_offset)
+            for _record, group_key, raw_offset in page
+        }
+        has_buffered = any(
+            (group_key, raw_offset) not in returned_identities
+            for _record, group_key, raw_offset in candidates
+        )
+        has_unscanned = any(not exhausted for *_rest, exhausted in batches)
+        next_cursor = (
+            encode_history_cursor(start, end, next_offsets)
+            if has_buffered or has_unscanned
+            else None
+        )
         self._remember_history(records)
-        return records
+        return records, next_cursor
 
     @callback
     def _remember_history(self, records: list[dict[str, Any]]) -> None:
@@ -812,10 +884,19 @@ class FamilyCameraHistoryView(HomeAssistantView):
             raise web.HTTPBadRequest(text="Valid start and end dates are required")
         try:
             start, end = validate_history_range(start, end)
+            page_size = validate_history_page_size(request.query.get("limit"))
         except ValueError as err:
             raise web.HTTPBadRequest(text=str(err)) from err
         try:
-            events = await self.manager.async_history(user.id, start, end)
+            events, next_cursor = await self.manager.async_history(
+                user.id,
+                start,
+                end,
+                page_size,
+                request.query.get("cursor"),
+            )
+        except ValueError as err:
+            raise web.HTTPBadRequest(text=str(err)) from err
         except Exception as err:
             _LOGGER.warning("Unable to load Protect clip history: %s", err)
             raise web.HTTPServiceUnavailable(
@@ -824,6 +905,7 @@ class FamilyCameraHistoryView(HomeAssistantView):
         return web.json_response(
             {
                 "events": events,
+                "next_cursor": next_cursor,
                 "max_range_days": HISTORY_MAX_RANGE.days,
             },
             headers={"Cache-Control": "private, no-store"},

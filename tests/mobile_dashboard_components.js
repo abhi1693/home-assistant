@@ -221,9 +221,16 @@ async function buildFixture(page) {
       callApi: async (method, path) => {
         window.__apiCalls.push({ method, path });
         if (path.startsWith("family_camera_events/history?")) {
+          const cursor = new URLSearchParams(path.split("?")[1]).get("cursor");
+          if (cursor && window.__nextHistoryPage) {
+            const page = window.__nextHistoryPage;
+            window.__nextHistoryPage = null;
+            return page;
+          }
           return {
             events: Object.values(hassStates).flatMap((item) => item.attributes?.events || [])
               .filter((event) => !event.active),
+            next_cursor: null,
             max_range_days: 31,
           };
         }
@@ -607,12 +614,36 @@ async function validate(page, viewport) {
       thumbnail:"data:image/gif;base64,R0lGODlhAQABAAAAACw=",
       video:`/api/family_camera_events/outside/history-${index}/video`,
     }));
-    card._visibleLimit = 12;
+    window.__nextHistoryPage = {
+      events: Array.from({ length:3 }, (_item, index) => ({
+        id:`history-${index + 12}`, camera_key:"outside", camera_name:"Outside", types:["motion"],
+        start:new Date(now.getTime() - (index + 12) * 60000).toISOString(),
+        end:new Date(now.getTime() - (index + 12) * 60000 + 30000).toISOString(), active:false,
+        thumbnail:"data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+        video:`/api/family_camera_events/outside/history-${index + 12}/video`,
+      })),
+      next_cursor:null,
+      max_range_days:31,
+    };
+    card._history = card._history.slice(0, 12);
+    card._historyCursor = null;
+    card._historyHasMore = false;
+    card._historyLoaded = true;
     card._render(true);
   });
-  assert.equal(await cameraEvents.locator(".event-open").count(), 12, "Clip history did not keep the first batch readable");
-  await cameraEvents.locator(".load-more").click();
-  assert.equal(await cameraEvents.locator(".event-open").count(), 15, "Show more did not reveal every matching clip");
+  assert.equal(await cameraEvents.locator(".event-open").count(), 12, "Clip history did not render the first server page");
+  assert.equal(await cameraEvents.locator(".load-more").count(), 0, "Clip history still required a Show more button");
+  await cameraEvents.evaluate((card) => {
+    card._historyCursor = "page-2";
+    card._historyHasMore = true;
+    card._render(true);
+  });
+  await cameraEvents.locator(".history-tail").scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => document.querySelector("family-camera-events-card")._history.length === 15);
+  assert.equal(await cameraEvents.locator(".event-open").count(), 15, "Infinite scroll did not append the next server page");
+  const pagedHistoryLoaded = await page.evaluate(() => window.__apiCalls.some((call) =>
+    call.path.includes("family_camera_events/history?") && call.path.includes("cursor=page-2")));
+  assert(pagedHistoryLoaded, "Infinite scroll did not send the server cursor");
 
   const calls = await page.evaluate(() => window.__calls);
   const invoked = new Set(calls.map((call) => `${call.domain}.${call.service}`));

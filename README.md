@@ -154,11 +154,12 @@ recovered recorder cannot leave the custom timeline stale. It retains at most
 20 events per camera, seeds the feed from the previous 24 hours of local
 Protect history after startup or recovery, and proxies thumbnails and completed
 clips through authenticated account-aware endpoints. The lightweight entity
-state remains capped, while an authenticated history endpoint queries every
-completed Protect clip in the selected inclusive date range. Family members can
-filter by start date, end date, and any camera authorized for their account;
-each query is capped at 31 days and longer result sets expand in batches of 12
-without hiding any matching clips. The dashboard requests
+state remains capped, while an authenticated history endpoint queries completed
+Protect clips in newest-first server pages. Family members can filter by start
+date, end date, and any camera authorized for their account; each query is
+capped at 31 days, the first 12 clips render without scanning the full range,
+and additional pages load automatically as the timeline approaches the bottom.
+The dashboard requests
 short-lived user-bound signed paths before loading either media type. Clip
 dialogs open immediately and defer timeline refreshes until playback closes, so
 new detections cannot tear down an in-progress video request. Completed clips
