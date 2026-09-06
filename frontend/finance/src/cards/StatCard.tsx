@@ -1,3 +1,4 @@
+import PanelLoading from "../components/PanelLoading";
 import { useMemo, useState } from "react";
 import Ambient from "../components/Ambient";
 import { Hass } from "../lib/ha";
@@ -106,7 +107,7 @@ export default function StatCard({
 }) {
   const view = VIEWS.find((v) => v.key === (config.view ?? "all")) ?? VIEWS[2];
   const [range, setRange] = useState<RangeKey>(config.range ?? "1m");
-  const { overview, series, masked, error, refresh } = useNetwrth(hass, config.entry, range);
+  const { overview, series, masked, error, loading } = useNetwrth(hass, config.entry, range);
   const visible = useVisibleAccounts(overview);
   const accounts = useMemo(() => visible.filter(view.pick), [visible, view]);
 
@@ -131,7 +132,7 @@ export default function StatCard({
   const banner = config.layout === "banner";
 
   return (
-    <div className={`card${banner ? " stat-banner" : ""}`}>
+    <div className={`card${banner ? " stat-banner" : ""}`} aria-busy={loading}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? view.label}</h2>
@@ -144,7 +145,8 @@ export default function StatCard({
         </span>
       </div>
       {error && <div className="error-box">{error}</div>}
-      {!error && !stat && <div className="status">Loading…</div>}
+      <PanelLoading loading={loading} refreshing={!!overview} />
+      {!loading && !error && !stat && <div className="status">No data for this view yet.</div>}
       {!error && stat && masked && (
         // Censored: the dollar amount is redacted anyway, so promote the real
         // percent change to the big slot and drop the footer line entirely.

@@ -1,3 +1,4 @@
+import PanelLoading from "../components/PanelLoading";
 import { useEffect, useState } from "react";
 import { Hass, fetchSpendingTransactions } from "../lib/ha";
 import { money } from "../lib/format";
@@ -24,7 +25,7 @@ export default function IncomeBreakdown({ hass, entry, month, summary, accounts 
   }, [hass.connection, hass.user?.id, entry, month, summary]);
 
   const current = result?.summary === summary ? result : null;
-  if (!current) return <div className="income-breakdown status">Loading income sources…</div>;
+  if (!current) return <div className="income-breakdown" aria-busy="true"><PanelLoading label="Loading income sources…" /></div>;
   if (current.error) return <div className="error-box">{current.error}</div>;
   if (!current.transactions.length) return <div className="income-breakdown status">No credits recorded this month.</div>;
 

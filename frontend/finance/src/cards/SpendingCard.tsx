@@ -1,3 +1,4 @@
+import PanelLoading from "../components/PanelLoading";
 import Ambient from "../components/Ambient";
 import IncomeBreakdown from "./IncomeBreakdown";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -164,7 +165,7 @@ export default function SpendingCard({
       ),
     [month]
   );
-  const { overview, data, masked, error, refresh } = useNetwrthCore<Payload>(
+  const { overview, data, masked, error, loading } = useNetwrthCore<Payload>(
     hass,
     config.entry,
     fetchData,
@@ -214,7 +215,7 @@ export default function SpendingCard({
       : null;
 
   return (
-    <div className="card spending-card" data-reporting-month={month}>
+    <div aria-busy={loading} className="card spending-card" data-reporting-month={month}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Spending"}</h2>
@@ -223,7 +224,7 @@ export default function SpendingCard({
         </span>
       </div>
       {error && <div className="error-box">{error}</div>}
-      {!error && !summary && <div className="status">Loading…</div>}
+      <PanelLoading loading={loading} refreshing={!!overview} />
       {!error && summary && (
         <>
           {config.show_stats !== false && (
@@ -306,9 +307,9 @@ export default function SpendingCard({
                       <span className="muted spend-row-count">{(Number(t.total) / totalSpend * 100).toFixed(1)}% · {t.count} {t.count === 1 ? "txn" : "txns"}</span>
                     </button>
                     {openTheme === t.theme && (
-                      <div className="spend-txns" id={`${detailId}-${index}`}>
+                      <div className="spend-txns" aria-busy={txns === null && !txnError} id={`${detailId}-${index}`}>
                         {txnError && <div className="error-box">{txnError}</div>}
-                        {txns === null && !txnError && <div className="muted">Loading…</div>}
+                        <PanelLoading loading={txns === null && !txnError} label="Loading transactions…" />
                         {txns !== null &&
                           [...txns]
                             .sort(

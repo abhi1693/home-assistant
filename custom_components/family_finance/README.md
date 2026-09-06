@@ -54,8 +54,10 @@ Use an encrypted Secret for that environment variable; do not put tokens in YAML
   remain visible separately as **Other credits**; their amounts are not deleted
   or reclassified in Firefly. The income Sources control groups both sets by
   source and expands to dated transactions with receiving accounts.
-  Transfers, credit-card repayments, opening balances, and reconciliation
-  entries are excluded. Firefly category names are preserved.
+  Self-transfers between owned accounts, credit-card repayments, opening
+  balances, and reconciliation entries are excluded from income and its
+  source breakdown, including transfers labelled Salary. Firefly category
+  names are preserved.
 - Credit-card history uses the selected calendar month, including older months;
   negative card-side transfer entries identify payments. The chart displays
   daily closing ledger balances, not intraday bank snapshots.

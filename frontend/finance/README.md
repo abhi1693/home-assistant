@@ -27,6 +27,13 @@ to the HA connection, user and group in memory. Month changes clear obsolete
 figures and spending drill-downs while the selected period loads. Ungrouped
 cards retain their standalone controls.
 
+Each data panel shows its own spinner during initial loading, period changes,
+and background refreshes. Refreshes retain the current figures and keep
+controls usable. Spinners settle on success or failure, and obsolete responses
+cannot settle a newer request. Income-source and category details show their
+spinner inside the expanded section. Loading states are labelled for assistive
+technology and respect reduced-motion preferences.
+
 Spending presents separate monthly totals and eight leading categories, with
 full wrapping names, amounts, shares, and expandable transaction details.
 "Show all" exposes the remaining categories. Accounts use a responsive grid
@@ -39,6 +46,8 @@ shows other recorded credits separately. Its Sources control opens a breakdown
 of both sets, grouped by sender with exact amounts, transaction dates and
 receiving accounts. It reads the existing private monthly transaction endpoint
 on demand; closing the section or changing month discards pending responses.
+Recorded self-transfers and card repayments are excluded from income and its
+source breakdown, even if the transfer has a Salary category.
 
 Build with Node.js and the committed dependency lockfile:
 
@@ -67,8 +76,9 @@ server; it does not contact the household services. Without HA installed those
 runtime tests are skipped. The model and bootstrap tests need no HA install.
 
 The Playwright suite checks 375, 768, and 1440px viewports, overflow, INR,
-transaction drill-down, historical month requests, and clearing data when the
-HA account changes. Screenshots use explicitly labelled sample ledger data
+transaction drill-down, historical month requests, per-panel loading and
+refreshing, request failures, stale responses, and clearing data when the HA
+account changes. Screenshots use explicitly labelled sample ledger data
 and are written to `/tmp/ha-finance-components` by default.
 
 See the [integration README](../../custom_components/family_finance/README.md)

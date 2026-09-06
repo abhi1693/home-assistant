@@ -172,6 +172,40 @@ export function cardCss(mode: ThemeMode): string {
   }
   .lock:hover { color: var(--nb-text); border-color: var(--nb-muted); }
   .status { text-align: center; padding: 40px 0; color: var(--nb-muted); }
+  .panel-loading { pointer-events: none; }
+  .panel-loading-refresh {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    border-radius: inherit;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--nb-bg) 20%, transparent);
+  }
+  .loading-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 24px;
+    background: var(--nb-panel-2);
+    color: var(--nb-muted);
+    font-size: 12px;
+  }
+  .loading-spinner {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    border: 2px solid var(--nb-border);
+    border-top-color: var(--nb-accent);
+    border-radius: 50%;
+    animation: finance-spin 0.8s linear infinite;
+  }
+  @keyframes finance-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .loading-spinner { animation: none; }
+  }
   .error-box {
     background: rgba(248, 113, 113, 0.12);
     border: 1px solid var(--nb-red);

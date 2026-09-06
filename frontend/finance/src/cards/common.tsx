@@ -81,15 +81,9 @@ export function useChartWidth() {
   return { ref, width };
 }
 
-// Shared load/refresh cycle: overview (key state + accounts) plus whatever
-// payload the card's fetcher pulls, re-pulled every minute and after
-// reveal/conceal.
-//
-// The server is the authority on the reveal window (it re-censors lazily per
-// request); the two effects below only make the *display* converge promptly:
-// a local deadline drops revealed data the moment the window lapses, and a
-// visibility hook refetches when a sleeping screen wakes up instead of
-// waiting out a throttled interval.
+// Each card owns its request cycle: overview plus its payload, refreshed every
+// minute and when a sleeping screen wakes. Retain current figures on refresh;
+// a new period clears them until that period's request completes.
 //
 // fetchData must be referentially stable across renders (useCallback), or
 // the card refetches on every render.
@@ -101,13 +95,13 @@ export function useNetwrthCore<T>(
 ) {
   const [result, setResult] = useState<{
     source: typeof fetchData; connection: Hass["connection"]; userId?: string;
-    entry?: string; month?: string; overview: Overview | null; data: T | null; error: string | null;
+    entry?: string; month?: string; tick: number; overview: Overview | null; data: T | null; error: string | null;
   } | null>(null);
   const [tick, setTick] = useState(0);
   const refresh = useCallback(() => setTick((t) => t + 1), []);
   useEffect(() => {
     let alive = true;
-    const identity = { source: fetchData, connection: hass.connection, userId: hass.user?.id, entry, month: overviewMonth };
+    const identity = { source: fetchData, connection: hass.connection, userId: hass.user?.id, entry, month: overviewMonth, tick };
     Promise.all([fetchOverview(hass, entry, overviewMonth), fetchData(hass, entry)])
       .then(([ov, out]) => {
         if (!alive) return;
@@ -130,7 +124,10 @@ export function useNetwrthCore<T>(
   // Never label the previous month's figures with a newly selected month.
   const current = result?.source === fetchData && result.connection === hass.connection &&
     result.userId === hass.user?.id && result.entry === entry && result.month === overviewMonth ? result : null;
-  return { overview: current?.overview ?? null, data: current?.data ?? null, masked: false, error: current?.error ?? null, refresh };
+  // A result settles only its own refresh. Late results cannot stop a newer
+  // spinner, and a failed request settles it just like a successful one.
+  const loading = !current || current.tick !== tick;
+  return { overview: current?.overview ?? null, data: current?.data ?? null, masked: false, error: current?.error ?? null, loading, refresh };
 }
 
 // The original account-series cycle, now a thin wrapper over the core.
@@ -140,13 +137,13 @@ export function useNetwrth(hass: Hass, entry: string | undefined, range: RangeKe
       fetchSeries(h, e, range, month).then((se) => ({ data: se.series, censored: se.censored })),
     [range, month]
   );
-  const { overview, data, masked, error, refresh } = useNetwrthCore<AccountSeries[]>(
+  const { overview, data, masked, error, loading, refresh } = useNetwrthCore<AccountSeries[]>(
     hass,
     entry,
     fetchData,
     month
   );
-  return { overview, series: data, masked, error, refresh };
+  return { overview, series: data, masked, error, loading, refresh };
 }
 
 export function Segmented<T extends string>({

@@ -1,3 +1,4 @@
+import PanelLoading from "../components/PanelLoading";
 import React, { useMemo, useState } from "react";
 import Ambient from "../components/Ambient";
 import { Hass } from "../lib/ha";
@@ -65,7 +66,7 @@ export default function AccountsCard({
   const view = VIEWS.find((v) => v.key === (config.view ?? "all")) ?? VIEWS[2];
   const [range, setRange] = useState<RangeKey>(config.range ?? "1m");
   const [month] = useReportingMonth(hass, config.month_group);
-  const { overview, series, masked, error, refresh } = useNetwrth(hass, config.entry, range, config.month_group ? month : undefined);
+  const { overview, series, masked, error, loading } = useNetwrth(hass, config.entry, range, config.month_group ? month : undefined);
   const visible = overview?.accounts ?? [];
   const nameFilter = config.accounts;
   const accounts = useMemo(() => {
@@ -110,7 +111,7 @@ export default function AccountsCard({
   );
 
   return (
-    <div className="card accounts-card" data-reporting-month={config.month_group ? month : undefined}>
+    <div aria-busy={loading} className="card accounts-card" data-reporting-month={config.month_group ? month : undefined}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Accounts"}</h2>
@@ -124,7 +125,7 @@ export default function AccountsCard({
         </span>
       </div>
       {error && <div className="error-box">{error}</div>}
-      {!error && !overview && <div className="status">Loading…</div>}
+      <PanelLoading loading={loading} refreshing={!!overview} />
       {!error && overview && groups.length === 0 && (
         <div className="status">No accounts.</div>
       )}

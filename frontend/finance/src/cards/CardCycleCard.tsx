@@ -1,3 +1,4 @@
+import PanelLoading from "../components/PanelLoading";
 import Ambient from "../components/Ambient";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -78,7 +79,7 @@ export default function CardCycleCard({
       ),
     [month]
   );
-  const { overview, data, masked, error, refresh } = useNetwrthCore<Payload>(
+  const { overview, data, masked, error, loading } = useNetwrthCore<Payload>(
     hass,
     config.entry,
     fetchData,
@@ -170,7 +171,7 @@ export default function CardCycleCard({
   };
 
   return (
-    <div className="card" ref={chartRef} data-reporting-month={month}>
+    <div aria-busy={loading} className="card" ref={chartRef} data-reporting-month={month}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Card credit"}</h2>
@@ -179,7 +180,7 @@ export default function CardCycleCard({
         </span>
       </div>
       {error && <div className="error-box">{error}</div>}
-      {!error && !data && <div className="status">Loading…</div>}
+      <PanelLoading loading={loading} refreshing={!!overview} />
       {!error && data && withData.length === 0 && (
         <div className="status">No credit-card activity this month.</div>
       )}

@@ -1,3 +1,4 @@
+import PanelLoading from "../components/PanelLoading";
 import Ambient from "../components/Ambient";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -81,7 +82,7 @@ export default function BillsCard({
       fetchSpendingRecurring(h, e, month).then((rec) => ({ data: rec, censored: rec.censored })),
     [month]
   );
-  const { overview, data, masked, error, refresh } = useNetwrthCore<SpendingRecurring>(
+  const { overview, data, masked, error, loading } = useNetwrthCore<SpendingRecurring>(
     hass,
     config.entry,
     fetchData,
@@ -229,7 +230,7 @@ export default function BillsCard({
   const empty = marks.length === 0 && pills.length === 0 && strip.length === 0;
 
   return (
-    <div className="card" ref={chartRef} data-reporting-month={month}>
+    <div aria-busy={loading} className="card" ref={chartRef} data-reporting-month={month}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Recurring bills"}</h2>
@@ -238,7 +239,7 @@ export default function BillsCard({
         </span>
       </div>
       {error && <div className="error-box">{error}</div>}
-      {!error && !data && <div className="status">Loading…</div>}
+      <PanelLoading loading={loading} refreshing={!!overview} />
       {!error && data && empty && <div className="bills-empty"><span aria-hidden="true">✓</span>No scheduled bills this month.</div>}
       {!error && data && !empty && (
         <>

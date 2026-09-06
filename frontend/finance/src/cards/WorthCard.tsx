@@ -1,3 +1,4 @@
+import PanelLoading from "../components/PanelLoading";
 import { useMemo, useState } from "react";
 import Chart from "../components/Chart";
 import Ambient from "../components/Ambient";
@@ -40,7 +41,7 @@ export default function WorthCard({
   const [mode, setMode] = useState<ChartMode>(
     config.mode && view.modes.includes(config.mode) ? config.mode : view.defaultMode
   );
-  const { overview, series, masked, error, refresh } = useNetwrth(hass, config.entry, range);
+  const { overview, series, masked, error, loading } = useNetwrth(hass, config.entry, range);
   const visible = useVisibleAccounts(overview);
   const accounts = useMemo(() => visible.filter(view.pick), [visible, view]);
 
@@ -56,7 +57,7 @@ export default function WorthCard({
   const showRange = showControls && config.show_range_selector !== false;
 
   return (
-    <div className="card">
+    <div aria-busy={loading} className="card">
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? view.label}</h2>
@@ -72,7 +73,7 @@ export default function WorthCard({
         </span>
       </div>
       {error && <div className="error-box">{error}</div>}
-      {!error && (!overview || !series) && <div className="status">Loading…</div>}
+      <PanelLoading loading={loading} refreshing={!!overview} />
       {!error && overview && series && rows.length === 0 && (
         <div className="status">No data for this view yet.</div>
       )}
