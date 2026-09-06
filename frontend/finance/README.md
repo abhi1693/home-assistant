@@ -34,6 +34,12 @@ with account initials and month-specific balances. Accounts and scheduled
 bills each occupy the full dashboard width, so an empty schedule stays compact
 without leaving a gap beside the account list.
 
+The Income tile uses the backend's confirmed income categories (Salary) and
+shows other recorded credits separately. Its Sources control opens a breakdown
+of both sets, grouped by sender with exact amounts, transaction dates and
+receiving accounts. It reads the existing private monthly transaction endpoint
+on demand; closing the section or changing month discards pending responses.
+
 Build with Node.js and the committed dependency lockfile:
 
 ```sh

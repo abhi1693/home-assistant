@@ -1,4 +1,5 @@
 import Ambient from "../components/Ambient";
+import IncomeBreakdown from "./IncomeBreakdown";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { MASK, money } from "../lib/format";
 import {
@@ -141,6 +142,7 @@ export default function SpendingCard({
   const [month, setMonth] = useReportingMonth(hass, config.month_group);
   const [openTheme, setOpenTheme] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [showIncome, setShowIncome] = useState(false);
   const detailId = useId();
   const [txns, setTxns] = useState<SpendingTxn[] | null>(null);
   const [txnError, setTxnError] = useState<string | null>(null);
@@ -149,6 +151,7 @@ export default function SpendingCard({
     requestSequence.current += 1;
     setOpenTheme(null);
     setShowAll(false);
+    setShowIncome(false);
     setTxns(null);
     setTxnError(null);
     return () => { requestSequence.current += 1; };
@@ -234,12 +237,17 @@ export default function SpendingCard({
                   <span className="muted">plus scheduled bills ~{money(projectedSpend)}</span>
                 )}
               </div>
-              <div className="spend-stat">
-                <span className="spend-stat-label">Income</span>
+              <button className="spend-stat spend-income-trigger" onClick={() => setShowIncome(!showIncome)}
+                aria-label="View income sources" aria-expanded={showIncome} aria-controls={`${detailId}-income`}>
+                <span className="spend-stat-label">Income <span className="income-trigger-hint">Sources {showIncome ? "↑" : "↓"}</span></span>
                 <span className="spend-stat-value up">
                   {masked ? MASK : money(parseFloat(summary.total_income))}
                 </span>
-              </div>
+                <span className="muted">{summary.income_categories.join(" + ")}</span>
+                {Number(summary.total_other_credits) > 0 && <span className="muted income-other-total">
+                  Other credits {money(Number(summary.total_other_credits))}
+                </span>}
+              </button>
               <div className="spend-stat">
                 <span className="spend-stat-label">Recurring bills</span>
                 <span className="spend-stat-value">
@@ -249,6 +257,10 @@ export default function SpendingCard({
               </div>
             </div>
           )}
+          {showIncome && <section id={`${detailId}-income`} aria-label="Income sources">
+            <IncomeBreakdown key={month} hass={hass} entry={config.entry} month={month}
+              summary={summary} accounts={overview?.accounts ?? []} />
+          </section>}
 
           {spendRows.length === 0 && <div className="status">No spending recorded this month.</div>}
           {spendRows.length > 0 && (

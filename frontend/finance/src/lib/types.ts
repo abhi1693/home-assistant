@@ -59,6 +59,9 @@ export type SpendingSummary = {
   themes: ThemeTotal[];
   total_spend: string;
   total_income: string;
+  total_other_credits: string;
+  total_credits: string;
+  income_categories: string[];
 };
 
 export type SpendingTxn = {

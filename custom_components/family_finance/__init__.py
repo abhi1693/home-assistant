@@ -34,6 +34,7 @@ CONFIG_SCHEMA = vol.Schema({
         vol.Optional("api_token"): cv.string,
         vol.Optional("firefly_entry_id"): cv.string,
         vol.Optional("access_file", default="/config/access/family-dashboard.json"): cv.string,
+        vol.Optional("income_categories", default=["Salary"]): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional("account_overrides", default={}): {
             cv.string: vol.Schema({
                 vol.Optional("kind"): vol.In(["cash", "credit", "investment", "loan", "other"]),
@@ -79,7 +80,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         if signature != connection_settings:
             url, token, verify_ssl = connection_settings
             client = FireflyClient(async_get_clientsession(hass, verify_ssl=verify_ssl), url, token,
-                                  settings["account_overrides"])
+                                  settings["account_overrides"], settings["income_categories"])
             signature = connection_settings
             hass.data[DOMAIN] = client
         return client

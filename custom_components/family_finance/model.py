@@ -150,9 +150,11 @@ def transactions_payload(groups: list[dict], accounts: list[dict]) -> list[dict]
     return sorted(output, key=lambda t: (t["posted_at"], t["id"]), reverse=True)
 
 
-def spending_payload(transactions: list[dict], month: str) -> dict:
+def spending_payload(transactions: list[dict], month: str, income_categories=("Salary",)) -> dict:
     categories = defaultdict(lambda: {"total": Decimal(0), "count": 0})
-    spent = income = Decimal(0)
+    income_labels = [name.strip() for name in income_categories if name.strip()]
+    confirmed_income = {name.casefold() for name in income_labels}
+    spent = income = other_credits = Decimal(0)
     for transaction in transactions:
         value = amount(transaction["amount"])
         if transaction["transaction_type"] == "withdrawal":
@@ -161,10 +163,17 @@ def spending_payload(transactions: list[dict], month: str) -> dict:
             category["total"] += value
             category["count"] += 1
         elif transaction["transaction_type"] == "deposit":
-            income -= value
+            # A deposit can be a refund, repayment or misclassified transfer.
+            # Only explicitly confirmed income categories feed the headline.
+            if (transaction.get("category") or "").strip().casefold() in confirmed_income:
+                income -= value
+            else:
+                other_credits -= value
     return {
         "month": month, "censored": False,
         "total_spend": money(spent), "total_income": money(income),
+        "total_other_credits": money(other_credits), "total_credits": money(income + other_credits),
+        "income_categories": income_labels,
         "themes": [{"theme": name, "total": money(item["total"]), "count": item["count"]}
                    for name, item in sorted(categories.items(), key=lambda pair: pair[1]["total"], reverse=True)],
     }

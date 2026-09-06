@@ -136,7 +136,9 @@ are not published as sensors or recorded by this adapter, and bootstrap keeps
 native Firefly sensors out of other family profiles' permissions.
 
 Figures reflect imported ledger records, not live bank balances. Transfers and
-card repayments are excluded from spending. Bills require Firefly subscription
+card repayments are excluded from spending. Income counts confirmed Salary
+deposits; other credits remain separate in the expandable source breakdown.
+Bills require Firefly subscription
 schedules; investments need explicitly classified accounts and recorded values.
 See [Family Finance](custom_components/family_finance/README.md) for setup and
 data semantics, and [finance frontend](frontend/finance/README.md) for provenance,

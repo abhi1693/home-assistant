@@ -49,7 +49,8 @@ async function fixture(page, grouped = false) {
       if(kind==="overview")return {...overview,accounts:accounts.map(a=>({...a,balance:msg.month&&msg.month!==month&&a.id===1?"91000":a.balance}))};
       if(kind==="series")return {series,censored:false};
       if(kind==="spending_recurring")return {...recurring,month:msg.month};
-      if(kind==="spending_summary")return {month:msg.month,censored:false,total_spend:msg.month!==month?"45000":"32000",total_income:"125000",themes:grouped?[
+      if(kind==="spending_summary")return {month:msg.month,censored:false,total_spend:msg.month!==month?"45000":"32000",total_income:"125000",
+        total_other_credits:"5000",total_credits:"130000",income_categories:["Salary"],themes:grouped?[
         {theme:'House Renovation - Fixtures and Fittings',total:'18000',count:7},
         {theme:'Networking Equipment and Home Office Supplies',total:'8000',count:4},
         ...Array.from({length:10},(_,i)=>({theme:`Household category ${i+1}`,total:'600',count:2})),
@@ -58,7 +59,11 @@ async function fixture(page, grouped = false) {
       ]};
       if(kind==="spending_transactions")return {month:msg.month,censored:false,transactions:[{
         id:1,account_id:3,posted_at:`${msg.month}-02T12:00:00+05:30`,amount:"25000",merchant:"Rent <script>bad()</script>",merchant_key:"rent",description:"Test rent",theme:"Housing",logo_url:null,pending:false,transaction_type:"withdrawal",
-      },{id:2,account_id:3,posted_at:`${msg.month}-03T12:00:00+05:30`,amount:"-12000",merchant:"Card payment",merchant_key:"payment",description:"Repayment",theme:"transfers",pending:false,transaction_type:"transfer"}]};
+      },{id:2,account_id:3,posted_at:`${msg.month}-03T12:00:00+05:30`,amount:"-12000",merchant:"Card payment",merchant_key:"payment",description:"Repayment",theme:"transfers",pending:false,transaction_type:"transfer"},
+      ...(!msg.theme?[
+        {id:3,account_id:1,posted_at:`${msg.month}-03T12:00:00+05:30`,amount:"-125000",merchant:"Employer",description:"Monthly salary",category:"Salary",transaction_type:"deposit"},
+        {id:4,account_id:1,posted_at:`${msg.month}-04T12:00:00+05:30`,amount:"-5000",merchant:"Retailer",description:"Purchase refund",category:"Shopping",transaction_type:"deposit"},
+      ]:[])]};
       throw Error(`Unexpected finance request ${msg.type}`);
     }};
     window.hass={user:{id:owner},connection};
@@ -105,8 +110,18 @@ async function sharedMonthCheck(page, width) {
   assert.equal(await page.locator('family-finance-spending-card .spend-txn-desc').count(),0);
   assert(await page.locator('family-finance-spending-card .spend-row-label').first().evaluate(el=>getComputedStyle(el).whiteSpace!=='nowrap'));
   assert.equal(await page.locator('family-finance-accounts-card .account-item').count(),11);
+  await page.getByRole('button',{name:'View income sources',exact:true}).click();
+  await page.locator('.income-source').first().waitFor();
+  assert.equal(await page.locator('.income-source').count(),2);
+  assert.match(await page.locator('.income-source-group[aria-label="Income"]').innerText(),/Employer/);
+  assert.match(await page.locator('.income-source-group[aria-label="Other credits"]').innerText(),/Retailer/);
+  assert.doesNotMatch(await page.locator('.income-breakdown').innerText(),/Card payment/);
+  await page.locator('.income-source-group[aria-label="Other credits"] summary').click();
+  assert.match(await page.locator('.income-transaction-meta').last().innerText(),/Daily account/);
+  await page.screenshot({path:path.join(OUTPUT,`finance-income-sources-${width}.png`),fullPage:true});
   await picker.fill(prior);
   await page.locator('family-finance-accounts-card .num').filter({hasText:'91,000'}).waitFor();
+  assert.equal(await page.locator('.income-breakdown').count(),0);
   assert.equal(await page.locator(`.card[data-reporting-month="${prior}"]`).count(),4);
   const requested=await page.evaluate(month=>window.messages.filter(m=>m.month===month).map(m=>m.type),prior);
   for(const kind of ['overview','series','spending_summary','spending_recurring','spending_transactions'])assert(requested.includes(`family_finance/${kind}`));

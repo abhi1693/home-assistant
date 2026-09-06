@@ -17,11 +17,13 @@ from .model import (
 
 
 class FireflyClient:
-    def __init__(self, session: ClientSession, base_url: str, token: str, overrides: dict) -> None:
+    def __init__(self, session: ClientSession, base_url: str, token: str, overrides: dict,
+                 income_categories=("Salary",)) -> None:
         self.session = session
         self.base_url = base_url.rstrip("/")
         self.token = token
         self.overrides = overrides
+        self.income_categories = tuple(income_categories)
         self.cache = OrderedDict()
         self.lock = asyncio.Lock()
 
@@ -142,7 +144,7 @@ class FireflyClient:
                 return await self.cached((kind, month, now.date()), fetch)
             transactions = await self.transactions(month, accounts, now)
             if kind == "spending_summary":
-                return spending_payload(transactions, month)
+                return spending_payload(transactions, month, self.income_categories)
             if kind == "spending_transactions":
                 if msg.get("theme") is not None:
                     transactions = [t for t in transactions if t["transaction_type"] == "withdrawal" and t["theme"] == msg["theme"]]

@@ -369,6 +369,34 @@ export function cardCss(mode: ThemeMode): string {
   .spend-stat-value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   .spend-stat .muted { font-size: 12px; }
   .spend-stat-delta { font-size: 11px; }
+  .spend-income-trigger { border: 1px solid var(--nb-border); color: var(--nb-text); text-align: left; font-family: inherit; cursor: pointer; }
+  .spend-income-trigger:hover { border-color: var(--nb-accent); }
+  .spend-income-trigger .spend-stat-label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; }
+  .income-trigger-hint { color: var(--nb-accent); text-transform: none; letter-spacing: normal; }
+  .income-other-total { width: 100%; }
+  .income-breakdown { border: 1px solid var(--nb-border); border-radius: 10px; padding: 16px; margin-bottom: 22px; }
+  .income-breakdown-head, .income-group-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+  .income-breakdown-head { margin-bottom: 18px; }
+  .income-breakdown-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .income-breakdown-head > span { font-size: 12px; }
+  .income-breakdown-head strong { margin-left: 6px; color: var(--nb-text); }
+  .income-source-group + .income-source-group { margin-top: 22px; }
+  .income-group-head { font-size: 13px; margin-bottom: 8px; }
+  .income-group-head small { margin-left: 6px; font-size: 11px; }
+  .income-source { border-top: 1px solid var(--nb-border); }
+  .income-source > summary { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 10px 0; list-style: none; cursor: pointer; font-size: 13px; }
+  .income-source > summary::-webkit-details-marker { display: none; }
+  .income-source > summary::before { content: "›"; color: var(--nb-accent); flex: none; }
+  .income-source[open] > summary::before { transform: rotate(90deg); }
+  .income-source > summary:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: 2px; }
+  .income-source-name { flex: 1; min-width: 0; overflow-wrap: anywhere; line-height: 1.5; }
+  .income-source-amount { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .income-source-amount small { display: block; font-size: 11px; margin-top: 3px; }
+  .income-transactions { padding: 0 10px 8px; background: var(--nb-panel-2); border-radius: 8px; }
+  .income-transaction { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding-top: 10px; font-size: 12px; }
+  .income-transaction-description { overflow-wrap: anywhere; line-height: 1.5; }
+  .income-transaction-meta { margin-top: 4px; line-height: 1.5; }
+  .income-transaction strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
   .spend-themes-split { display: flex; gap: 28px; align-items: flex-start; }
   .spend-breakdown-summary { width: 210px; flex: none; text-align: center; padding: 8px 0; }
@@ -520,6 +548,8 @@ export function cardCss(mode: ThemeMode): string {
     .spend-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @container spending (max-width: 650px) {
+    .income-breakdown { padding: 12px; }
+    .income-transaction { grid-template-columns: minmax(0, 1fr); gap: 4px; }
     .spend-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 16px 0; }
     .spend-stat { padding: 12px; }
     .spend-stat:last-child { grid-column: 1 / -1; align-items: center; }

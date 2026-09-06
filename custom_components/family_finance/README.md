@@ -48,7 +48,12 @@ Use an encrypted Secret for that environment variable; do not put tokens in YAML
 - Monetary calculations use Python `Decimal`. The dashboard uses INR and Indian
   number formatting. Foreign records need Firefly's INR primary-currency
   conversion; missing conversion returns an error rather than a mixed total.
-- Monthly spending sums withdrawal splits once; income sums deposits.
+- Monthly spending sums withdrawal splits once. Income includes only deposits
+  in the explicitly configured `income_categories` (currently `[Salary]`).
+  Other deposits, including refunds, family credits and uncategorised receipts,
+  remain visible separately as **Other credits**; their amounts are not deleted
+  or reclassified in Firefly. The income Sources control groups both sets by
+  source and expands to dated transactions with receiving accounts.
   Transfers, credit-card repayments, opening balances, and reconciliation
   entries are excluded. Firefly category names are preserved.
 - Credit-card history uses the selected calendar month, including older months;

@@ -48,7 +48,7 @@ class FinanceModelTests(unittest.TestCase):
         accounts = MODEL.accounts_payload([account(1), account(2, account_role="ccAsset")], {})
         splits = [transaction(1, "withdrawal", "0.10", category_name="Food"),
                   transaction(2, "withdrawal", "0.20", category_name="Food"),
-                  transaction(3, "deposit", "1000", source="9", destination="1"),
+                  transaction(3, "deposit", "1000", source="9", destination="1", category_name="Salary"),
                   transaction(4, "transfer", "100", source="1", destination="2"),
                   transaction(5, "opening balance", "90000"),
                   transaction(6, "reconciliation", "90000")]
@@ -60,6 +60,30 @@ class FinanceModelTests(unittest.TestCase):
         self.assertEqual(summary["themes"], [{"theme": "Food", "total": "0.30", "count": 2}])
         repayments = [t for t in output if t["id"] == 4]
         self.assertEqual({(t["account_id"], t["amount"]) for t in repayments}, {(1, "100"), (2, "-100")})
+
+    def test_only_confirmed_income_categories_count_and_all_other_credits_remain_visible(self):
+        accounts = MODEL.accounts_payload([account(1), account(2)], {})
+        splits = [
+            transaction(1, "deposit", "1000.00", source="9", destination="1", category_name=" Salary "),
+            transaction(2, "deposit", "125.50", source="9", destination="1", category_name="Family Support"),
+            transaction(3, "deposit", "50.25", source="9", destination="2", category_name="Shopping"),
+            transaction(4, "deposit", "200.00", source="9", destination="1"),
+            transaction(5, "deposit", "12.01", source="9", destination="1", category_name="Royalty Income"),
+            transaction(6, "transfer", "700", category_name="Salary"),
+            transaction(7, "opening balance", "9000", category_name="Salary"),
+            transaction(8, "withdrawal", "300", category_name="Shopping"),
+        ]
+        output = MODEL.transactions_payload([{"attributes": {"transactions": splits}},
+                                             {"attributes": {"transactions": [splits[0]]}}], accounts)
+        summary = MODEL.spending_payload(output, "2026-08")
+        self.assertEqual(Decimal(summary["total_income"]), Decimal("1000"))
+        self.assertEqual(Decimal(summary["total_other_credits"]), Decimal("387.76"))
+        self.assertEqual(Decimal(summary["total_credits"]), Decimal("1387.76"))
+        self.assertEqual(Decimal(summary["total_spend"]), Decimal("300"))
+        self.assertEqual(len([t for t in output if t["transaction_type"] == "deposit"]), 5)
+        extended = MODEL.spending_payload(output, "2026-08", ["salary", "Royalty Income"])
+        self.assertEqual(Decimal(extended["total_income"]), Decimal("1012.01"))
+        self.assertEqual(extended["total_credits"], summary["total_credits"])
 
     def test_preserves_firefly_category_names_even_when_named_like_a_transfer(self):
         accounts = MODEL.accounts_payload([account(1)], {})
