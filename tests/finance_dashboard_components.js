@@ -28,11 +28,11 @@ async function fixture(page) {
       {id:1,name:"Daily account",balance:"72000",kind:"cash"},
       {id:2,name:"Savings",balance:"640000",kind:"cash"},
       {id:3,name:"Credit card",balance:"-18000",kind:"credit"},
-    ].map(a=>({...a,provider:"firefly-iii",org_name:"Firefly III",org_domain:"",nickname:null,currency:"INR",category:null,hidden:false,balance_at:now,created_at:"2026-01-01"}));
+    ].map(a=>({...a,provider:"firefly-iii",org_name:"Firefly III",org_domain:"",nickname:null,currency:"INR",category:null,hidden:a.kind==="credit",balance_at:now,created_at:"2026-01-01"}));
     const overview = {entry_id:"firefly",currency:"INR",accounts,me:{censored:false,can_reveal:false,revealed:true,code_required:false,reveal_expires:null},default_reveal_ttl_minutes:0};
     const series = accounts.map(a=>({account_id:a.id,points:Array.from({length:181},(_,i)=>({
       ts:new Date(today.getTime()-(180-i)*86400000).toISOString(),
-      balance:String(Number(a.balance)-(a.kind==="credit"?0:((180-i)*250+Math.sin(i)*3000))),
+      balance:String(Number(a.balance)-(a.kind==="credit"||i===180?0:((180-i)*250+Math.sin(i)*3000))),
     }))}));
     const recurring = {month,censored:false,today:now.slice(0,10),streams:[{
       merchant_key:"rent",merchant:"Rent",theme:"housing",frequency:"quarterly",frequency_label:"every 2 monthly periods",interval_days:60.875,
@@ -84,6 +84,9 @@ async function fixture(page) {
       const errors=[];page.on("pageerror",e=>errors.push(e.message));
       await fixture(page);
       assert.match(await page.locator("family-finance-stat-card .stat-value").innerText(),/₹/);
+      assert.match(await page.locator("family-finance-stat-card .stat-value").innerText(),/7,12,000/);
+      await page.locator("family-finance-cardcycle-card .spend-card-row").waitFor();
+      assert.match(await page.locator("family-finance-accounts-card .card").innerText(),/Credit card/);
       assert.equal(await page.locator("button.lock").count(),0);
       assert.match((await page.locator("family-finance-bills-card svg title").allTextContents()).join(" "),/every 2 monthly periods/);
       await page.screenshot({path:path.join(OUTPUT,`finance-${width}.png`),fullPage:true});

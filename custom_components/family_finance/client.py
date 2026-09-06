@@ -121,8 +121,8 @@ class FireflyClient:
                     if (end - start).days > 36600:
                         raise FinanceError("Account history exceeds 100 years; select a shorter range")
                     for account in accounts:
-                        if account["hidden"]:
-                            continue
+                        # Net-worth exclusions do not hide account balances
+                        # or card history. Net-worth cards filter these IDs.
                         raw = await self.get("chart/account/overview", {
                             "start": str(start), "end": str(end), "period": "1D",
                             # Omit preselected when selecting explicit accounts.

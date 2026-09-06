@@ -14,6 +14,8 @@ month credit history, explicit transaction types for repayments, and responsive
 bill/card charts. Bill tooltips preserve Firefly's exact recurrence label,
 including skipped periods, without rounding it to quarterly or annual text.
 The dashboard defaults to a static dark background.
+Net-worth exclusions affect totals and their chart only; the account list and
+credit-card history still show these accounts.
 
 Build with Node.js and the committed dependency lockfile:
 

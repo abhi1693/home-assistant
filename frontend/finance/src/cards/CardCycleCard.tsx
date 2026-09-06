@@ -11,7 +11,6 @@ import {
   Overlay,
   ambientEffect,
   useNetwrthCore,
-  useVisibleAccounts,
   useChartWidth,
 } from "./common";
 import { MonthNav, amt, currentMonth } from "./spendingCommon";
@@ -82,10 +81,9 @@ export default function CardCycleCard({
     config.entry,
     fetchData
   );
-  const visibleAccounts = useVisibleAccounts(overview);
   const cards = useMemo(
-    () => visibleAccounts.filter((a) => a.kind === "credit"),
-    [visibleAccounts]
+    () => (overview?.accounts ?? []).filter((a) => a.kind === "credit"),
+    [overview]
   );
   const series = data?.series ?? [];
   const txns = data?.txns ?? [];

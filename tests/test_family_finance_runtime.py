@@ -133,7 +133,7 @@ class FinanceRuntimeTests(unittest.IsolatedAsyncioTestCase):
         async with ClientSession() as session:
             client = FireflyClient(session, f"http://127.0.0.1:{port}", "test-only", {})
             with patch.object(client, "accounts", AsyncMock(return_value=[
-                {"id": 1, "hidden": False}, {"id": 2, "hidden": False},
+                {"id": 1, "hidden": False}, {"id": 2, "hidden": True},
             ])):
                 result = await client.request("series", {"range": "6m"})
         self.assertEqual(selected, [1, 2])

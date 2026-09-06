@@ -9,7 +9,6 @@ import {
   Segmented,
 
   useNetwrth,
-  useVisibleAccounts,
   ambientEffect,
 } from "./common";
 
@@ -62,7 +61,7 @@ export default function AccountsCard({
   const view = VIEWS.find((v) => v.key === (config.view ?? "all")) ?? VIEWS[2];
   const [range, setRange] = useState<RangeKey>(config.range ?? "1m");
   const { overview, series, masked, error, refresh } = useNetwrth(hass, config.entry, range);
-  const visible = useVisibleAccounts(overview);
+  const visible = overview?.accounts ?? [];
   const nameFilter = config.accounts;
   const accounts = useMemo(() => {
     let list = visible.filter(view.pick);

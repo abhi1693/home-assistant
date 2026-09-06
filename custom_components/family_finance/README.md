@@ -34,6 +34,7 @@ Use an encrypted Secret for that environment variable; do not put tokens in YAML
 - Account closing balances and daily history from Firefly, including closed
   accounts for historical continuity. `include_net_worth: false` excludes an
   account from the net-worth cards. Loan signs are preserved, including lending.
+  Excluded accounts remain visible in the account list and credit-card history.
   Chart requests select one explicit `accounts[]` ID and omit `preselected`;
   Firefly rejects its internal `empty` preset if sent as a query parameter.
 - `ccAsset` identifies credit cards. Investments or imported cards with another

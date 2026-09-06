@@ -25,7 +25,7 @@ sections:
         view: all
         range: 1m
         layout: banner
-        background: off
+        background: "off"
         show_range_selector: false
         grid_options: { columns: 36, rows: auto }
       - type: custom:family-finance-worth-card
@@ -35,7 +35,7 @@ sections:
         mode: total
         range: 6m
         compact: true
-        background: off
+        background: "off"
         grid_options: { columns: 36, rows: auto }
   - type: grid
     column_span: 3
@@ -44,7 +44,7 @@ sections:
       - type: custom:family-finance-spending-card
         title: Monthly spending
         allowed_user_id: *finance_user
-        background: off
+        background: "off"
         grid_options: { columns: 36, rows: auto }
   - type: grid
     column_span: 1
@@ -55,7 +55,7 @@ sections:
         allowed_user_id: *finance_user
         view: all
         range: 1m
-        background: off
+        background: "off"
         show_range_selector: false
         grid_options: { columns: 12, rows: auto }
   - type: grid
@@ -65,7 +65,7 @@ sections:
       - type: custom:family-finance-bills-card
         title: Scheduled bills
         allowed_user_id: *finance_user
-        background: off
+        background: "off"
         grid_options: { columns: 24, rows: auto }
   - type: grid
     column_span: 3
@@ -74,7 +74,7 @@ sections:
       - type: custom:family-finance-cardcycle-card
         title: Credit cards
         allowed_user_id: *finance_user
-        background: off
+        background: "off"
         grid_options: { columns: 36, rows: auto }
       - type: markdown
         content: >-
