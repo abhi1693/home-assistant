@@ -1,3 +1,4 @@
+import { PeriodQuery, ReportPeriod } from "../lib/reportingPeriod";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountSeries, RangeKey } from "../lib/types";
@@ -90,27 +91,30 @@ export function useChartWidth() {
 export function useNetwrthCore<T>(
   hass: Hass,
   entry: string | undefined,
-  fetchData: (hass: Hass, entry: string | undefined) => Promise<{ data: T; censored: boolean }>,
-  overviewMonth?: string
+  fetchData: (hass: Hass, entry: string | undefined, period?: PeriodQuery) => Promise<{ data: T; censored: boolean }>,
+  overviewMonth?: PeriodQuery,
+  comparePeriod?: ReportPeriod
 ) {
   const [result, setResult] = useState<{
     source: typeof fetchData; connection: Hass["connection"]; userId?: string;
-    entry?: string; month?: string; tick: number; overview: Overview | null; data: T | null; error: string | null;
+    entry?: string; month?: PeriodQuery; comparisonKey?: string; tick: number; overview: Overview | null; data: T | null; error: string | null; comparison: T | null; comparisonOverview: Overview | null;
   } | null>(null);
   const [tick, setTick] = useState(0);
   const refresh = useCallback(() => setTick((t) => t + 1), []);
   useEffect(() => {
     let alive = true;
-    const identity = { source: fetchData, connection: hass.connection, userId: hass.user?.id, entry, month: overviewMonth, tick };
-    Promise.all([fetchOverview(hass, entry, overviewMonth), fetchData(hass, entry)])
-      .then(([ov, out]) => {
+    const identity = { source: fetchData, connection: hass.connection, userId: hass.user?.id, entry, month: overviewMonth, comparisonKey: comparePeriod?.key, tick };
+    Promise.all([fetchOverview(hass, entry, overviewMonth), fetchData(hass, entry, overviewMonth),
+      comparePeriod ? fetchOverview(hass, entry, comparePeriod) : null,
+      comparePeriod ? fetchData(hass, entry, comparePeriod) : null])
+      .then(([ov, out, refOverview, refData]) => {
         if (!alive) return;
-        if (ov.currency !== "INR") throw new Error("Finance requires INR data");
-        setResult({ ...identity, overview: ov, data: out.data, error: null });
+        if (ov.currency !== "INR" || (refOverview && refOverview.currency !== "INR")) throw new Error("Finance requires INR data");
+        setResult({ ...identity, overview: ov, data: out.data, comparison: refData?.data ?? null, comparisonOverview: refOverview, error: null });
       })
       .catch((e) => {
         if (!alive) return;
-        setResult({ ...identity, overview: null, data: null, error: e?.message ?? "Unable to load finance data" });
+        setResult({ ...identity, overview: null, data: null, comparison: null, comparisonOverview: null, error: e?.message ?? "Unable to load finance data" });
       });
     const timer = setInterval(refresh, REFRESH_MS);
     const wake = () => { if (document.visibilityState === "visible") refresh(); };
@@ -120,30 +124,31 @@ export function useNetwrthCore<T>(
       clearInterval(timer);
       document.removeEventListener("visibilitychange", wake);
     };
-  }, [hass.connection, hass.user?.id, entry, fetchData, overviewMonth, tick, refresh]);
+  }, [hass.connection, hass.user?.id, entry, fetchData, overviewMonth, comparePeriod, tick, refresh]);
   // Never label the previous month's figures with a newly selected month.
   const current = result?.source === fetchData && result.connection === hass.connection &&
-    result.userId === hass.user?.id && result.entry === entry && result.month === overviewMonth ? result : null;
+    result.userId === hass.user?.id && result.entry === entry && result.month === overviewMonth && result.comparisonKey === comparePeriod?.key ? result : null;
   // A result settles only its own refresh. Late results cannot stop a newer
   // spinner, and a failed request settles it just like a successful one.
   const loading = !current || current.tick !== tick;
-  return { overview: current?.overview ?? null, data: current?.data ?? null, masked: false, error: current?.error ?? null, loading, refresh };
+  return { comparison: current?.comparison ?? null, comparisonOverview: current?.comparisonOverview ?? null, overview: current?.overview ?? null, data: current?.data ?? null, masked: false, error: current?.error ?? null, loading, refresh };
 }
 
 // The original account-series cycle, now a thin wrapper over the core.
-export function useNetwrth(hass: Hass, entry: string | undefined, range: RangeKey, month?: string) {
+export function useNetwrth(hass: Hass, entry: string | undefined, range: RangeKey, month?: PeriodQuery, comparePeriod?: ReportPeriod) {
   const fetchData = useCallback(
-    (h: Hass, e: string | undefined) =>
-      fetchSeries(h, e, range, month).then((se) => ({ data: se.series, censored: se.censored })),
+    (h: Hass, e: string | undefined, target: PeriodQuery | undefined = month) =>
+      fetchSeries(h, e, range, target).then((se) => ({ data: se.series, censored: se.censored })),
     [range, month]
   );
-  const { overview, data, masked, error, loading, refresh } = useNetwrthCore<AccountSeries[]>(
+  const { overview, data, comparison, comparisonOverview, masked, error, loading, refresh } = useNetwrthCore<AccountSeries[]>(
     hass,
     entry,
     fetchData,
-    month
+    month,
+    comparePeriod
   );
-  return { overview, series: data, masked, error, loading, refresh };
+  return { overview, series: data, comparisonSeries: comparison, comparisonOverview, masked, error, loading, refresh };
 }
 
 export function Segmented<T extends string>({

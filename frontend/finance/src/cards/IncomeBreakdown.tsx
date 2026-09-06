@@ -3,11 +3,12 @@ import { useEffect, useState } from "react";
 import { Hass, fetchSpendingTransactions } from "../lib/ha";
 import { money } from "../lib/format";
 import { Account, SpendingSummary, SpendingTxn } from "../lib/types";
+import { PeriodQuery } from "../lib/reportingPeriod";
 
 type Source = { name: string; total: number; transactions: SpendingTxn[] };
 
 export default function IncomeBreakdown({ hass, entry, month, summary, accounts }: {
-  hass: Hass; entry?: string; month: string; summary: SpendingSummary; accounts: Account[];
+  hass: Hass; entry?: string; month: PeriodQuery; summary: SpendingSummary; accounts: Account[];
 }) {
   const [result, setResult] = useState<{
     summary: SpendingSummary; transactions: SpendingTxn[]; error?: string;
@@ -27,7 +28,7 @@ export default function IncomeBreakdown({ hass, entry, month, summary, accounts 
   const current = result?.summary === summary ? result : null;
   if (!current) return <div className="income-breakdown" aria-busy="true"><PanelLoading label="Loading income sources…" /></div>;
   if (current.error) return <div className="error-box">{current.error}</div>;
-  if (!current.transactions.length) return <div className="income-breakdown status">No credits recorded this month.</div>;
+  if (!current.transactions.length) return <div className="income-breakdown status">No credits recorded in this period.</div>;
 
   const accountNames = new Map(accounts.map(account => [account.id, account.nickname || account.name]));
   const sources = new Map<string, Source>();

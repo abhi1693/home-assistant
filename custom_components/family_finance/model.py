@@ -59,6 +59,41 @@ def month_window(month: str, today: date) -> tuple[date, date]:
     return start, next_month - timedelta(days=1)
 
 
+def reporting_window(msg: dict, today: date) -> tuple[date, date]:
+    """Validate inclusive dates before any network request; retain month clients."""
+    if "start" not in msg and "end" not in msg:
+        return month_window(msg.get("month") or today.strftime("%Y-%m"), today)
+    if "month" in msg or "start" not in msg or "end" not in msg:
+        raise FinanceError("Choose a month or both reporting dates")
+    try:
+        start, end = date.fromisoformat(msg["start"]), date.fromisoformat(msg["end"])
+    except (ValueError, TypeError):
+        raise FinanceError("Select valid reporting dates") from None
+    if start.year < 1900 or start > today or end < start or (end - start).days > 1830:
+        raise FinanceError("Select a reporting period of up to five years, starting on or before today")
+    return start, end
+
+
+def calendar_months(start: date, end: date):
+    cursor = start.replace(day=1)
+    while cursor <= end:
+        following = (cursor.replace(day=28) + timedelta(days=4)).replace(day=1)
+        yield max(start, cursor), min(end, following - timedelta(days=1))
+        cursor = following
+
+
+def monthly_totals(entries: list[dict], start: date, end: date, today: date,
+                   date_key: str = "date", value_key: str = "amount") -> list[dict]:
+    totals = defaultdict(lambda: Decimal(0))
+    for entry in entries:
+        day = local_date(entry[date_key])
+        if start <= day <= min(end, today):
+            totals[day.strftime("%Y-%m")] += amount(entry[value_key])
+    return [{"month": first.strftime("%Y-%m"),
+             "total": money(totals[first.strftime("%Y-%m")]) if first <= today else None}
+            for first, _ in calendar_months(start, end)]
+
+
 def accounts_payload(records: list[dict], overrides: dict) -> list[dict]:
     accounts = []
     for record in records:
@@ -191,9 +226,10 @@ def spending_payload(transactions: list[dict], month: str) -> dict:
     }
 
 
-def recurring_payload(records: list[dict], month: str, today: date) -> dict:
+def recurring_payload(records: list[dict], month: str, today: date,
+                      window: tuple[date, date] | None = None) -> dict:
     """Use only Firefly bill schedules and matches; do not infer obligations."""
-    start, end = month_window(month, today)
+    start, end = window or month_window(month, today)
     streams, expected, actuals = [], [], []
     for record in records:
         b = record["attributes"]
@@ -248,9 +284,10 @@ def investment_plan_matches(transaction: dict, plan: dict) -> bool:
             plan.get("description_contains", "").casefold() in transaction["description"].casefold())
 
 
-def investments_payload(transactions: list[dict], plans: list[dict], month: str, today: date) -> dict:
+def investments_payload(transactions: list[dict], plans: list[dict], month: str, today: date,
+                        window: tuple[date, date] | None = None) -> dict:
     """Count investment funding once; explicit plans reserve cash without posting entries."""
-    start, end = month_window(month, today)
+    start, end = window or month_window(month, today)
     recorded = []
     seen = set()
     for t in transactions:
@@ -278,11 +315,15 @@ def investments_payload(transactions: list[dict], plans: list[dict], month: str,
         if value <= 0:
             raise FinanceError("Investment plan amounts must be positive")
         if plan["frequency"] == "monthly":
-            dates = [start.replace(day=min(anchor.day, end.day))]
+            dates = []
+            for first, _ in calendar_months(start, end):
+                following = (first.replace(day=28) + timedelta(days=4)).replace(day=1)
+                last_day = (following - timedelta(days=1)).day
+                dates.append(first.replace(day=min(anchor.day, last_day)))
         elif plan["frequency"] == "weekly":
             first = max(anchor, start)
             first += timedelta(days=(anchor.weekday() - first.weekday()) % 7)
-            dates = [first + timedelta(days=i * 7) for i in range(5)]
+            dates = [first + timedelta(days=i * 7) for i in range(max(0, (end - first).days // 7 + 1))]
         else:
             raise FinanceError("Unsupported investment frequency")
         for day in dates:

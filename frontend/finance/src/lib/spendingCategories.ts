@@ -12,7 +12,7 @@ export type SpendingCategory = {
 
 // Eight distinct category colors; the two aggregate colors are reserved.
 const COLORS = ["#60a5fa", "#fb923c", "#34d399", "#a78bfa", "#facc15", "#22d3ee", "#f472b6", "#f87171"];
-const isUncategorised = (name: string) => ["", "uncategorised", "uncategorized"].includes(name.trim().toLowerCase());
+export const isUncategorised = (name: string) => ["", "uncategorised", "uncategorized"].includes(name.trim().toLowerCase());
 const cents = (value: string) => Math.round(Number(value) * 100);
 
 export function spendingCategories(themes: SpendingSummary["themes"]): SpendingCategory[] {

@@ -1,3 +1,5 @@
+import ComparisonHistory from "../components/ComparisonHistory";
+import { useReportingPeriod } from "../lib/reportingPeriod";
 import PanelLoading from "../components/PanelLoading";
 import { useMemo, useState } from "react";
 import Chart from "../components/Chart";
@@ -41,7 +43,9 @@ export default function WorthCard({
   const [mode, setMode] = useState<ChartMode>(
     config.mode && view.modes.includes(config.mode) ? config.mode : view.defaultMode
   );
-  const { overview, series, masked, error, loading } = useNetwrth(hass, config.entry, range);
+  const {period,comparison}=useReportingPeriod(hass,config.month_group);
+  const reporting=config.month_group && (period.mode!=="month"||comparison) ? period : undefined;
+  const { overview, series, comparisonSeries, comparisonOverview, masked, error, loading } = useNetwrth(hass, config.entry, range, reporting, reporting?comparison:undefined);
   const visible = useVisibleAccounts(overview);
   const accounts = useMemo(() => visible.filter(view.pick), [visible, view]);
 
@@ -53,8 +57,8 @@ export default function WorthCard({
 
   const showControls = config.show_controls !== false;
   const showMode =
-    showControls && config.show_mode_selector !== false && view.modes.length > 1;
-  const showRange = showControls && config.show_range_selector !== false;
+    showControls && !comparison && config.show_mode_selector !== false && view.modes.length > 1;
+  const showRange = !reporting && showControls && config.show_range_selector !== false;
 
   return (
     <div aria-busy={loading} className="card">
@@ -62,6 +66,7 @@ export default function WorthCard({
       <div className="head">
         <h2>{config.title ?? view.label}</h2>
         <span className="head-right">
+          {reporting&&<span className="muted">{period.label}</span>}
           {(showMode || showRange) && (
             <span className="controls">
               {showMode && (
@@ -78,11 +83,13 @@ export default function WorthCard({
         <div className="status">No data for this view yet.</div>
       )}
       {!error && overview && series && rows.length > 0 && (
-        <Chart
+        reporting&&comparison&&comparisonSeries&&comparisonOverview ? <ComparisonHistory rows={rows} accounts={accounts}
+          referenceRows={alignSeries(comparisonSeries.filter(s=>comparisonOverview.accounts.some(a=>a.id===s.account_id&&!a.hidden&&view.pick(a))))}
+          referenceAccounts={comparisonOverview.accounts.filter(a=>!a.hidden&&view.pick(a))} period={period} comparison={comparison}/> : <Chart
           rows={rows}
           accounts={accounts}
           mode={mode}
-          range={range}
+          range={reporting?"1y":range}
           masked={masked}
           compact={config.compact !== false}
         />

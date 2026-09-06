@@ -1,3 +1,4 @@
+import { PeriodQuery, queryFields, MonthlyTotal } from "./reportingPeriod";
 import {
   Account,
   AccountSeries,
@@ -49,10 +50,10 @@ export type Overview = {
 
 export type EntryInfo = { entry_id: string; title: string; scope: string | null };
 
-export function fetchOverview(hass: Hass, entry?: string, month?: string): Promise<Overview> {
+export function fetchOverview(hass: Hass, entry?: string, month?: PeriodQuery): Promise<Overview> {
   return hass.connection.sendMessagePromise<Overview>({
     type: "family_finance/overview",
-    ...(month ? { month } : {}),
+    ...queryFields(month),
     ...(entry ? { entry_id: entry } : {}),
   });
 }
@@ -61,12 +62,12 @@ export function fetchSeries(
   hass: Hass,
   entry: string | undefined,
   range: RangeKey,
-  month?: string
+  month?: PeriodQuery
 ): Promise<{ series: AccountSeries[]; censored: boolean }> {
   return hass.connection.sendMessagePromise({
     type: "family_finance/series",
     range,
-    ...(month ? { month } : {}),
+    ...queryFields(month),
     ...(entry ? { entry_id: entry } : {}),
   });
 }
@@ -81,6 +82,7 @@ export type SpendingRecurring = {
   streams: RecurringStream[];
   expected: StreamProjection[];
   actuals: StreamActual[];
+  monthly?: MonthlyTotal[]; planned_monthly?: MonthlyTotal[];
   total_due: string;
   total_remaining: string;
   bill_count: number;
@@ -94,23 +96,24 @@ export type InvestmentEntry = {
 
 export type SpendingInvestments = {
   month: string; censored: boolean;
+  monthly?: MonthlyTotal[]; planned_monthly?: MonthlyTotal[];
   total_recorded: string; total_pending: string; total_committed: string;
   recorded: InvestmentEntry[]; expected: InvestmentEntry[];
 };
 
-export function fetchSpendingInvestments(hass: Hass, entry: string | undefined, month: string): Promise<SpendingInvestments> {
-  return hass.connection.sendMessagePromise({type: "family_finance/spending_investments", month,
+export function fetchSpendingInvestments(hass: Hass, entry: string | undefined, month: PeriodQuery): Promise<SpendingInvestments> {
+  return hass.connection.sendMessagePromise({type: "family_finance/spending_investments", ...queryFields(month),
     ...(entry ? {entry_id: entry} : {})});
 }
 
 export function fetchSpendingSummary(
   hass: Hass,
   entry: string | undefined,
-  month?: string
+  month?: PeriodQuery
 ): Promise<SpendingSummary> {
   return hass.connection.sendMessagePromise({
     type: "family_finance/spending_summary",
-    ...(month ? { month } : {}),
+    ...queryFields(month),
     ...(entry ? { entry_id: entry } : {}),
   });
 }
@@ -118,11 +121,11 @@ export function fetchSpendingSummary(
 export function fetchSpendingRecurring(
   hass: Hass,
   entry: string | undefined,
-  month?: string
+  month?: PeriodQuery
 ): Promise<SpendingRecurring> {
   return hass.connection.sendMessagePromise({
     type: "family_finance/spending_recurring",
-    ...(month ? { month } : {}),
+    ...queryFields(month),
     ...(entry ? { entry_id: entry } : {}),
   });
 }
@@ -130,12 +133,12 @@ export function fetchSpendingRecurring(
 export function fetchSpendingTransactions(
   hass: Hass,
   entry: string | undefined,
-  month?: string,
+  month?: PeriodQuery,
   theme?: string
 ): Promise<{ month: string; censored: boolean; transactions: SpendingTxn[] }> {
   return hass.connection.sendMessagePromise({
     type: "family_finance/spending_transactions",
-    ...(month ? { month } : {}),
+    ...queryFields(month),
     ...(theme ? { theme } : {}),
     ...(entry ? { entry_id: entry } : {}),
   });

@@ -41,7 +41,7 @@ const backgroundField = {
 
 
 const entryField = { name: "entry", label: "Firefly connection", selector: {} };
-const monthGroupField = { name: "month_group", label: "Shared month group", selector: { text: {} } };
+const monthGroupField = { name: "month_group", label: "Shared reporting period group", selector: { text: {} } };
 const titleField = { name: "title", label: "Title", selector: { text: {} } };
 const viewField = {
   name: "view",
@@ -85,8 +85,8 @@ const compactField = {
 
 defineCard({
   tag: "family-finance-month-card",
-  name: "Finance reporting month",
-  description: "Select the month for spending, accounts, bills and credit cards.",
+  name: "Finance reporting period",
+  description: "Select a month, calendar year, financial year or date range and compare years.",
   component: MonthSelectorCard,
   defaults: { month_group: "finance" },
   schema: [titleField, monthGroupField, themeField],
@@ -102,6 +102,7 @@ defineCard({
   schema: [
     titleField,
     entryField,
+    monthGroupField,
     viewField,
     {
       name: "mode",
@@ -157,6 +158,7 @@ defineCard({
   schema: [
     titleField,
     entryField,
+    monthGroupField,
     viewField,
     rangeField,
     rangeToggleField,
@@ -215,7 +217,7 @@ defineCard({
 defineCard({
   tag: "family-finance-spending-card",
   name: "Finance spending",
-  description: "Where the month's money went: totals, share donut, and theme breakdown.",
+  description: "Where the period's money went: totals, share donut, and theme breakdown.",
   component: SpendingCard,
   schema: [
     monthGroupField,
@@ -241,7 +243,7 @@ defineCard({
 defineCard({
   tag: "family-finance-investments-card",
   name: "Finance investments",
-  description: "Monthly investment contributions, scheduled commitments and remaining income.",
+  description: "Investment contributions, schedules and comparisons for the selected period.",
   component: InvestmentsCard,
   schema: [titleField, entryField, monthGroupField, themeField, backgroundField],
   stub: {},
@@ -251,7 +253,7 @@ defineCard({
 defineCard({
   tag: "family-finance-bills-card",
   name: "Finance recurring bills",
-  description: "Calendar of the month's bills and income — charged, expected, and overdue.",
+  description: "Bill payments and due dates for the selected reporting period.",
   component: BillsCard,
   schema: [titleField, entryField, monthGroupField, themeField, backgroundField],
   stub: {},
@@ -261,7 +263,7 @@ defineCard({
 defineCard({
   tag: "family-finance-cardcycle-card",
   name: "Finance credit cards",
-  description: "Per credit card: balance through the month with payment markers.",
+  description: "Per credit card: balance through the selected period with payment markers and year comparisons.",
   component: CardCycleCard,
   schema: [titleField, entryField, monthGroupField, themeField, backgroundField],
   stub: {},

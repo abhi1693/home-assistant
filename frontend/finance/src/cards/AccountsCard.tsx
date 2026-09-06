@@ -3,10 +3,9 @@ import React, { useMemo, useState } from "react";
 import Ambient from "../components/Ambient";
 import { Hass } from "../lib/ha";
 import { money, pct } from "../lib/format";
-import { Account, RANGES, RangeKey } from "../lib/types";
+import { Account, AccountSeries, RANGES, RangeKey } from "../lib/types";
 import { VIEWS, ViewKey } from "../lib/views";
-import { useReportingMonth } from "../lib/reportingMonth";
-import { monthLabel } from "./spendingCommon";
+import { useReportingPeriod, ReportPeriod, shiftYear, dateLabel } from "../lib/reportingPeriod";
 import {
   BaseCardConfig,
   Segmented,
@@ -65,8 +64,8 @@ export default function AccountsCard({
 }) {
   const view = VIEWS.find((v) => v.key === (config.view ?? "all")) ?? VIEWS[2];
   const [range, setRange] = useState<RangeKey>(config.range ?? "1m");
-  const [month] = useReportingMonth(hass, config.month_group);
-  const { overview, series, masked, error, loading } = useNetwrth(hass, config.entry, range, config.month_group ? month : undefined);
+  const {period,comparison,month}=useReportingPeriod(hass,config.month_group);
+  const { overview, series, comparisonSeries, comparisonOverview, masked, error, loading } = useNetwrth(hass, config.entry, range, config.month_group ? period : undefined, config.month_group?comparison:undefined);
   const visible = overview?.accounts ?? [];
   const nameFilter = config.accounts;
   const accounts = useMemo(() => {
@@ -111,12 +110,12 @@ export default function AccountsCard({
   );
 
   return (
-    <div aria-busy={loading} className="card accounts-card" data-reporting-month={config.month_group ? month : undefined}>
+    <div aria-busy={loading} className="card accounts-card" data-reporting-month={config.month_group && period.mode==="month" ? month : undefined} data-reporting-period={period.key}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Accounts"}</h2>
         <span className="head-right">
-          {config.month_group && <span className="muted" title="Closing balances for the selected month; current month is as of today">{monthLabel(month)}</span>}
+          {config.month_group && <span className="muted" title="Closing balances at the period end, or today for an ongoing period">{period.label} · as of {dateLabel(period.actualEnd)}</span>}
           {!config.month_group && config.show_controls !== false && config.show_range_selector !== false && (
             <span className="controls">
               <Segmented options={RANGES} value={range} onChange={setRange} />
@@ -138,7 +137,9 @@ export default function AccountsCard({
                 accounts={g.accounts}
                 masked={masked}
                 deltas={deltas}
-                period={config.month_group ? monthLabel(month) : range}
+                period={config.month_group ? period.label : range}
+                report={period} comparison={comparison} previous={comparisonOverview?.accounts}
+                series={period.wide||comparison?series:undefined} referenceSeries={comparisonSeries}
               />
             ))}
         </div>
@@ -152,13 +153,14 @@ function AccountGroup({
   accounts,
   masked,
   deltas,
-  period,
+  period, report, comparison, previous, series, referenceSeries,
 }: {
   kind: string;
   accounts: Account[];
   masked: boolean;
   deltas: Map<number, number>;
-  period: string;
+  period: string; report:ReportPeriod; comparison?:ReportPeriod; previous?:Account[];
+  series?:AccountSeries[]|null; referenceSeries?:AccountSeries[]|null;
 }) {
   return (
     <section className="account-group" aria-label={`${kind} accounts`}>
@@ -167,6 +169,7 @@ function AccountGroup({
       {accounts.map((a) => {
         const delta = deltas.get(a.id);
         const mono = monogram(a);
+        const old=previous?.find(account=>account.id===a.id);
         return (
           <div className="account-item" key={a.id}>
             <div className="name-cell">
@@ -187,10 +190,28 @@ function AccountGroup({
                 {delta == null ? "–" : delta === 0 ? "0.0%" : pct(delta)}
               </span>
             </div>
+            {series&&<AccountSparkline account={a} series={series} referenceSeries={referenceSeries} period={report} comparison={comparison}/>}
+            {comparison&&<div className="account-comparison"><span>{comparison.label}</span><strong>{old?balanceLabel(old,masked):"No balance"}</strong></div>}
           </div>
         );
       })}
       </div>
     </section>
   );
+}
+
+function AccountSparkline({account,series,referenceSeries,period,comparison}:{account:Account;series:AccountSeries[];referenceSeries?:AccountSeries[]|null;period:ReportPeriod;comparison?:ReportPeriod}) {
+  const from=Date.parse(period.start)-86400000,to=Date.parse(period.actualEnd);
+  const rows=(source:AccountSeries[]|null|undefined,delta=0)=>(source?.find(s=>s.account_id===account.id)?.points??[]).map(p=>{
+    const day=new Date(Date.parse(p.ts)+19800000).toISOString().slice(0,10);
+    return {x:Date.parse(delta?shiftYear(day,delta):day),y:Number(p.balance)};
+  });
+  const current=rows(series),previous=rows(referenceSeries,comparison?Number(period.start.slice(0,4))-Number(comparison.start.slice(0,4)):0);
+  const all=[...current,...previous];if(!all.length)return null;
+  const min=Math.min(...all.map(p=>p.y)),max=Math.max(...all.map(p=>p.y));
+  const line=(points:typeof all)=>points.map(p=>`${Math.max(1,Math.min(219,1+(p.x-from)/Math.max(1,to-from)*218))},${43-(p.y-min)/Math.max(1,max-min)*40}`).join(" ");
+  return <svg className="account-sparkline" viewBox="0 0 220 46" role="img" aria-label={`${account.name} balance history`}>
+    <polyline points={line(current)} fill="none" stroke="#60a5fa" strokeWidth="1.7"/>
+    {comparison&&<polyline points={line(previous)} fill="none" stroke="#fbbf24" strokeWidth="1.5" strokeDasharray="4 3"/>}
+  </svg>;
 }

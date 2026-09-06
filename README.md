@@ -141,11 +141,15 @@ refunds, family credits and other external deposits in one expandable source
 breakdown. Own-account transfers, including reviewed historical deposits, are
 excluded from both income and its source list.
 Bills require Firefly subscription schedules and total only occurrences in the
-selected month. Investments show recorded funding and dated commitments from
+selected period. Investments show recorded funding and dated commitments from
 private server-side plans, with income remaining after spending, remaining
 bills and investments. Plans do not generate ledger transactions; statement
 matches replace their expected amounts. Investment transfers remain outside
-income and spending, while net-worth history retains its independent range.
+income and spending. The shared period control supports months, calendar years,
+April–March financial years, custom dates and year comparisons. All panels
+reuse the same charts; actuals use matching elapsed comparison dates, and
+account balances are snapshots at the period end. Net worth keeps its own
+range in ordinary Month mode.
 The net-worth summary explains its total with cash, investments and negative
 balances. Account breakdowns and the change badge expose their supporting
 amounts and comparison calculations on hover, keyboard focus or tap.

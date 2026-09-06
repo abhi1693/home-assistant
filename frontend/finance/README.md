@@ -30,13 +30,28 @@ valuations. A zero starting balance shows the rupee change without a percentage.
 Tooltips stay within the viewport, support Escape/outside dismissal, and close
 when access changes. The net-worth range remains independent of the month picker.
 
-`family-finance-month-card` provides the top reporting-month control. Set the
-same `month_group` on it and the spending, accounts, investments, bills, and card-cycle cards
-to synchronize them; grouped cards show a month label instead of a separate
-picker. Net-worth cards keep their independent range. The selection is scoped
-to the HA connection, user and group in memory. Month changes clear obsolete
-figures and spending drill-downs while the selected period loads. Ungrouped
-cards retain their standalone controls.
+`family-finance-month-card` provides the shared reporting-period control (the
+existing tag and `month_group` option remain compatible). Select Month,
+Calendar year (January–December), Financial year (April–March), or Custom dates
+(up to five years), then optionally choose an earlier comparison year. The same
+panels show period totals, monthly income/spending/contribution/bill charts,
+category comparisons, account sparklines and closing balances, and credit-card
+balance overlays. Net worth keeps its independent range in ordinary Month mode;
+annual/custom views and explicit comparisons use the shared period. Assign the
+same `month_group` to all participating cards, including net-worth cards.
+
+An unfinished period includes actuals only through today. Its comparison ends
+on the corresponding calendar date in the selected comparison year; leap days
+clamp to the last valid day of February. Future months have no recorded bars,
+while explicit future commitments remain separately labelled. The selector
+shows the actual comparison dates. Net-worth comparison uses total balance
+lines on a shared axis; standalone chart modes remain available outside
+comparison mode. Category comparisons use the displayed category grouping.
+
+Selections remain scoped to the HA connection, user and group in memory.
+Changing periods clears obsolete figures and drill-downs. Comparison requests
+share their panel's spinner and access checks. Mobile month charts scroll
+inside their panel. Ungrouped cards retain standalone month/range controls.
 
 Each data panel shows its own spinner during initial loading, period changes,
 and background refreshes. Refreshes retain the current figures and keep
@@ -45,7 +60,7 @@ cannot settle a newer request. Income-source and category details show their
 spinner inside the expanded section. Loading states are labelled for assistive
 technology and respect reduced-motion preferences.
 
-Spending presents separate monthly totals and the eight largest named categories,
+Spending presents period totals and the eight largest named categories,
 with remaining categories combined into Others and Uncategorised shown separately
 when present. The donut and list share the same groups and a distinct color for
 every displayed group. Names, amounts, shares, and transaction counts remain
@@ -53,28 +68,27 @@ visible. Others expands to its constituent spending transactions, labelled with
 their original categories; income and transfers never enter that drill-down.
 Expanded details stay beneath their category in its original grid column;
 opening a category preserves the neighboring category's position and width.
-Accounts use a responsive grid with account initials and month-specific balances.
+Accounts use a responsive grid with account initials and period-end balances.
 Accounts and scheduled
 bills each occupy the full dashboard width, so an empty schedule stays compact
 without leaving a gap beside the account list.
 
-The recurring-bills tile shows the selected month's actual payments plus
+The recurring-bills tile shows the selected period's actual payments plus
 remaining scheduled occurrences, without a monthly average or unrelated active
-subscriptions. Its count includes only bills represented in that month.
+subscriptions. Its count includes only bills represented in that period.
 The investments card lists dated contributions and explicit scheduled payments,
 with separate Recorded and Scheduled / awaiting statement totals. It calculates
 income after spending, remaining bills and investment commitments. Statement
 matches replace scheduled amounts, preventing a second deduction. The panel has
-its own loading/refresh spinner and follows the shared month while net worth
-keeps its range.
+its own loading/refresh spinner and follows the shared reporting period.
 Recorded contributions use their configured provider name when account, amount,
 and narration identify it, including months before the current schedule starts.
 
 The Income tile totals all external credits, including salary, royalties,
 refunds and other receipts. Its Sources control opens one breakdown
 grouped by sender with exact amounts, transaction dates and
-receiving accounts. It reads the existing private monthly transaction endpoint
-on demand; closing the section or changing month discards pending responses.
+receiving accounts. It reads the existing private date-filtered transaction endpoint
+on demand; closing the section or changing period discards pending responses.
 Self-transfers, including reviewed deposits from historical imports, and card
 repayments are excluded from income and its source breakdown, even if the
 transfer has a Salary category. The backend filters these before returning
@@ -98,6 +112,7 @@ From the repository root:
 ```sh
 python3 -m unittest discover -s tests -v
 NODE_PATH=/path/to/node_modules node tests/finance_dashboard_components.js
+NODE_PATH=/path/to/node_modules node tests/finance_reporting_periods.js
 ```
 
 Run `test_family_finance_runtime.py` in a Python environment with the deployed
@@ -112,7 +127,10 @@ keyboard tooltip access, zero baselines,
 transaction drill-down, historical month requests, per-panel loading and
 refreshing, request failures, stale responses, and clearing data when the HA
 account changes. Screenshots use explicitly labelled sample ledger data
-and are written to `/tmp/ha-finance-components` by default.
+and are written to `/tmp/ha-finance-components` by default. The reporting-period
+suite also checks calendar/FY boundaries, same-date comparisons, custom leap-day
+ranges, annual drill-downs, comparison spinners and stale-response isolation at
+all three widths; its screenshots go to `/tmp/ha-finance-periods`.
 
 See the [integration README](../../custom_components/family_finance/README.md)
 for data semantics, access control, and connection setup.

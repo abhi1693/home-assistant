@@ -262,3 +262,65 @@ class FinanceModelTests(unittest.TestCase):
         for month in ["2026-13", "2027-01", "1800-01"]:
             with self.assertRaises(MODEL.FinanceError):
                 MODEL.month_window(month, date(2026, 9, 6))
+
+    def test_reporting_windows_cover_calendar_financial_and_leap_boundaries(self):
+        today = date(2026, 9, 6)
+        for start, end in [("2025-01-01", "2025-12-31"), ("2025-04-01", "2026-03-31"),
+                           ("2024-02-29", "2024-03-01"), ("2026-04-01", "2027-03-31")]:
+            self.assertEqual(MODEL.reporting_window({"start": start, "end": end}, today),
+                             (date.fromisoformat(start), date.fromisoformat(end)))
+        for msg in [{"start": "2025-01-01"}, {"end": "2025-12-31"},
+                    {"month": "2025-01", "start": "2025-01-01", "end": "2025-12-31"},
+                    {"start": "2023-02-29", "end": "2023-03-01"},
+                    {"start": "2026-10-01", "end": "2026-12-31"},
+                    {"start": "2026-09-01", "end": "2026-08-31"},
+                    {"start": "2017-01-01", "end": "2026-12-31"}]:
+            with self.subTest(msg=msg), self.assertRaises(MODEL.FinanceError):
+                MODEL.reporting_window(msg, today)
+
+    def test_monthly_totals_use_local_dates_and_leave_future_months_unobserved(self):
+        result = MODEL.monthly_totals([
+            {"date": "2026-03-31T20:00:00Z", "amount": "0.10"},
+            {"date": "2026-04-01", "amount": "0.20"},
+            {"date": "2026-09-07", "amount": "99999"},
+        ], date(2026, 4, 1), date(2027, 3, 31), date(2026, 9, 6))
+        self.assertEqual(len(result), 12)
+        self.assertEqual(result[0], {"month": "2026-04", "total": "0.30"})
+        self.assertEqual(result[5], {"month": "2026-09", "total": "0"})
+        self.assertIsNone(result[6]["total"])
+        self.assertEqual(result[-1]["month"], "2027-03")
+
+    def test_annual_investments_count_real_occurrences_across_months_once(self):
+        plans = [
+            {"id": "fund", "name": "Fund", "amount": "100", "source_account_id": 1,
+             "destination_account_id": 2, "start_date": "2024-01-31", "frequency": "monthly", "description_contains": "fund"},
+            {"id": "gold", "name": "Gold", "amount": "20", "source_account_id": 1,
+             "destination_account_id": 2, "start_date": "2024-01-02", "frequency": "weekly", "description_contains": "gold"},
+        ]
+        rows = [{"id": 1, "posted_at": "2024-03-01", "amount": "100", "investment_account_id": 2,
+                 "account_id": 1, "merchant": "Provider", "description": "fund"}]
+        result = MODEL.investments_payload(rows, plans, "2024-01", date(2026, 9, 6),
+                                          (date(2024, 1, 1), date(2024, 12, 31)))
+        self.assertEqual(result["total_recorded"], "100")
+        self.assertEqual(result["total_committed"], "2260")  # 12 monthly + 53 Tuesdays
+        self.assertEqual(len(result["expected"]), 64)
+        self.assertEqual(result["recorded"][0]["plan_id"], "fund")
+        self.assertNotIn("fund-2024-02-29", {r["id"] for r in result["expected"]})
+        custom = MODEL.investments_payload([], plans, "2024-02", date(2026, 9, 6),
+                                          (date(2024, 2, 29), date(2024, 3, 1)))
+        self.assertEqual([r["date"] for r in custom["expected"]], ["2024-02-29"])
+
+    def test_financial_year_bills_include_due_dates_and_paid_dates_only(self):
+        records = [{"id": "1", "attributes": {"name": "Annual subscription", "currency_code": "INR",
+            "amount_min": "600", "amount_max": "600", "date": "2026-02-21", "repeat_freq": "yearly",
+            "pay_dates": ["2027-02-21", "2028-02-21"], "paid_dates": [
+                {"date": "2026-02-21", "amount": "600", "currency_code": "INR"}]}}]
+        calendar = MODEL.recurring_payload(records, "2026-01", date(2026, 9, 6),
+                                           (date(2026, 1, 1), date(2026, 12, 31)))
+        financial = MODEL.recurring_payload(records, "2026-04", date(2026, 9, 6),
+                                            (date(2026, 4, 1), date(2027, 3, 31)))
+        self.assertEqual(calendar["total_due"], "600")
+        self.assertEqual(calendar["total_remaining"], "0")
+        self.assertEqual(Decimal(financial["total_due"]), Decimal("600"))
+        self.assertEqual(Decimal(financial["total_remaining"]), Decimal("600"))
+        self.assertEqual(financial["expected"][0]["date"], "2027-02-21")

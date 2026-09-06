@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import json
 import time
 
@@ -13,6 +13,7 @@ from aiohttp import ClientError, ClientSession, ClientTimeout
 from .model import (
     FinanceError, RANGES, ZONE, accounts_payload, local_date, month_window,
     recurring_payload, series_payload, spending_payload, transactions_payload, investments_payload,
+    reporting_window, monthly_totals, amount,
 )
 
 
@@ -77,8 +78,8 @@ class FireflyClient:
             self.cache.popitem(last=False)
         return value
 
-    async def accounts(self, now: datetime, month: str | None = None) -> list:
-        as_of = min(month_window(month, now.date())[1], now.date()) if month else now.date()
+    async def accounts(self, now: datetime, month: str | None = None, as_of: date | None = None) -> list:
+        as_of = min(as_of or (month_window(month, now.date())[1] if month else now.date()), now.date())
         async def fetch():
             # Include closed accounts for historical totals. Expense/revenue
             # counterparties are filtered before sending anything to a card.
@@ -86,31 +87,38 @@ class FireflyClient:
             return accounts_payload(raw, self.overrides)
         return await self.cached(("accounts", as_of), fetch)
 
-    async def transactions(self, month: str, accounts: list, now: datetime) -> list:
+    async def transactions(self, month: str, accounts: list, now: datetime,
+                           window: tuple[date, date] | None = None) -> list:
+        start, end = window or month_window(month, now.date())
+        end = min(end, now.date())
         async def fetch():
-            start, end = month_window(month, now.date())
-            groups = await self.pages("transactions", {"start": str(start), "end": str(min(end, now.date()))})
-            return transactions_payload(groups, accounts, self.self_transfer_journal_ids)
-        return await self.cached(("transactions", month, now.date()), fetch)
+            groups = await self.pages("transactions", {"start": str(start), "end": str(end)})
+            return [t for t in transactions_payload(groups, accounts, self.self_transfer_journal_ids)
+                    if start <= local_date(t["posted_at"]) <= end]
+        return await self.cached(("transactions", start, end, now.date()), fetch)
 
     async def request(self, kind: str, msg: dict):
         # A page has several cards. Serialize/cache their work to avoid a
         # thundering herd against the small Firefly deployment.
         async with self.lock:
             now = datetime.now(ZONE)
-            accounts = await self.accounts(now, msg.get("month"))
+            window = reporting_window(msg, now.date())
+            start, end = window
+            explicit = any(key in msg for key in ("month", "start", "end"))
+            accounts = await self.accounts(now, msg.get("month"), end if explicit else None)
+            metadata = {"start": str(start), "end": str(end), "as_of": str(min(end, now.date()))}
             if kind == "entries":
                 return [{"entry_id": "firefly", "title": "Firefly III", "scope": "read_full"}]
             if kind == "overview":
-                return {"entry_id": "firefly", "currency": "INR", "accounts": accounts,
+                return {**metadata, "entry_id": "firefly", "currency": "INR", "accounts": accounts,
                         "fetched_at": now.isoformat(), "default_reveal_ttl_minutes": 0,
                         "me": {"label": "Firefly III", "scope": "read_full", "censored": False,
                                "revealed": True, "reveal_expires": None, "code_required": False, "can_reveal": False}}
-            month = msg.get("month") or now.strftime("%Y-%m")
+            month = start.strftime("%Y-%m")
             if kind == "series":
                 async def fetch():
-                    if msg.get("month"):
-                        start, end = month_window(month, now.date())
+                    if explicit:
+                        start, end = window
                         start -= timedelta(days=1)
                         end = min(end, now.date())
                     else:
@@ -136,20 +144,30 @@ class FireflyClient:
                         })
                         output.append(series_payload(account, raw, now))
                     return {"series": output, "censored": False}
-                return await self.cached((kind, None if msg.get("month") else msg.get("range"), msg.get("month"), now.date()), fetch)
+                return await self.cached((kind, window if explicit else msg.get("range"), now.date()), fetch)
             if kind == "spending_recurring":
                 async def fetch():
-                    start, end = month_window(month, now.date())
                     records = await self.pages("bills", {"start": str(start), "end": str(end)})
-                    return recurring_payload(records, month, now.date())
-                return await self.cached((kind, month, now.date()), fetch)
-            transactions = await self.transactions(month, accounts, now)
+                    result = recurring_payload(records, month, now.date(), window)
+                    result["monthly"] = monthly_totals(result["actuals"], start, end, now.date())
+                    result["planned_monthly"] = monthly_totals(result["expected"], start, end, end)
+                    return {**result, **metadata}
+                return await self.cached((kind, window, now.date()), fetch)
+            transactions = await self.transactions(month, accounts, now, window)
             if kind == "spending_investments":
-                return investments_payload(transactions, self.investment_plans, month, now.date())
+                result = investments_payload(transactions, self.investment_plans, month, now.date(), window)
+                result["monthly"] = monthly_totals(result["recorded"], start, end, now.date())
+                result["planned_monthly"] = monthly_totals(result["expected"], start, end, end)
+                return {**result, **metadata}
             if kind == "spending_summary":
-                return spending_payload(transactions, month)
+                result = spending_payload(transactions, month)
+                result["monthly"] = monthly_totals([t for t in transactions if t["transaction_type"] == "withdrawal"],
+                                                    start, end, now.date(), "posted_at")
+                deposits = [{**t, "amount": str(-amount(t["amount"]))} for t in transactions if t["transaction_type"] == "deposit"]
+                result["income_monthly"] = monthly_totals(deposits, start, end, now.date(), "posted_at")
+                return {**result, **metadata}
             if kind == "spending_transactions":
                 if msg.get("theme") is not None:
                     transactions = [t for t in transactions if t["transaction_type"] == "withdrawal" and t["theme"] == msg["theme"]]
-                return {"month": month, "censored": False, "transactions": transactions}
+                return {**metadata, "month": month, "censored": False, "transactions": transactions}
             raise FinanceError("Unknown finance request")

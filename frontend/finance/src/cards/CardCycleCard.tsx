@@ -14,8 +14,8 @@ import {
   useNetwrthCore,
   useChartWidth,
 } from "./common";
-import { MonthNav, amt, monthLabel } from "./spendingCommon";
-import { useReportingMonth } from "../lib/reportingMonth";
+import { MonthNav, amt } from "./spendingCommon";
+import { useReportingPeriod, PeriodQuery, dateLabel, periodTicks, shiftYear } from "../lib/reportingPeriod";
 
 // The credit-card cycle: per card, how the balance climbs with purchases
 // and drops at payments across the selected month, with the month's
@@ -32,14 +32,6 @@ import { useReportingMonth } from "../lib/reportingMonth";
 const H = 200;
 const PAD = { top: 26, right: 16, bottom: 24, left: 56 };
 
-function monthWindow(month: string): { from: Date; to: Date } {
-  const [y, m] = month.split("-").map(Number);
-  return {
-    from: new Date(Date.UTC(y, m - 1, 1)),
-    to: new Date(Date.UTC(y, m, 1)),
-  };
-}
-
 export type CardCycleCardConfig = BaseCardConfig;
 
 type Payload = { series: AccountSeries[]; txns: SpendingTxn[] };
@@ -52,7 +44,7 @@ export default function CardCycleCard({
   config: CardCycleCardConfig;
 }) {
   const { ref: chartRef, width: W } = useChartWidth();
-  const [month, setMonth] = useReportingMonth(hass, config.month_group);
+  const {period,comparison,month,setMonth}=useReportingPeriod(hass,config.month_group);
   // Hover bubble: what the cursor's x-position means on that card's line —
   // replaces the static legend with the answer in place.
   const [hover, setHover] = useState<{
@@ -63,27 +55,28 @@ export default function CardCycleCard({
     note: string;
   } | null>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => { setHover(null); }, [month]);
+  useEffect(() => { setHover(null); }, [period,comparison]);
   // One card renders at a time; the chips are tabs. Many-card accounts
   // stay one chart tall instead of stacking a chart per card.
   const [selectedCard, setSelectedCard] = useState<number | null>(null);
   const pickCard = (id: number) => setSelectedCard(id);
 
   const fetchData = useCallback(
-    (h: Hass, e: string | undefined) =>
-      Promise.all([fetchSeries(h, e, "6m", month), fetchSpendingTransactions(h, e, month)]).then(
+    (h: Hass, e: string | undefined, target: PeriodQuery = period) =>
+      Promise.all([fetchSeries(h, e, "6m", target), fetchSpendingTransactions(h, e, target)]).then(
         ([se, tx]) => ({
           data: { series: se.series, txns: tx.transactions } as Payload,
           censored: tx.censored,
         })
       ),
-    [month]
+    [period,comparison]
   );
-  const { overview, data, masked, error, loading } = useNetwrthCore<Payload>(
+  const { overview, data, comparison: comparisonData, masked, error, loading } = useNetwrthCore<Payload>(
     hass,
     config.entry,
     fetchData,
-    month
+    period,
+    comparison
   );
   const cards = useMemo(
     () => (overview?.accounts ?? []).filter((a) => a.kind === "credit"),
@@ -93,7 +86,7 @@ export default function CardCycleCard({
   const txns = data?.txns ?? [];
   const censored = masked;
 
-  const { from, to } = monthWindow(month);
+  const from=new Date(`${period.start}T00:00:00+05:30`),to=new Date(Date.parse(`${period.end}T00:00:00+05:30`)+86400000);
 
   const perCard = useMemo(() => {
     return cards.map((card) => {
@@ -171,18 +164,18 @@ export default function CardCycleCard({
   };
 
   return (
-    <div aria-busy={loading} className="card" ref={chartRef} data-reporting-month={month}>
+    <div aria-busy={loading} className="card" ref={chartRef} data-reporting-month={period.mode==="month"?month:undefined} data-reporting-period={period.key}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Card credit"}</h2>
         <span className="head-right">
-          {config.month_group ? <span className="muted">{monthLabel(month)}</span> : <MonthNav month={month} onChange={setMonth} />}
+          {config.month_group ? <span className="muted">{period.label}</span> : <MonthNav month={month} onChange={setMonth} />}
         </span>
       </div>
       {error && <div className="error-box">{error}</div>}
       <PanelLoading loading={loading} refreshing={!!overview} />
       {!error && data && withData.length === 0 && (
-        <div className="status">No credit-card activity this month.</div>
+        <div className="status">No credit-card activity in this period.</div>
       )}
       {!error && data && withData.length > 1 && (
         <div className="spend-card-chips">
@@ -201,11 +194,17 @@ export default function CardCycleCard({
       {!error &&
         data &&
         visible.map(({ card, line, recon, spent, paid, payments }) => {
+          const reference=comparison?(comparisonData?.series.find(s=>s.account_id===card.id)?.points??[]).map(p=>{
+            const day=new Date(new Date(p.ts).getTime()+19800000).toISOString().slice(0,10);
+            const mapped=shiftYear(day,Number(period.start.slice(0,4))-Number(comparison.start.slice(0,4)));
+            return {ts:new Date(Math.min(Date.parse(`${mapped}T23:59:59+05:30`),Date.now())),debt:Math.max(0,-Number(p.balance))};
+          }).map(p=>({...p,ts:p.ts<from?from:p.ts})):[];
           const maxDebt = Math.max(
             1,
             ...line.map((p) => p.debt),
             ...recon.map((p) => p.debt),
-            ...payments.map((p) => p.amount)
+            ...payments.map((p) => p.amount),
+            ...reference.map(p=>p.debt)
           );
           const y = (v: number) => H - PAD.bottom - (v / maxDebt) * (H - PAD.top - PAD.bottom);
           const now = new Date();
@@ -242,8 +241,9 @@ export default function CardCycleCard({
                     ` · owing ${amt((line[line.length - 1] ?? recon[recon.length - 1]).debt, censored)}`}
                 </span>
               </div>
+              {comparison && <div className="period-legend"><span><i style={{background:"#93c5fd"}}/>{period.label}</span><span><i style={{background:"#fbbf24"}}/>{comparison.label} · closing balance {amt(reference.at(-1)?.debt??0,censored)}</span></div>}
               <svg viewBox={`0 0 ${W} ${H}`} className="spend-cal-svg" role="img"
-                aria-label={`${name} balance through the month`}
+                aria-label={`${name} balance through the selected period`}
                 onMouseLeave={() => {
                   if (hideTimer.current) clearTimeout(hideTimer.current);
                   hideTimer.current = setTimeout(() => setHover(null), 80);
@@ -266,7 +266,7 @@ export default function CardCycleCard({
                     setHover(null);
                     return;
                   }
-                  const day = new Date(t).getUTCDate();
+                  const day = dateLabel(new Date(t+19800000).toISOString().slice(0,10));
                   const yOf = y;
                   // A payment marker under the cursor wins over the line.
                   const pay = payments.find(
@@ -276,7 +276,7 @@ export default function CardCycleCard({
                   let note: string;
                   if (pay) {
                     rows = [
-                      { label: "day", value: String(pay.date.getUTCDate()) },
+                      { label: "date", value: dateLabel(pay.date.toISOString().slice(0,10)) },
                       { label: "payment", value: `-${amt(pay.amount, censored)}` },
                     ];
                     note = "a payment landed on the card";
@@ -288,9 +288,10 @@ export default function CardCycleCard({
                       return;
                     }
                     rows = [
-                      { label: "day", value: String(day) },
+                      { label: "date", value: day },
                       { label: "owing", value: amt(v, censored) },
                     ];
+                    if(comparison) { const previous=valueAt(reference,t); if(previous!=null)rows.push({label:comparison.label,value:amt(previous,censored)}); }
                     note = observed
                       ? "balance reported by the card"
                       : "estimated from transactions — before the first report we have";
@@ -303,14 +304,14 @@ export default function CardCycleCard({
                     <stop offset="1" stopColor="var(--nb-ink)" stopOpacity="0" />
                   </linearGradient>
                 </defs>
-                {[1, 8, 15, 22, 29].map((d) => {
-                  const gx = x(new Date(from.getTime() + (d - 1) * 86400000));
+                {periodTicks(period,W<600?4:12).map(tick => {
+                  const d=tick.ts; const gx = x(new Date(tick.ts));
                   return (
                     <g key={d}>
                       <line x1={gx} y1={PAD.top} x2={gx} y2={H - PAD.bottom}
                         stroke="var(--nb-border)" strokeWidth="1" opacity="0.45" />
                       <text x={gx} y={H - 6} textAnchor="middle" fill="var(--nb-muted)" fontSize="11">
-                        {d}
+                        {tick.label}
                       </text>
                     </g>
                   );
@@ -331,6 +332,7 @@ export default function CardCycleCard({
                   <path d={path} fill="none" stroke="var(--nb-ink)" strokeWidth="2"
                     strokeLinejoin="round" opacity="0.95" />
                 )}
+                {reference.length>0&&<path className="comparison-balance-line" d={stepPath(reference,true)} fill="none" stroke="#fbbf24" strokeWidth="2" strokeDasharray="6 4"/>}
                 {todayX !== null && (
                   <g>
                     <line x1={todayX} y1={PAD.top - 6} x2={todayX} y2={H - PAD.bottom}

@@ -1,3 +1,4 @@
+import { useReportingPeriod } from "../lib/reportingPeriod";
 import PanelLoading from "../components/PanelLoading";
 import InfoTooltip from "../components/InfoTooltip";
 import { useMemo, useState } from "react";
@@ -74,7 +75,9 @@ function Breakdown({ parts }: { parts: Part[] }) {
 export default function StatCard({ hass, config }: { hass: Hass; config: StatCardConfig }) {
   const view = VIEWS.find((v) => v.key === (config.view ?? "all")) ?? VIEWS[2];
   const [range, setRange] = useState<RangeKey>(config.range ?? "1m");
-  const { overview, series, masked, error, loading } = useNetwrth(hass, config.entry, range);
+  const {period,comparison}=useReportingPeriod(hass,config.month_group);
+  const reporting=config.month_group && (period.mode!=="month"||comparison) ? period : undefined;
+  const { overview, series, comparisonOverview, masked, error, loading } = useNetwrth(hass, config.entry, range, reporting, reporting?comparison:undefined);
   const visible = useVisibleAccounts(overview);
   const accounts = useMemo(() => visible.filter(view.pick), [visible, view]);
   const stat = useMemo(() => {
@@ -95,7 +98,8 @@ export default function StatCard({ hass, config }: { hass: Hass; config: StatCar
     <Ambient effect={ambientEffect(config)} />
     <div className="head">
       <h2>{config.title ?? view.label}</h2>
-      {config.show_controls !== false && config.show_range_selector !== false && <span className="head-right controls">
+      {reporting && <span className="muted">{period.label}</span>}
+      {!reporting && config.show_controls !== false && config.show_range_selector !== false && <span className="head-right controls">
         <Segmented options={RANGES} value={range} onChange={setRange} />
       </span>}
     </div>
@@ -109,7 +113,7 @@ export default function StatCard({ hass, config }: { hass: Hass; config: StatCar
       <div className="worth-primary">
         <div className="stat-value">{money(stat.last)}</div>
         <div className="stat-delta">
-          <InfoTooltip key={range} className={`chip change-explainer ${stat.diff >= 0 ? "up" : "down"}`}
+          <InfoTooltip key={reporting?.key??range} className={`chip change-explainer ${stat.diff >= 0 ? "up" : "down"}`}
             label="Explain net worth change"
             content={<>
               <h3>Change in tracked net worth</h3>
@@ -126,8 +130,11 @@ export default function StatCard({ hass, config }: { hass: Hass; config: StatCar
             </>}>
             {signedMoney(stat.diff)}{!view.flow && stat.delta != null && ` (${pct(stat.delta)})`}<span aria-hidden="true"> ⓘ</span>
           </InfoTooltip>
-          <span>{RANGE_LABELS[range]}</span>
+          <span>{reporting?`during ${period.label}`:RANGE_LABELS[range]}</span>
         </div>
+        {reporting&&comparison&&comparisonOverview&&<div className="worth-year-comparison">
+          <span>{comparison.label} closing balance</span><strong>{money(comparisonOverview.accounts.filter(a=>!a.hidden&&view.pick(a)).reduce((sum,a)=>sum+Number(a.balance??0),0))}</strong>
+        </div>}
       </div>
       {config.show_composition !== false && <Breakdown parts={stat.parts} />}
     </div>}

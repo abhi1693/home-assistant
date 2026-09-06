@@ -6,11 +6,28 @@ without a PIN. Every `family_finance/*` WebSocket command checks that exact
 active HA user before accessing a client/cache and again before returning data.
 There is no administrator bypass on these commands.
 
-The top reporting-month selector controls spending, accounts, bill schedules,
-investments, and credit-card history together. Past account balances are read at month end;
-the current month uses today's balances. Net-worth cards retain their own
-range. The chosen month stays in memory for this browser's HA connection and
-user, without a shared HA helper or persistent browser storage.
+The top reporting-period selector supports months, calendar years
+(January–December), financial years (April–March), and inclusive custom dates.
+All existing panels use those dates, including their transaction drill-downs.
+Balances are snapshots at the period end (or today), never sums of monthly
+balances. Net worth retains its independent range in ordinary Month mode and
+follows the reporting period for annual/custom views and year comparisons.
+Selections stay in memory for the HA connection and user.
+
+Every data command accepts the existing `month` or a paired `start`/`end`
+(`YYYY-MM-DD`), never both. Invalid, inverted, future-starting or over-five-year
+explicit windows fail before any Firefly request. Queries use Asia/Kolkata
+calendar dates. Actual transactions and balances stop at today; bill and
+investment forecasts can extend to the requested end. Overview and spending responses include
+`start`, `end`, `as_of`; spending responses also include decimal monthly totals, with `null` recorded totals
+for future months. Comparison requests use the same authorized endpoints,
+clipped to corresponding elapsed calendar dates by the frontend. Cache keys
+include both dates and actuals' cutoff, keeping years separate.
+
+Investment schedules are expanded over the full date range before matching,
+so a payment near a month boundary settles one occurrence, not two. Firefly
+bill schedules are requested for the full range; only included paid/remaining
+dates enter totals. No subscriptions, transfers or valuations are synthesized.
 
 ## Connection
 
@@ -74,15 +91,15 @@ Use an encrypted Secret for that environment variable; do not put tokens in YAML
   from merchant activity. Variable bills use their configured range midpoint
   for estimates; skipped periods affect the monthly estimate. An empty schedule
   remains empty. Recurring transaction templates are not subscription schedules.
-  The monthly tile sums recorded payments and remaining occurrences inside the
-  selected month. It does not annualize subscriptions or count future starts;
-  paid bills stay in the month's total without being added to remaining costs.
+  The tile sums recorded payments and remaining occurrences inside the
+  selected period. It does not annualize subscriptions or include starts beyond
+  that period; paid bills are not added to remaining costs.
 - Investment funding counts only the outgoing leg of transfers from a
   non-investment account to an explicitly classified investment account.
   Redemptions, transfers between investment accounts, and ordinary bank/card
   transfers do not count as new contributions. Income and spending are unchanged.
   The investment panel shows recorded contributions plus unmatched planned
-  dates in the selected month. Past dates awaiting a statement are labelled
+  dates in the selected period. Past dates awaiting a statement are labelled
   accordingly, not treated as confirmed payments. Remaining income subtracts
   spending, remaining bills, and investment commitments; paid bills are already
   in spending and are not deducted twice.

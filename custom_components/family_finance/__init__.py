@@ -136,6 +136,8 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
                 schema[vol.Optional("range", default="6m")] = vol.In([*RANGES, "all"])
             if command_kind in {"overview", "series"} or command_kind.startswith("spending_"):
                 schema[vol.Optional("month")] = vol.Match(r"^\d{4}-(0[1-9]|1[0-2])$")
+                schema[vol.Optional("start")] = vol.Match(r"^\d{4}-\d{2}-\d{2}$")
+                schema[vol.Optional("end")] = vol.Match(r"^\d{4}-\d{2}-\d{2}$")
             if command_kind == "spending_transactions":
                 schema[vol.Optional("theme")] = vol.All(cv.string, vol.Length(min=1, max=255))
 

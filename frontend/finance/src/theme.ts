@@ -48,6 +48,7 @@ export function cardCss(mode: ThemeMode): string {
   return `
   :host {
     display: block;
+    min-width: 0;
     position: relative;
     ${mode === "ha" ? HA_TOKENS : NETWRTH_TOKENS}
   }
@@ -74,6 +75,7 @@ export function cardCss(mode: ThemeMode): string {
   .overlay > * { pointer-events: auto; }
   .card {
     position: relative;
+    min-width: 0;
     /* Own stacking context so the ambient layer's z-index -1 sits between
        the card background and the content instead of under the page. */
     isolation: isolate;
@@ -647,6 +649,52 @@ export function cardCss(mode: ThemeMode): string {
     .name-cell { min-width: 0; }
     .name-text { min-width: 0; overflow-wrap: anywhere; }
     .accounts { font-size: 12px; }
+  }
+
+  .reporting-period-card { display: block; }
+  .period-selector-top, .period-trend-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .period-controls { margin-top: 16px; justify-content: flex-start; }
+  .period-controls select, .period-controls input[type="date"] { font: inherit; font-size: 13px; color: var(--nb-text); background: var(--nb-panel-2); border: 1px solid var(--nb-border); border-radius: 7px; padding: 9px 12px; min-height: 38px; color-scheme: dark; }
+  .period-controls select:focus-visible, .period-controls input:focus-visible { outline: 2px solid var(--nb-accent); }
+  .period-controls option { background: var(--nb-panel); }
+  .period-year-nav select { border: 0; }
+  .period-compare-select, .period-custom label { display: flex; align-items: center; gap: 10px; color: var(--nb-muted); font-size: 12px; }
+  .period-compare-select { margin-left: auto; }
+  .period-custom { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .period-apply { background: var(--nb-panel-2); color: var(--nb-text); border: 1px solid var(--nb-border); border-radius: 7px; padding: 10px 14px; cursor: pointer; }
+  .period-apply:disabled { opacity: .45; }
+  .period-context { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 12px; color: var(--nb-muted); border-top: 1px solid var(--nb-border); margin-top: 14px; padding-top: 12px; }
+  .period-trend { margin: 22px 0; padding: 18px 0 8px; border-top: 1px solid var(--nb-border); border-bottom: 1px solid var(--nb-border); }
+  .period-trend h3 { margin: 0; font-size: 13px; font-weight: 600; }
+  .period-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; color: var(--nb-muted); font-size: 11px; margin: 14px 0 10px; }
+  .period-legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .period-legend i { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
+  .period-total-comparison { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--nb-muted); margin-top: 8px; }
+  .period-total-comparison strong { color: var(--nb-text); }
+  .period-trend-scroll { overflow-x: auto; width: 100%; max-width: 100%; contain: inline-size; }
+  .period-scroll-hint { display: none; }
+  .period-detail-list { max-height: 320px; overflow-y: auto; padding-right: 8px; }
+  .period-detail-list .investment-row { grid-template-columns: 92px minmax(0,1fr) auto; }
+  .spend-comparison { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 14px; align-items: center; color: var(--nb-muted); }
+  .spend-comparison small { font-size: 10px; }
+  .spend-comparison .spend-row-bar { height: 3px; }
+  .history-comparison-tooltip { background: var(--nb-panel-2); border: 1px solid var(--nb-border); border-radius: 8px; padding: 8px 14px; font-size: 12px; }
+  .history-comparison-tooltip p { display: flex; gap: 18px; justify-content: space-between; }
+  .worth-year-comparison { display: flex; flex-wrap: wrap; gap: 7px; color: var(--nb-muted); font-size: 11px; margin-top: 10px; }
+  .worth-year-comparison strong { color: #fbbf24; }
+  .account-sparkline { display: block; width: 100%; height: 46px; margin-top: 12px; }
+  .account-comparison { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; margin-top: 8px; color: var(--nb-muted); }
+  .account-comparison strong { color: #fbbf24; }
+  @media(max-width:600px) {
+    .period-scroll-hint { display: block; font-size: 11px; color: var(--nb-muted); margin: 5px 0; }
+    .period-selector-top { align-items: flex-start; }
+    .period-modes { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+    .period-modes button { font-size: 12px; }
+    .period-compare-select { margin-left: 0; flex-wrap: wrap; width: 100%; justify-content: space-between; }
+    .period-custom label { width: 100%; justify-content: space-between; }
+    .period-custom input { min-width: 0; max-width: 220px; }
+    .period-trend-head .seg { width: 100%; }
+    .period-detail-list .investment-row { grid-template-columns: 66px minmax(0,1fr) auto; font-size: 12px; }
   }
   `;
 }

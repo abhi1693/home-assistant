@@ -20,12 +20,13 @@ sections:
         heading_style: title
         grid_options: { columns: 36, rows: auto }
       - type: custom:family-finance-month-card
-        title: Reporting month
+        title: Reporting period
         allowed_user_id: &finance_user 9302d11f48c64fe796a3c9e5cb563650
         month_group: &finance_month finance
         grid_options: { columns: 36, rows: auto }
       - type: custom:family-finance-stat-card
         title: Tracked net worth
+        month_group: *finance_month
         allowed_user_id: *finance_user
         view: all
         range: 1m
@@ -35,6 +36,7 @@ sections:
         grid_options: { columns: 36, rows: auto }
       - type: custom:family-finance-worth-card
         title: Net worth over time
+        month_group: *finance_month
         allowed_user_id: *finance_user
         view: all
         mode: total
@@ -47,7 +49,7 @@ sections:
     visibility: *finance_visibility
     cards:
       - type: custom:family-finance-spending-card
-        title: Monthly spending
+        title: Spending
         allowed_user_id: *finance_user
         month_group: *finance_month
         background: "off"

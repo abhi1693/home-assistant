@@ -196,3 +196,73 @@ class FinanceRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(current["accounts"][0]["balance"], "400")
         self.assertEqual(september["accounts"], current["accounts"])
         self.assertEqual(august_again["accounts"], august["accounts"])
+
+    async def test_period_income_details_and_monthly_totals_share_filtered_ledger(self):
+        client = FireflyClient(Mock(), "http://firefly.invalid", "test-only", {}, [3])
+        groups = [{"attributes": {"transactions": [
+            {"transaction_journal_id": str(i), "type": kind, "amount": value,
+             "currency_code": "INR", "source_id": source, "destination_id": dest,
+             "date": day, "category_name": "Sample"}
+            for i, kind, value, source, dest, day in [
+                (1, "deposit", "1000", "9", "1", "2025-01-01"),
+                (2, "deposit", "25", "9", "1", "2025-12-31"),
+                (3, "deposit", "999999", "9", "1", "2025-06-01"),
+                (4, "transfer", "200", "1", "2", "2025-07-01"),
+                (5, "withdrawal", "0.10", "1", "9", "2025-02-28"),
+                (6, "withdrawal", "0.20", "1", "9", "2025-02-28"),
+                (7, "deposit", "99999", "9", "1", "2024-12-31"),
+                (8, "deposit", "99999", "9", "1", "2026-01-01"),
+                (9, "reconciliation", "99999", "9", "1", "2025-06-01"),
+            ]
+        ]}}]
+        msg = {"start": "2025-01-01", "end": "2025-12-31"}
+        with patch.object(client, "accounts", AsyncMock(return_value=[{"id": 1, "kind": "cash"}, {"id": 2, "kind": "cash"}])), \
+             patch.object(client, "pages", AsyncMock(return_value=groups)) as pages:
+            summary = await client.request("spending_summary", msg)
+            details = await client.request("spending_transactions", msg)
+        pages.assert_awaited_once_with("transactions", msg)
+        self.assertEqual(summary["total_income"], "1025")
+        self.assertEqual(summary["total_spend"], "0.30")
+        self.assertEqual(summary["monthly"][1]["total"], "0.30")
+        self.assertEqual(summary["income_monthly"][-1]["total"], "25")
+        self.assertEqual({t["id"] for t in details["transactions"]}, {1, 2, 4, 5, 6})
+
+    async def test_future_actuals_stop_today_but_bill_query_keeps_financial_year_end(self):
+        now = datetime(2026, 9, 6, 12, tzinfo=ZONE)
+        client = FireflyClient(Mock(), "http://firefly.invalid", "test-only", {})
+        with patch("custom_components.family_finance.client.datetime") as clock, \
+             patch.object(client, "accounts", AsyncMock(return_value=[])) as accounts, \
+             patch.object(client, "pages", AsyncMock(return_value=[])) as pages:
+            clock.now.return_value = now
+            query = {"start": "2026-04-01", "end": "2027-03-31"}
+            summary = await client.request("spending_summary", query)
+            bills = await client.request("spending_recurring", query)
+        self.assertEqual(pages.await_args_list[0].args, ("transactions", {"start": "2026-04-01", "end": "2026-09-06"}))
+        self.assertEqual(pages.await_args_list[1].args, ("bills", query))
+        self.assertEqual(summary["as_of"], "2026-09-06")
+        self.assertIsNone(summary["monthly"][-1]["total"])
+        self.assertEqual(bills["end"], "2027-03-31")
+
+    async def test_invalid_periods_fail_before_fetch_and_period_series_includes_opening_day(self):
+        client = FireflyClient(Mock(), "http://firefly.invalid", "test-only", {})
+        with patch.object(client, "accounts", AsyncMock(return_value=[{"id": 1}])) as accounts, \
+             patch.object(client, "get", AsyncMock(return_value=[{"currency_code": "INR", "entries": {"2025-12-31": "12"}}])) as get:
+            for msg in [{"start": "2025-01-01"}, {"start": "2025-12-31", "end": "2025-01-01"}]:
+                with self.assertRaises(FinanceError):
+                    await client.request("series", msg)
+            accounts.assert_not_awaited()
+            await client.request("series", {"start": "2025-04-01", "end": "2026-03-31"})
+        self.assertEqual(get.await_args.args[1], {"start": "2025-03-31", "end": "2026-03-31", "period": "1D", "accounts[]": 1})
+
+    async def test_period_overview_reads_end_balance_and_separates_year_caches(self):
+        client = FireflyClient(Mock(), "http://firefly.invalid", "test-only", {})
+        async def pages(path, params):
+            return [{"id": "1", "attributes": {"name": "Account", "type": "asset", "currency_code": "INR",
+                     "current_balance": "100" if params["date"] == "2024-12-31" else "250"}}]
+        with patch.object(client, "pages", side_effect=pages) as pages:
+            old = await client.request("overview", {"start": "2024-01-01", "end": "2024-12-31"})
+            new = await client.request("overview", {"start": "2025-01-01", "end": "2025-12-31"})
+            await client.request("overview", {"start": "2024-01-01", "end": "2024-12-31"})
+        self.assertEqual(pages.await_count, 2)
+        self.assertEqual(old["accounts"][0]["balance"], "100")
+        self.assertEqual(new["accounts"][0]["balance"], "250")

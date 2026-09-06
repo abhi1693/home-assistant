@@ -11,14 +11,14 @@ import {
   fetchSpendingTransactions,
 } from "../lib/ha";
 import { SpendingSummary, SpendingTxn } from "../lib/types";
-import { SpendingCategory, categoryTransactions, spendingCategories } from "../lib/spendingCategories";
-import { useReportingMonth } from "../lib/reportingMonth";
+import { SpendingCategory, categoryTransactions, spendingCategories, isUncategorised } from "../lib/spendingCategories";
+import { useReportingPeriod, PeriodQuery } from "../lib/reportingPeriod";
+import PeriodTrend from "../components/PeriodTrend";
 import { BaseCardConfig, ambientEffect, useNetwrthCore } from "./common";
 import {
   MonthNav,
   amt,
   currentMonth,
-  monthLabel,
 } from "./spendingCommon";
 
 // Counterpart of the web dashboard's spending tab summary: the month's
@@ -132,7 +132,7 @@ export default function SpendingCard({
   hass: Hass;
   config: SpendingCardConfig;
 }) {
-  const [month, setMonth] = useReportingMonth(hass, config.month_group);
+  const {period,comparison,month,setMonth}=useReportingPeriod(hass,config.month_group);
   const [openTheme, setOpenTheme] = useState<string | null>(null);
   const [showIncome, setShowIncome] = useState(false);
   const detailId = useId();
@@ -146,20 +146,21 @@ export default function SpendingCard({
     setTxns(null);
     setTxnError(null);
     return () => { requestSequence.current += 1; };
-  }, [month]);
+  }, [period,comparison]);
 
   const fetchData = useCallback(
-    (h: Hass, e: string | undefined) =>
-      Promise.all([fetchSpendingSummary(h, e, month), fetchSpendingRecurring(h, e, month)]).then(
+    (h: Hass, e: string | undefined, target: PeriodQuery = period) =>
+      Promise.all([fetchSpendingSummary(h, e, target), fetchSpendingRecurring(h, e, target)]).then(
         ([summary, recurring]) => ({ data: { summary, recurring } as Payload, censored: summary.censored })
       ),
-    [month]
+    [period,comparison]
   );
-  const { overview, data, masked, error, loading } = useNetwrthCore<Payload>(
+  const { overview, data, comparison: comparisonData, masked, error, loading } = useNetwrthCore<Payload>(
     hass,
     config.entry,
     fetchData,
-    month
+    period,
+    comparison
   );
 
   const toggleTheme = (row: SpendingCategory) => {
@@ -172,7 +173,7 @@ export default function SpendingCard({
     }
     setOpenTheme(row.id);
     setTxns(null);
-    fetchSpendingTransactions(hass, config.entry, month, row.themes.length === 1 ? row.themes[0] : undefined)
+    fetchSpendingTransactions(hass, config.entry, period, row.themes.length === 1 ? row.themes[0] : undefined)
       .then((out) => { if (sequence === requestSequence.current) setTxns(categoryTransactions(out.transactions, row)); })
       .catch(() => { if (sequence === requestSequence.current) setTxnError("Unable to load these transactions."); });
   };
@@ -181,23 +182,36 @@ export default function SpendingCard({
   const recurring = data?.recurring ?? null;
 
   const spendRows = spendingCategories(summary?.themes ?? []);
-  const maxTotal = Math.max(1e-9, ...spendRows.map((t) => parseFloat(t.total)));
+  const namedThemes=new Set(spendRows.filter(row=>row.kind!=="others").flatMap(row=>row.themes));
+  // Keep reference-only categories visible in the two reserved groups, without
+  // changing the selected period's top eight or mixing uncategorised spending.
+  const extra=(comparisonData?.summary.themes??[]).filter(t=>!namedThemes.has(t.theme));
+  for(const kind of ["others","uncategorised"] as const) {
+    const members=extra.filter(t=>kind==="uncategorised"?isUncategorised(t.theme):!isUncategorised(t.theme));
+    if(members.length&&!spendRows.some(row=>row.kind===kind))spendRows.push({id:kind,kind,total:"0",count:0,
+      theme:kind==="others"?"Others":"Uncategorised",color:kind==="others"?"#94a3b8":"#b89b72",themes:members.map(t=>t.theme)});
+  }
+  const previousTotal=(row:SpendingCategory)=>(comparisonData?.summary.themes??[])
+    .filter(t=>row.kind==="others"?!namedThemes.has(t.theme)&&!isUncategorised(t.theme)
+      :row.kind==="uncategorised"?isUncategorised(t.theme):row.themes.includes(t.theme)).reduce((sum,t)=>sum+Number(t.total),0);
+  const maxTotal = Math.max(1e-9, ...spendRows.flatMap(t=>[Number(t.total),previousTotal(t)]));
   const totalSpend = Number(summary?.total_spend ?? 0);
+  const categoryCount=spendRows.filter(row=>Number(row.total)>0).length;
   // "On track for": what already left this month plus the bills still
   // predicted to come. Only meaningful while looking at the live month.
   const expectedBillsRemaining = Number(recurring?.total_remaining ?? 0);
   const projectedSpend =
-    summary && month === currentMonth() && expectedBillsRemaining > 0
+    summary && period.mode === "month" && month === currentMonth() && expectedBillsRemaining > 0
       ? parseFloat(summary.total_spend) + expectedBillsRemaining
       : null;
 
   return (
-    <div aria-busy={loading} className="card spending-card" data-reporting-month={month}>
+    <div aria-busy={loading} className="card spending-card" data-reporting-month={period.mode==="month"?month:undefined} data-reporting-period={period.key}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Spending"}</h2>
         <span className="head-right">
-          {config.month_group ? <span className="muted">{monthLabel(month)}</span> : <MonthNav month={month} onChange={setMonth} />}
+          {config.month_group ? <span className="muted">{period.label}</span> : <MonthNav month={month} onChange={setMonth} />}
         </span>
       </div>
       {error && <div className="error-box">{error}</div>}
@@ -227,16 +241,20 @@ export default function SpendingCard({
                 <span className="spend-stat-value">
                   {masked ? MASK : money(Number(recurring?.total_due ?? 0))}
                 </span>
-                <span className="muted">{recurring?.bill_count ?? 0} {(recurring?.bill_count ?? 0) === 1 ? "bill" : "bills"} this month</span>
+                <span className="muted">{recurring?.bill_count ?? 0} {(recurring?.bill_count ?? 0) === 1 ? "bill" : "bills"} {period.mode==="month"?"this month":"in this period"}</span>
               </div>
             </div>
           )}
+          <PeriodTrend period={period} comparison={comparison} metrics={[
+            {key:"spend",label:"Spending",monthly:summary.monthly,comparison:comparisonData?.summary.monthly},
+            {key:"income",label:"Income",monthly:summary.income_monthly,comparison:comparisonData?.summary.income_monthly},
+          ]}/>
           {showIncome && <section id={`${detailId}-income`} aria-label="Income sources">
-            <IncomeBreakdown key={month} hass={hass} entry={config.entry} month={month}
+            <IncomeBreakdown key={period.key} hass={hass} entry={config.entry} month={period}
               summary={summary} accounts={overview?.accounts ?? []} />
           </section>}
 
-          {spendRows.length === 0 && <div className="status">No spending recorded this month.</div>}
+          {spendRows.length === 0 && <div className="status">No spending recorded in this period.</div>}
           {spendRows.length > 0 && (
             <div className="spend-themes-split">
               {config.show_donut !== false && (
@@ -246,7 +264,7 @@ export default function SpendingCard({
                   totalSpend={parseFloat(summary.total_spend)}
                   censored={masked}
                 />
-                  <div className="spend-category-caption">{spendRows.some(t => t.kind === "others") ? "Top 8 categories" : `${spendRows.length} spending ${spendRows.length === 1 ? "category" : "categories"}`}</div>
+                  <div className="spend-category-caption">{spendRows.some(t => t.kind === "others" && Number(t.total)>0) ? "Top 8 categories" : `${categoryCount} spending ${categoryCount === 1 ? "category" : "categories"}`}</div>
                   <p className="muted">Select a category to see its transactions.</p>
                 </div>
               )}
@@ -257,6 +275,7 @@ export default function SpendingCard({
                     <button
                       className={`spend-row ${openTheme === t.id ? "open" : ""}`}
                       onClick={() => toggleTheme(t)}
+                      disabled={t.count===0}
                       aria-expanded={openTheme === t.id}
                       aria-controls={`${detailId}-${index}`}
                     >
@@ -277,7 +296,10 @@ export default function SpendingCard({
                           }}
                         />
                       </span>
-                      <span className="muted spend-row-count">{(Number(t.total) / totalSpend * 100).toFixed(1)}% · {t.count} {t.count === 1 ? "txn" : "txns"}</span>
+                      <span className="muted spend-row-count">{(totalSpend>0?Number(t.total) / totalSpend * 100:0).toFixed(1)}% · {t.count} {t.count === 1 ? "txn" : "txns"}</span>
+                      {comparison && <span className="spend-comparison"><span className="spend-row-bar"><span className="spend-row-fill"
+                        style={{width:`${previousTotal(t)/maxTotal*100}%`,["--bar-color" as string]:t.color,opacity:.55}}/></span>
+                        <small>{comparison.label}: {money(previousTotal(t))}</small></span>}
                     </button>
                     {openTheme === t.id && (
                       <div className="spend-txns" aria-busy={txns === null && !txnError} id={`${detailId}-${index}`}>
@@ -297,6 +319,7 @@ export default function SpendingCard({
                                     month: "short",
                                     day: "numeric",
                                     timeZone: "Asia/Kolkata",
+                                    ...(period.wide?{year:"numeric" as const}:{}),
                                   })}
                                 </span>
                                 <MerchantDot tx={tx} color={t.color} />

@@ -82,10 +82,10 @@ async function fixture(page, grouped = false, initiallyLoading = false) {
     }};
     window.hass={user:{id:owner},connection};
     const cards=[
-      ...(grouped?[["month",{title:"Reporting month",month_group:"finance"},true]]:[]),
+      ...(grouped?[["month",{title:"Reporting period",month_group:"finance"},true]]:[]),
       ["stat",{title:"Tracked net worth",layout:"banner",show_range_selector:false,range:"1m"},true],
       ["worth",{title:"Net worth over time",range:"6m",mode:"total",compact:true},true],
-      ["spending",{title:"Monthly spending"},true],
+      ["spending",{title:"Spending"},true],
       ["investments",{title:"Investments"},true],
       ["accounts",{title:"Accounts",show_range_selector:false},grouped],
       ["bills",{title:"Scheduled bills"},grouped],
@@ -350,7 +350,9 @@ async function netWorthSummaryCheck(page, width) {
   assert.equal(await card.getByRole('tooltip').count(),0);
 }
 
-(async()=>{
+module.exports={fixture};
+
+if(require.main===module)(async()=>{
   fs.mkdirSync(OUTPUT,{recursive:true});
   const browser=await chromium.launch({headless:true});
   try {

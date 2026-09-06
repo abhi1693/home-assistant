@@ -9,7 +9,8 @@ import {
 import { RecurringStream } from "../lib/types";
 import { BaseCardConfig, ambientEffect, useNetwrthCore, useChartWidth } from "./common";
 import { MonthNav, amt, monthLabel, themeColor } from "./spendingCommon";
-import { useReportingMonth } from "../lib/reportingMonth";
+import { useReportingPeriod, PeriodQuery, dateLabel, periodTicks } from "../lib/reportingPeriod";
+import PeriodTrend from "../components/PeriodTrend";
 
 // The recurring-bills calendar: day of month across, cost up. Vendored from
 // frontend/components/spending/SubscriptionCalendar.tsx in the app repo
@@ -34,7 +35,7 @@ const H = 310;
 // top reserves the income-pill lane; stems never reach it.
 const PAD = { top: 88, right: 16, bottom: 28, left: 16 };
 const PILL_Y = 24;
-const ICON = 26;
+
 
 const CHART_FREQS = new Set(["weekly", "biweekly", "monthly", "quarterly", "annual"]);
 
@@ -58,9 +59,6 @@ const STATE_LABEL: Record<MarkState, string> = {
   overdue: "expected but not seen yet",
 };
 
-function dayOf(iso: string): number {
-  return new Date(iso).getUTCDate();
-}
 
 export type BillsCardConfig = BaseCardConfig;
 
@@ -72,21 +70,25 @@ export default function BillsCard({
   config: BillsCardConfig;
 }) {
   const { ref: chartRef, width: W } = useChartWidth();
-  const [month, setMonth] = useReportingMonth(hass, config.month_group);
+  const {period,comparison,month,setMonth}=useReportingPeriod(hass,config.month_group);
+  const ICON=period.wide?14:26;
+  const dayOf=(iso:string)=>(Date.parse(iso.slice(0,10))-Date.parse(period.start))/86400000+1;
+  const spanDays=(Date.parse(period.end)-Date.parse(period.start))/86400000;
   const [hover, setHover] = useState<string | null>(null);
-  useEffect(() => setHover(null), [month]);
+  useEffect(() => setHover(null), [period,comparison]);
   const [broken, setBroken] = useState<Set<string>>(new Set());
 
   const fetchData = useCallback(
-    (h: Hass, e: string | undefined) =>
-      fetchSpendingRecurring(h, e, month).then((rec) => ({ data: rec, censored: rec.censored })),
-    [month]
+    (h: Hass, e: string | undefined, target: PeriodQuery = period) =>
+      fetchSpendingRecurring(h, e, target).then((rec) => ({ data: rec, censored: rec.censored })),
+    [period,comparison]
   );
-  const { overview, data, masked, error, loading } = useNetwrthCore<SpendingRecurring>(
+  const { overview, data, comparison: comparisonData, masked, error, loading } = useNetwrthCore<SpendingRecurring>(
     hass,
     config.entry,
     fetchData,
-    month
+    period,
+    comparison
   );
 
   const streams = data?.streams ?? [];
@@ -135,7 +137,7 @@ export default function BillsCard({
       });
     }
     return out;
-  }, [actuals, expected, streamByKey]);
+  }, [actuals, expected, streamByKey, period]);
 
   // Income pills: every paycheck-like event this month, real or projected.
   const pills = useMemo(() => {
@@ -170,7 +172,7 @@ export default function BillsCard({
       });
     }
     return out.sort((a, b) => a.day - b.day);
-  }, [actuals, expected, streamByKey]);
+  }, [actuals, expected, streamByKey, period]);
 
   // Strip: sub-monthly bills the chart can't place, plus lapsed
   // *subscriptions* — "looks cancelled" is real signal for Netflix, but a
@@ -192,7 +194,7 @@ export default function BillsCard({
   const minAmt = Math.min(maxAmt, ...amounts);
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
-  const x = (day: number) => PAD.left + ((day - 1) / 30) * innerW;
+  const x = (day: number) => PAD.left + ((day - 1) / Math.max(1,spanDays)) * innerW;
   // Height maps log(amount) onto [15%, 100%] of the plot between the
   // smallest and largest mark. Working in log-ratios keeps the shape
   // identical under censor mode's uniform rescaling.
@@ -230,32 +232,33 @@ export default function BillsCard({
   const empty = marks.length === 0 && pills.length === 0 && strip.length === 0;
 
   return (
-    <div aria-busy={loading} className="card" ref={chartRef} data-reporting-month={month}>
+    <div aria-busy={loading} className="card" ref={chartRef} data-reporting-month={period.mode==="month"?month:undefined} data-reporting-period={period.key}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Recurring bills"}</h2>
         <span className="head-right">
-          {config.month_group ? <span className="muted">{monthLabel(month)}</span> : <MonthNav month={month} onChange={setMonth} />}
+          {config.month_group ? <span className="muted">{period.label}</span> : <MonthNav month={month} onChange={setMonth} />}
         </span>
       </div>
       {error && <div className="error-box">{error}</div>}
       <PanelLoading loading={loading} refreshing={!!overview} />
-      {!error && data && empty && <div className="bills-empty"><span aria-hidden="true">✓</span>No scheduled bills this month.</div>}
+      {!error && data && <PeriodTrend period={period} comparison={comparison} metrics={[{key:"bills",label:"Bill payments",monthly:data.monthly,planned:data.planned_monthly,comparison:comparisonData?.monthly}]}/>}
+      {!error && data && empty && <div className="bills-empty"><span aria-hidden="true">✓</span>No scheduled bills in this period.</div>}
       {!error && data && !empty && (
         <>
           {(marks.length > 0 || pills.length > 0) && (
             <svg viewBox={`0 0 ${W} ${H}`} className="spend-cal-svg" role="img"
-              aria-label="Recurring bills and income by day of month">
+              aria-label="Recurring bills by date">
               {/* Recessive weekly gridlines + day axis */}
-              {[1, 8, 15, 22, 29].map((d) => (
+              {periodTicks(period,W<600?4:12).map(tick=>{ const d=(tick.ts-Date.parse(`${period.start}T00:00:00+05:30`))/86400000+1; return (
                 <g key={d}>
                   <line x1={x(d)} y1={PAD.top - 8} x2={x(d)} y2={H - PAD.bottom}
                     stroke="var(--nb-border)" strokeWidth="1" opacity="0.45" />
                   <text x={x(d)} y={H - 8} textAnchor="middle" fill="var(--nb-muted)" fontSize="12">
-                    {d}
+                    {tick.label}
                   </text>
                 </g>
-              ))}
+              );})}
               <line x1={PAD.left} y1={H - PAD.bottom} x2={W - PAD.right} y2={H - PAD.bottom}
                 stroke="var(--nb-border)" strokeWidth="1" />
 
@@ -272,7 +275,7 @@ export default function BillsCard({
 
               {marks.map((m) => {
                 const st = stateInk(m);
-                const cx = x(m.day) + (offsets.get(m.id) ?? 0);
+                const cx = Math.max(PAD.left+ICON,Math.min(W-PAD.right-ICON,x(m.day) + (offsets.get(m.id) ?? 0)));
                 const cy = y(m.amount);
                 // Near the edges the label anchors from the mark inward
                 // instead of shifting sideways — a shifted label lands on the
@@ -311,11 +314,11 @@ export default function BillsCard({
                       </>
                     ) : (
                       <text x={cx} y={cy + 5} textAnchor="middle" fill={st.initialInk}
-                        fontSize="14" fontWeight="600">
+                        fontSize={period.wide?10:14} fontWeight="600">
                         {m.name.charAt(0).toUpperCase()}
                       </text>
                     )}
-                    {!censored && (
+                    {!censored && (!period.wide || active) && (
                       <text x={cx} y={cy - ICON / 2 - 6} textAnchor={anchor} fill="var(--nb-text)" fontSize="12">
                         {m.state === "expected" ? "~" : ""}
                         {amt(m.amount, censored)}
@@ -328,7 +331,7 @@ export default function BillsCard({
                       </text>
                     )}
                     <title>
-                      {`${m.name} — ${STATE_LABEL[m.state]}, day ${m.day}${censored ? "" : `: ${m.state === "actual" ? "" : "~"}${amt(m.amount, censored)}`} (${streamByKey.get(`${m.merchantKey}|false`)?.frequency_label ?? m.frequency})`}
+                      {`${m.name} — ${STATE_LABEL[m.state]}, ${dateLabel(new Date(Date.parse(period.start)+(m.day-1)*86400000).toISOString().slice(0,10))}${censored ? "" : `: ${m.state === "actual" ? "" : "~"}${amt(m.amount, censored)}`} (${streamByKey.get(`${m.merchantKey}|false`)?.frequency_label ?? m.frequency})`}
                     </title>
                   </g>
                 );

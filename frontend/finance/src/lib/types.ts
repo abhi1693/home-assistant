@@ -54,6 +54,8 @@ export type ThemeTotal = {
 };
 
 export type SpendingSummary = {
+  monthly?: import("./reportingPeriod").MonthlyTotal[];
+  income_monthly?: import("./reportingPeriod").MonthlyTotal[];
   month: string; // YYYY-MM
   censored: boolean;
   themes: ThemeTotal[];
