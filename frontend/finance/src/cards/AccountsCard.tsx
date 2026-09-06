@@ -26,8 +26,7 @@ export type AccountsCardConfig = BaseCardConfig & {
 
 const KIND_ORDER = ["cash", "investment", "credit", "loan", "other"] as const;
 
-// Deterministic monogram gradient per institution (the web's account-card
-// tile): same bank, same tile, on every card and device.
+// Stable account initials and colors avoid repeating the adapter's logo.
 const MONO_GRADIENTS = [
   ["#3b82f6", "#2563eb"],
   ["#10b981", "#059669"],
@@ -38,11 +37,15 @@ const MONO_GRADIENTS = [
 ] as const;
 
 function monogram(a: Account) {
-  const inst = a.org_name || a.org_domain || a.provider || "?";
+  const inst = a.nickname || a.name;
   let hash = 0;
   for (let i = 0; i < inst.length; i++) hash = (hash * 31 + inst.charCodeAt(i)) | 0;
   const [g1, g2] = MONO_GRADIENTS[Math.abs(hash) % MONO_GRADIENTS.length];
-  return { letter: inst.trim().charAt(0).toUpperCase() || "?", g1, g2 };
+  const words = inst.trim().split(/\s+/);
+  const letter = (words[0] === words[0].toUpperCase()
+    ? words[0].slice(0, 2)
+    : words.slice(0, 2).map(word => word[0]).join("")).toUpperCase();
+  return { letter: letter || "?", g1, g2 };
 }
 
 function balanceLabel(a: Account, masked: boolean): string {
@@ -51,8 +54,7 @@ function balanceLabel(a: Account, masked: boolean): string {
   return masked ? `${v.toFixed(1)}%` : money(v, true);
 }
 
-// The accounts table: grouped by kind, freshness dot per row. Censored,
-// balances read as share of net worth.
+// Responsive groups keep account names, balances and period changes together.
 export default function AccountsCard({
   hass,
   config,
@@ -108,7 +110,7 @@ export default function AccountsCard({
   );
 
   return (
-    <div className="card" data-reporting-month={config.month_group ? month : undefined}>
+    <div className="card accounts-card" data-reporting-month={config.month_group ? month : undefined}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Accounts"}</h2>
@@ -127,46 +129,46 @@ export default function AccountsCard({
         <div className="status">No accounts.</div>
       )}
       {!error && overview && groups.length > 0 && (
-        <table>
-          <tbody>
+        <div className="account-groups">
             {groups.map((g) => (
-              <FragmentRows
+              <AccountGroup
                 key={g.kind}
                 kind={g.kind}
                 accounts={g.accounts}
                 masked={masked}
                 deltas={deltas}
+                period={config.month_group ? monthLabel(month) : range}
               />
             ))}
-          </tbody>
-        </table>
+        </div>
       )}
     </div>
   );
 }
 
-function FragmentRows({
+function AccountGroup({
   kind,
   accounts,
   masked,
   deltas,
+  period,
 }: {
   kind: string;
   accounts: Account[];
   masked: boolean;
   deltas: Map<number, number>;
+  period: string;
 }) {
   return (
-    <>
-      <tr className="kind-row">
-        <td colSpan={3}>{kind}</td>
-      </tr>
+    <section className="account-group" aria-label={`${kind} accounts`}>
+      <h3>{kind} <span>{accounts.length}</span></h3>
+      <div className="account-grid">
       {accounts.map((a) => {
         const delta = deltas.get(a.id);
         const mono = monogram(a);
         return (
-          <tr key={a.id}>
-            <td className="name-cell">
+          <div className="account-item" key={a.id}>
+            <div className="name-cell">
               <span
                 className="mono"
                 style={{ "--mono-a": mono.g1, "--mono-b": mono.g2 } as React.CSSProperties}
@@ -175,19 +177,19 @@ function FragmentRows({
               </span>
               <span className="name-text">
                 <span>{a.nickname || a.name}</span>
-                <span className="muted">
-
-                  {a.org_name || a.org_domain}
-                </span>
               </span>
-            </td>
-            <td className="num">{balanceLabel(a, masked)}</td>
-            <td className={`num row-delta ${delta == null ? "muted" : delta >= 0 ? "up" : "down"}`}>
-              {delta == null ? "–" : pct(delta)}
-            </td>
-          </tr>
+            </div>
+            <div className="account-figures">
+              <span className="num account-balance">{balanceLabel(a, masked)}</span>
+              <span className={`row-delta ${delta == null || delta === 0 ? "muted" : delta > 0 ? "up" : "down"}`}
+                title={`Balance change during ${period}`}>
+                {delta == null ? "–" : delta === 0 ? "0.0%" : pct(delta)}
+              </span>
+            </div>
+          </div>
         );
       })}
-    </>
+      </div>
+    </section>
   );
 }

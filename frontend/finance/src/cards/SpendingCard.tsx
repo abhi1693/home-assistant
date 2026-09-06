@@ -1,5 +1,5 @@
 import Ambient from "../components/Ambient";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { MASK, money } from "../lib/format";
 import {
   Hass,
@@ -13,7 +13,6 @@ import { useReportingMonth } from "../lib/reportingMonth";
 import { BaseCardConfig, ambientEffect, useNetwrthCore } from "./common";
 import {
   MonthNav,
-  NON_SPEND,
   PER_MONTH,
   amt,
   currentMonth,
@@ -141,12 +140,15 @@ export default function SpendingCard({
 }) {
   const [month, setMonth] = useReportingMonth(hass, config.month_group);
   const [openTheme, setOpenTheme] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const detailId = useId();
   const [txns, setTxns] = useState<SpendingTxn[] | null>(null);
   const [txnError, setTxnError] = useState<string | null>(null);
   const requestSequence = useRef(0);
   useEffect(() => {
     requestSequence.current += 1;
     setOpenTheme(null);
+    setShowAll(false);
     setTxns(null);
     setTxnError(null);
     return () => { requestSequence.current += 1; };
@@ -188,6 +190,8 @@ export default function SpendingCard({
     ? summary.themes.filter((t) => parseFloat(t.total) > 0)
     : [];
   const maxTotal = Math.max(1e-9, ...spendRows.map((t) => parseFloat(t.total)));
+  const visibleRows = showAll ? spendRows : spendRows.slice(0, 8);
+  const totalSpend = Number(summary?.total_spend ?? 0);
   const bills = recurring ? recurring.streams.filter((s) => !s.is_income) : [];
   const activeBills = bills.filter((s) => s.active);
   const recurringMonthly = activeBills.reduce(
@@ -207,7 +211,7 @@ export default function SpendingCard({
       : null;
 
   return (
-    <div className="card" data-reporting-month={month}>
+    <div className="card spending-card" data-reporting-month={month}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Spending"}</h2>
@@ -250,26 +254,34 @@ export default function SpendingCard({
           {spendRows.length > 0 && (
             <div className="spend-themes-split">
               {config.show_donut !== false && (
+                <div className="spend-breakdown-summary">
                 <SpendDonut
                   rows={spendRows}
                   totalSpend={parseFloat(summary.total_spend)}
                   censored={masked}
                 />
+                  <div className="spend-category-caption">{spendRows.length} spending categories</div>
+                  <p className="muted">Select a category to see its transactions.</p>
+                </div>
               )}
               <div className="spend-themes-bars">
-                {spendRows.map((t) => (
-                  <div key={t.theme}>
+                <div className="spend-category-grid">
+                {visibleRows.map((t, index) => (
+                  <div key={t.theme} className={`spend-category-entry ${openTheme === t.theme ? "expanded" : ""}`}>
                     <button
                       className={`spend-row ${openTheme === t.theme ? "open" : ""}`}
                       onClick={() => toggleTheme(t.theme)}
+                      aria-expanded={openTheme === t.theme}
+                      aria-controls={`${detailId}-${index}`}
                     >
                       <span className="spend-row-label">
                         <span
                           className="spend-theme-dot"
                           style={{ background: themeColor(t.theme) }}
                         />
-                        {t.theme}
+                        <span>{t.theme}</span>
                       </span>
+                      <span className="spend-row-amount">{amt(parseFloat(t.total), masked)}</span>
                       <span className="spend-row-bar">
                         <span
                           className="spend-row-fill"
@@ -279,11 +291,10 @@ export default function SpendingCard({
                           }}
                         />
                       </span>
-                      <span className="spend-row-amount">{amt(parseFloat(t.total), masked)}</span>
-                      <span className="muted spend-row-count">{t.count}×</span>
+                      <span className="muted spend-row-count">{(Number(t.total) / totalSpend * 100).toFixed(1)}% · {t.count} {t.count === 1 ? "txn" : "txns"}</span>
                     </button>
                     {openTheme === t.theme && (
-                      <div className="spend-txns">
+                      <div className="spend-txns" id={`${detailId}-${index}`}>
                         {txnError && <div className="error-box">{txnError}</div>}
                         {txns === null && !txnError && <div className="muted">Loading…</div>}
                         {txns !== null &&
@@ -316,6 +327,12 @@ export default function SpendingCard({
                     )}
                   </div>
                 ))}
+                </div>
+                {spendRows.length > 8 && <button className="spend-show-all" aria-expanded={showAll}
+                  onClick={() => { setShowAll(!showAll); requestSequence.current += 1; setOpenTheme(null); setTxns(null); setTxnError(null); }}>
+                  {showAll ? "Show top 8 categories" : `Show all ${spendRows.length} categories`}
+                  <span aria-hidden="true">{showAll ? "↑" : "↓"}</span>
+                </button>}
               </div>
             </div>
           )}

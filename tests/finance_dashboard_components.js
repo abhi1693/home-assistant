@@ -28,6 +28,7 @@ async function fixture(page, grouped = false) {
       {id:1,name:"Daily account",balance:"72000",kind:"cash"},
       {id:2,name:"Savings",balance:"640000",kind:"cash"},
       {id:3,name:"Credit card",balance:"-18000",kind:"credit"},
+      ...(grouped ? Array.from({length:8},(_,i)=>({id:i+4,name:`Long account name for household savings ${i+1}`,balance:"10000",kind:"cash"})) : []),
     ].map(a=>({...a,provider:"firefly-iii",org_name:"Firefly III",org_domain:"",nickname:null,currency:"INR",category:null,hidden:a.kind==="credit",balance_at:now,created_at:"2026-01-01"}));
     const overview = {entry_id:"firefly",currency:"INR",accounts,me:{censored:false,can_reveal:false,revealed:true,code_required:false,reveal_expires:null},default_reveal_ttl_minutes:0};
     const series = accounts.map(a=>({account_id:a.id,points:Array.from({length:181},(_,i)=>({
@@ -48,7 +49,11 @@ async function fixture(page, grouped = false) {
       if(kind==="overview")return {...overview,accounts:accounts.map(a=>({...a,balance:msg.month&&msg.month!==month&&a.id===1?"91000":a.balance}))};
       if(kind==="series")return {series,censored:false};
       if(kind==="spending_recurring")return {...recurring,month:msg.month};
-      if(kind==="spending_summary")return {month:msg.month,censored:false,total_spend:msg.month!==month?"45000":"32000",total_income:"125000",themes:[
+      if(kind==="spending_summary")return {month:msg.month,censored:false,total_spend:msg.month!==month?"45000":"32000",total_income:"125000",themes:grouped?[
+        {theme:'House Renovation - Fixtures and Fittings',total:'18000',count:7},
+        {theme:'Networking Equipment and Home Office Supplies',total:'8000',count:4},
+        ...Array.from({length:10},(_,i)=>({theme:`Household category ${i+1}`,total:'600',count:2})),
+      ]:[
         {theme:"Housing",total:"25000",count:1},{theme:"Groceries",total:"5000",count:7},{theme:"Dining",total:"2000",count:3},
       ]};
       if(kind==="spending_transactions")return {month:msg.month,censored:false,transactions:[{
@@ -62,8 +67,8 @@ async function fixture(page, grouped = false) {
       ["stat",{title:"Tracked net worth",layout:"banner",show_range_selector:false,range:"1m"},true],
       ["worth",{title:"Net worth over time",range:"6m",mode:"total",compact:true},true],
       ["spending",{title:"Monthly spending"},true],
-      ["accounts",{title:"Accounts",show_range_selector:false},false],
-      ["bills",{title:"Scheduled bills"},false],
+      ["accounts",{title:"Accounts",show_range_selector:false},grouped],
+      ["bills",{title:"Scheduled bills"},grouped],
       ["cardcycle",{title:"Credit cards"},true],
     ];
     for(const [kind,config,full] of cards){
@@ -89,6 +94,17 @@ async function sharedMonthCheck(page, width) {
   const worth=await page.locator('family-finance-stat-card .stat-value').innerText();
   const independent=await page.evaluate(()=>window.messages.filter(m=>!m.month).length);
   assert.equal(await page.getByRole('button',{name:'Previous month',exact:true}).count(),1);
+  const categories=page.locator('family-finance-spending-card .spend-row');
+  assert.equal(await categories.count(),8);
+  await page.getByRole('button',{name:'Show all 12 categories',exact:true}).click();
+  assert.equal(await categories.count(),12);
+  await categories.last().click();
+  await page.locator('family-finance-spending-card .spend-txn-desc').first().waitFor();
+  await page.getByRole('button',{name:'Show top 8 categories',exact:true}).click();
+  assert.equal(await categories.count(),8);
+  assert.equal(await page.locator('family-finance-spending-card .spend-txn-desc').count(),0);
+  assert(await page.locator('family-finance-spending-card .spend-row-label').first().evaluate(el=>getComputedStyle(el).whiteSpace!=='nowrap'));
+  assert.equal(await page.locator('family-finance-accounts-card .account-item').count(),11);
   await picker.fill(prior);
   await page.locator('family-finance-accounts-card .num').filter({hasText:'91,000'}).waitFor();
   assert.equal(await page.locator(`.card[data-reporting-month="${prior}"]`).count(),4);

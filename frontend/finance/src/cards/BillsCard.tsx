@@ -239,7 +239,7 @@ export default function BillsCard({
       </div>
       {error && <div className="error-box">{error}</div>}
       {!error && !data && <div className="status">Loading…</div>}
-      {!error && data && empty && <div className="status">No recurring activity this month.</div>}
+      {!error && data && empty && <div className="bills-empty"><span aria-hidden="true">✓</span>No scheduled bills this month.</div>}
       {!error && data && !empty && (
         <>
           {(marks.length > 0 || pills.length > 0) && (

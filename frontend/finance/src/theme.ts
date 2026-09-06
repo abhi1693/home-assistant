@@ -241,18 +241,18 @@ export function cardCss(mode: ThemeMode): string {
   .stat-banner .status, .stat-banner .error-box { order: 1; flex: 1; padding: 6px 0; }
 
   /* accounts card */
-  table { width: 100%; border-collapse: collapse; }
-  td, th { padding: 6px 4px; text-align: left; font-size: 13px; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  tr + tr td { border-top: 1px solid var(--nb-border); }
-  td.row-delta { font-size: 12px; width: 1%; white-space: nowrap; padding-left: 10px; }
-  .kind-row td {
-    color: var(--nb-muted);
-    text-transform: uppercase;
-    font-size: 11px;
-    letter-spacing: 0.05em;
-    padding-top: 12px;
+  .account-groups { display: grid; gap: 22px; margin-top: 18px; }
+  .account-group h3 {
+    display: flex; align-items: center; gap: 8px; margin: 0 0 10px;
+    color: var(--nb-muted); text-transform: uppercase; font-size: 11px;
+    font-weight: 500; letter-spacing: 0.08em;
   }
+  .account-group h3 span { border: 1px solid var(--nb-border); border-radius: 5px; padding: 2px 5px; }
+  .account-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 10px; }
+  .account-item { min-width: 0; padding: 14px; border: 1px solid var(--nb-border); border-radius: 10px; }
+  .account-figures { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 12px; }
+  .account-balance { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .row-delta { font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .dot {
     display: inline-block;
     width: 7px;
@@ -262,9 +262,9 @@ export function cardCss(mode: ThemeMode): string {
     background: var(--nb-green);
   }
   .dot.stale { background: var(--nb-warn); }
-  td.name-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .name-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .name-cell .dot { margin: 0; flex: none; }
-  .name-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+  .name-text { min-width: 0; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
   .name-text .muted { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Institution monogram: the web's account-card tile, row-sized. */
   .mono {
@@ -349,43 +349,52 @@ export function cardCss(mode: ThemeMode): string {
     box-sizing: border-box;
   }
   .month-picker:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
-  /* Stat strip (mirrors the web's spend-headstrip merge): inline
-     label/value pairs instead of tiles. */
+  .spending-card { container: spending / inline-size; }
+  /* Separate the monthly totals from the category comparisons. */
   .spend-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 28px;
-    margin-bottom: 14px;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px; margin: 20px 0 24px;
   }
-  .spend-stat { display: flex; align-items: baseline; gap: 9px; }
+  .spend-stat {
+    display: flex; flex-wrap: wrap; align-content: start; align-items: baseline; gap: 6px 9px;
+    padding: 14px 16px; background: var(--nb-panel-2); border-radius: 10px; min-width: 0;
+  }
   .spend-stat-label {
+    width: 100%;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--nb-muted);
   }
-  .spend-stat-value { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .spend-stat-value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .spend-stat .muted { font-size: 12px; }
   .spend-stat-delta { font-size: 11px; }
 
-  .spend-themes-split { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
-  .spend-donut { width: 170px; flex: none; margin-top: 6px; }
+  .spend-themes-split { display: flex; gap: 28px; align-items: flex-start; }
+  .spend-breakdown-summary { width: 210px; flex: none; text-align: center; padding: 8px 0; }
+  .spend-donut { width: 200px; max-width: 100%; display: block; margin: 0 auto 12px; }
+  .spend-category-caption { font-size: 13px; font-weight: 500; }
+  .spend-breakdown-summary p { font-size: 12px; line-height: 1.6; margin: 8px 10px; }
   .spend-themes-bars { flex: 1; min-width: 0; }
+  .spend-category-grid { display: grid; gap: 6px 22px; }
+  .spend-category-entry { min-width: 0; border-bottom: 1px solid var(--nb-border); }
+  .spend-category-entry.expanded { grid-column: 1 / -1; }
   .spend-theme-dot {
     display: inline-block;
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    margin-right: 7px;
+    flex: none;
     vertical-align: 1px;
   }
-  /* Theme breakdown: one full-width row per theme, thin bar, direct labels. */
+  /* Each category gets a complete label, amount and a separate comparison bar. */
   .spend-row {
     display: grid;
-    grid-template-columns: 100px 1fr 84px 36px;
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 14px;
     align-items: center;
     width: 100%;
-    padding: 7px 8px;
+    padding: 12px 8px;
     background: none;
     border: none;
     border-radius: 8px;
@@ -396,19 +405,25 @@ export function cardCss(mode: ThemeMode): string {
     text-align: left;
   }
   .spend-row:hover, .spend-row.open { background: var(--nb-panel-2); }
-  .spend-row-label { text-transform: capitalize; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .spend-row-bar { height: 10px; border-radius: 4px; overflow: hidden; }
+  .spend-row-label { display: flex; align-items: center; gap: 8px; min-width: 0; line-height: 1.45; }
+  .spend-row-label > span:last-child { overflow-wrap: anywhere; }
+  .spend-row-bar { height: 5px; border-radius: 4px; overflow: hidden; background: var(--nb-panel-2); }
   .spend-row-fill {
     display: block;
     height: 100%;
     border-radius: 4px;
-    background: color-mix(in srgb, var(--bar-color, var(--nb-accent)) 30%, transparent);
-    border-right: 5px solid var(--bar-color, var(--nb-accent));
-    min-width: 7px;
+    background: var(--bar-color, var(--nb-accent));
+    min-width: 2px;
   }
-  .spend-row-amount { text-align: right; font-variant-numeric: tabular-nums; }
+  .spend-row-amount { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .spend-row-count { text-align: right; font-size: 11px; }
-  .spend-txns { padding: 4px 8px 10px 24px; }
+  .spend-show-all {
+    display: flex; justify-content: center; align-items: center; gap: 10px; width: 100%; min-height: 44px;
+    margin-top: 10px; border: 1px solid var(--nb-border); border-radius: 8px;
+    color: var(--nb-accent); background: transparent; cursor: pointer; font: inherit; font-size: 12px;
+  }
+  .spend-show-all:hover { background: var(--nb-panel-2); }
+  .spend-txns { padding: 8px; }
   .spend-txn {
     display: grid;
     grid-template-columns: 52px 18px 1fr 84px;
@@ -419,7 +434,7 @@ export function cardCss(mode: ThemeMode): string {
     border-bottom: 1px solid color-mix(in srgb, var(--nb-border) 50%, transparent);
   }
   .spend-txn:last-child { border-bottom: none; }
-  .spend-txn-desc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .spend-txn-desc { min-width: 0; overflow-wrap: anywhere; line-height: 1.5; }
   .spend-txn-amount { text-align: right; font-variant-numeric: tabular-nums; }
   .spend-txn-logo {
     width: 18px;
@@ -442,6 +457,8 @@ export function cardCss(mode: ThemeMode): string {
   }
 
   /* bills calendar + card cycle */
+  .bills-empty { display: flex; align-items: center; gap: 10px; padding: 12px 0 4px; font-size: 13px; color: var(--nb-muted); }
+  .bills-empty > span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--nb-panel-2); }
   .spend-cal-svg { width: 100%; height: auto; display: block; }
   .spend-cal-mark { transition: opacity 120ms ease; }
   .spend-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
@@ -499,6 +516,26 @@ export function cardCss(mode: ThemeMode): string {
   /* Finance controls remain usable on phones and keyboard navigation. */
   .seg button, .spend-card-chip { min-height: 36px; }
   button:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: 2px; }
+  @container spending (min-width: 1050px) {
+    .spend-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @container spending (max-width: 650px) {
+    .spend-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 16px 0; }
+    .spend-stat { padding: 12px; }
+    .spend-stat:last-child { grid-column: 1 / -1; align-items: center; }
+    .spend-stat:last-child .spend-stat-label { width: auto; margin-right: auto; }
+    .spend-stat:last-child .spend-stat-value { font-size: 17px; }
+    .spend-stat-value { font-size: 21px; }
+    .spend-themes-split { flex-direction: column; gap: 12px; }
+    .spend-breakdown-summary { display: grid; grid-template-columns: 130px 1fr; width: 100%; column-gap: 18px; text-align: left; align-items: center; }
+    .spend-donut { width: 130px; grid-row: 1 / 3; margin: 0; }
+    .spend-category-caption { align-self: end; }
+    .spend-breakdown-summary p { margin: 6px 0 0; align-self: start; }
+    .spend-themes-bars { width: 100%; }
+    .spend-row { padding: 12px 0; gap: 9px; }
+    .spend-txn { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 6px; }
+    .spend-txn-logo { display: none; }
+  }
   @media (max-width: 600px) {
     .head, .head-right { flex-wrap: wrap; }
     .head-right { max-width: 100%; }
@@ -506,9 +543,6 @@ export function cardCss(mode: ThemeMode): string {
     .seg { max-width: 100%; flex-wrap: wrap; }
     .seg button { min-height: 44px; min-width: 34px; }
     .stat-banner { flex-wrap: wrap; }
-    .spend-stats { flex-wrap: wrap; }
-    .spend-themes-bars { flex-basis: 100%; }
-    .spend-donut { margin: 6px auto; }
     .spend-card-head { flex-wrap: wrap; }
     .name-cell { min-width: 0; }
     .name-text { min-width: 0; overflow-wrap: anywhere; }

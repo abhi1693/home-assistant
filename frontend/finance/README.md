@@ -27,6 +27,13 @@ to the HA connection, user and group in memory. Month changes clear obsolete
 figures and spending drill-downs while the selected period loads. Ungrouped
 cards retain their standalone controls.
 
+Spending presents separate monthly totals and eight leading categories, with
+full wrapping names, amounts, shares, and expandable transaction details.
+"Show all" exposes the remaining categories. Accounts use a responsive grid
+with account initials and month-specific balances. Accounts and scheduled
+bills each occupy the full dashboard width, so an empty schedule stays compact
+without leaving a gap beside the account list.
+
 Build with Node.js and the committed dependency lockfile:
 
 ```sh

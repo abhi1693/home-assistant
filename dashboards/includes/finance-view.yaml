@@ -53,7 +53,7 @@ sections:
         background: "off"
         grid_options: { columns: 36, rows: auto }
   - type: grid
-    column_span: 1
+    column_span: 3
     visibility: *finance_visibility
     cards:
       - type: custom:family-finance-accounts-card
@@ -64,9 +64,9 @@ sections:
         range: 1m
         background: "off"
         show_range_selector: false
-        grid_options: { columns: 12, rows: auto }
+        grid_options: { columns: 36, rows: auto }
   - type: grid
-    column_span: 2
+    column_span: 3
     visibility: *finance_visibility
     cards:
       - type: custom:family-finance-bills-card
@@ -74,7 +74,7 @@ sections:
         allowed_user_id: *finance_user
         month_group: *finance_month
         background: "off"
-        grid_options: { columns: 24, rows: auto }
+        grid_options: { columns: 36, rows: auto }
   - type: grid
     column_span: 3
     visibility: *finance_visibility
@@ -84,13 +84,6 @@ sections:
         allowed_user_id: *finance_user
         month_group: *finance_month
         background: "off"
-        grid_options: { columns: 36, rows: auto }
-      - type: markdown
-        content: >-
-          Figures reflect the records imported into Firefly III. Net worth covers
-          accounts included in Firefly’s net-worth total; purchases count as
-          spending, while transfers and card repayments do not. Scheduled bills
-          come from Firefly subscriptions. This is a ledger view, not a live bank feed.
         grid_options: { columns: 36, rows: auto }
   - type: grid
     column_span: 3
