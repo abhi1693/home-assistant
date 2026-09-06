@@ -82,7 +82,7 @@ export default function MonthSelectorCard({ hass, config }: { hass: Hass; config
       <span>{dateLabel(period.start)} – {dateLabel(period.end)}</span>
       {period.actualEnd<period.end && <span>Actuals through {dateLabel(period.actualEnd)}; later commitments stay scheduled.</span>}
       {comparison && <span>Compared with {dateLabel(comparison.start)} – {dateLabel(comparison.end)}.</span>}
-      {monthly&&comparison&&<span>{period.actualEnd<period.end?"Matching days elapsed in each month.":"Full calendar months."} Charts align by day of month.</span>}
+      {monthly&&comparison&&<span>{month===currentMonth()?"Matching days elapsed in each month.":"Full calendar months."} Charts align by day of month.</span>}
     </div>}
     {selection.mode==="custom"&&invalidCustom&&<p className="muted">Choose dates in order, up to five years, starting on or before today.</p>}
   </div>;

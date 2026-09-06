@@ -15,7 +15,7 @@ import {
   useChartWidth,
 } from "./common";
 import { MonthNav, amt } from "./spendingCommon";
-import { useReportingPeriod, PeriodQuery, dateLabel, periodTicks, alignComparisonDate, comparisonPlotPeriod } from "../lib/reportingPeriod";
+import { useReportingPeriod, PeriodQuery, dateLabel, periodTicks, alignComparisonDate, comparisonPlotPeriod, todayDate } from "../lib/reportingPeriod";
 
 // The credit-card cycle: per card, how the balance climbs with purchases
 // and drops at payments across the selected month, with the month's
@@ -198,7 +198,7 @@ export default function CardCycleCard({
           const reference=comparison?(comparisonData?.series.find(s=>s.account_id===card.id)?.points??[]).map(p=>{
             const day=new Date(new Date(p.ts).getTime()+19800000).toISOString().slice(0,10);
             const mapped=alignComparisonDate(day,comparison,period);
-            return {ts:new Date(Math.min(Date.parse(`${mapped}T23:59:59+05:30`),period.actualEnd<period.end?Date.now():Infinity)),debt:Math.max(0,-Number(p.balance))};
+            return {ts:new Date(Math.min(Date.parse(`${mapped}T23:59:59+05:30`),period.actualEnd===todayDate()?Date.now():Infinity)),debt:Math.max(0,-Number(p.balance))};
           }).map(p=>({...p,ts:p.ts<from?from:p.ts})):[];
           const maxDebt = Math.max(
             1,
@@ -214,7 +214,7 @@ export default function CardCycleCard({
           // month's observation stops at today — no line for days that
           // haven't happened yet.
           const edgeX = todayX ?? x(to);
-          const referenceEdgeX=comparison ? todayX ?? x(new Date(Date.parse(`${alignComparisonDate(comparison.end,comparison,period)}T00:00:00+05:30`)+86400000)) : edgeX;
+          const referenceEdgeX=comparison ? Math.min(todayX??Infinity,x(new Date(Date.parse(`${alignComparisonDate(comparison.end,comparison,period)}T00:00:00+05:30`)+86400000))) : edgeX;
           // Step paths: balance holds until the next point.
           const stepPath = (pts: { ts: Date; debt: number }[], extendToEdge: boolean, edge=edgeX) => {
             let p = "";

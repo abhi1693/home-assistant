@@ -55,7 +55,7 @@ month navigation and custom-date inputs use it as their lower boundary. The
 available history refreshes every five minutes and when the screen wakes.
 
 Completed months compare both full calendar months. The current month's
-comparison ends on the matching day number, capped at the reference month's
+comparison ends on the matching day number (including on the current month's final day), capped at the reference month's
 last day. Daily balance/payment charts align by day number and extend their
 axis for a longer reference month; unmatched days remain absent on the shorter
 side. No purchases are dropped or duplicated, and tooltips retain the original

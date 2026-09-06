@@ -54,7 +54,7 @@ export function resolvePeriod(selection: Selection, today = todayDate()): {perio
     const refMonth = selection.compareMonth;
     if (!refMonth || !/^\d{4}-(0[1-9]|1[0-2])$/.test(refMonth) || refMonth >= month || refMonth < FIRST_REPORTING_MONTH) return { period };
     const refStart = `${refMonth}-01`, last = monthEnd(refMonth);
-    const refEnd = period.actualEnd === end ? last : `${refMonth}-${String(Math.min(Number(period.actualEnd.slice(8)), Number(last.slice(8)))).padStart(2,"0")}`;
+    const refEnd = month < today.slice(0,7) ? last : `${refMonth}-${String(Math.min(Number(period.actualEnd.slice(8)), Number(last.slice(8)))).padStart(2,"0")}`;
     return { period, comparison: { key: `compare-month:${refStart}:${refEnd}`, mode, start: refStart, end: refEnd, actualEnd: refEnd,
       label: monthLabel(refMonth), wide: false, query: { start: refStart, end: refEnd } } };
   }

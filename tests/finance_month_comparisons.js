@@ -19,6 +19,7 @@ function modelChecks() {
   assert.deepEqual(resolve({month:'2026-09',compareMonth:'2026-08'}).comparison.query,{start:'2026-08-01',end:'2026-08-06'});
   assert.deepEqual(resolve({month:'2026-01',compareMonth:'2025-12'}).comparison.query,{start:'2025-12-01',end:'2025-12-31'});
   assert.deepEqual(resolve({month:'2024-03',compareMonth:'2024-02'}).comparison.query,{start:'2024-02-01',end:'2024-02-29'});
+  assert.equal(resolvePeriod({...select,month:'2026-02',compareMonth:'2026-01'},'2026-02-28').comparison.end,'2026-01-28','The current month still uses elapsed days on its final day');
   for(const compareMonth of ['2026-08','2026-09','2026-13','bad',null])assert.equal(resolve({compareMonth}).comparison,undefined);
   assert.deepEqual(comparisonMonths('2026-01','2025-10'),['2025-12','2025-11','2025-10']);
   assert.deepEqual(comparisonMonths('2023-07','2023-07'),[]);
