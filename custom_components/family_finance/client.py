@@ -125,7 +125,10 @@ class FireflyClient:
                             continue
                         raw = await self.get("chart/account/overview", {
                             "start": str(start), "end": str(end), "period": "1D",
-                            "preselected": "empty", "accounts[]": account["id"],
+                            # Omit preselected when selecting explicit accounts.
+                            # Firefly uses "empty" internally, but rejects that
+                            # sentinel as an HTTP query parameter (422).
+                            "accounts[]": account["id"],
                         })
                         output.append(series_payload(account, raw, now))
                     return {"series": output, "censored": False}

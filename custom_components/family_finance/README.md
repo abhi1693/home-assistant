@@ -12,8 +12,7 @@ Configure the built-in **Firefly III** integration under **Settings > Devices &
 services**. In this deployment its URL is
 `http://finance.home:80` or `http://firefly-iii.finance.svc.cluster.local:8080`.
 Keep the explicit port: HA 2026.9.1's Firefly client otherwise defaults to 9000.
-Enter the personal access
-token in that integration's UI. Family Finance reads the saved entry through
+Enter the personal access token in that integration's UI. Family Finance reads the saved entry through
 HA's config-entry API; credentials never enter Lovelace, Git, browser storage,
 or response/error payloads. It detects later setup and token rotation without
 a dashboard restart. Exactly one enabled native connection is selected by
@@ -35,6 +34,8 @@ Use an encrypted Secret for that environment variable; do not put tokens in YAML
 - Account closing balances and daily history from Firefly, including closed
   accounts for historical continuity. `include_net_worth: false` excludes an
   account from the net-worth cards. Loan signs are preserved, including lending.
+  Chart requests select one explicit `accounts[]` ID and omit `preselected`;
+  Firefly rejects its internal `empty` preset if sent as a query parameter.
 - `ccAsset` identifies credit cards. Investments or imported cards with another
   role can be assigned explicitly by account ID under `account_overrides`.
 - Monetary calculations use Python `Decimal`. The dashboard uses INR and Indian

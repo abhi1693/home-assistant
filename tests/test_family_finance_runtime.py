@@ -108,3 +108,34 @@ class FinanceRuntimeTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaisesRegex(FinanceError, "302"):
                 await client.get("redirect")
         self.assertEqual(requests, [("GET", "/api/v1/accounts"), ("GET", "/api/v1/redirect")])
+
+    async def test_history_uses_explicit_accounts_without_invalid_preselection(self):
+        selected = []
+        async def chart(request):
+            # Firefly ChartRequest allows named presets, not its internal
+            # "empty" sentinel. An explicit account list must omit the field.
+            if "preselected" in request.query:
+                return web.json_response({"message": "Invalid preselected"}, status=422)
+            self.assertEqual(request.query["period"], "1D")
+            self.assertEqual(len(request.query.getall("accounts[]")), 1)
+            selected.append(int(request.query["accounts[]"]))
+            return web.json_response([{"currency_code": "INR", "entries": {
+                request.query["end"]: "120.00",
+            }}])
+        app = web.Application()
+        app.router.add_get("/api/v1/chart/account/overview", chart)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        self.addAsyncCleanup(runner.cleanup)
+        site = web.TCPSite(runner, "127.0.0.1", 0)
+        await site.start()
+        port = site._server.sockets[0].getsockname()[1]
+        async with ClientSession() as session:
+            client = FireflyClient(session, f"http://127.0.0.1:{port}", "test-only", {})
+            with patch.object(client, "accounts", AsyncMock(return_value=[
+                {"id": 1, "hidden": False}, {"id": 2, "hidden": False},
+            ])):
+                result = await client.request("series", {"range": "6m"})
+        self.assertEqual(selected, [1, 2])
+        self.assertEqual([s["account_id"] for s in result["series"]], [1, 2])
+        self.assertTrue(all(s["points"][-1]["balance"] == "120.00" for s in result["series"]))
