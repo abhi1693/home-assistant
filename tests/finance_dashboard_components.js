@@ -35,7 +35,7 @@ async function fixture(page) {
       balance:String(Number(a.balance)-(a.kind==="credit"?0:((180-i)*250+Math.sin(i)*3000))),
     }))}));
     const recurring = {month,censored:false,today:now.slice(0,10),streams:[{
-      merchant_key:"rent",merchant:"Rent",theme:"housing",frequency:"monthly",interval_days:30.4375,
+      merchant_key:"rent",merchant:"Rent",theme:"housing",frequency:"quarterly",frequency_label:"every 2 monthly periods",interval_days:60.875,
       average_amount:"25000",monthly_amount:"25000",last_amount:"25000",active:true,is_income:false,
       first_seen:"2026-01-01",last_seen:`${month}-02`,count:1,logo_url:null,
     }],actuals:[{merchant_key:"rent",date:`${month}-02`,amount:"25000",is_income:false}],expected:[]};
@@ -85,6 +85,7 @@ async function fixture(page) {
       await fixture(page);
       assert.match(await page.locator("family-finance-stat-card .stat-value").innerText(),/₹/);
       assert.equal(await page.locator("button.lock").count(),0);
+      assert.match((await page.locator("family-finance-bills-card svg title").allTextContents()).join(" "),/every 2 monthly periods/);
       await page.screenshot({path:path.join(OUTPUT,`finance-${width}.png`),fullPage:true});
       const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
       assert.equal(overflow,false,`Page overflow at ${width}`);

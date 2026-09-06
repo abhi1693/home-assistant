@@ -11,7 +11,9 @@ The local adapter replaces the netwrth API with Home Assistant's private
 required. Changes include INR formatting, no PIN/reveal controls or bundled
 demo data, account-switch cleanup, category drill-down race handling, selected
 month credit history, explicit transaction types for repayments, and responsive
-bill/card charts. The dashboard defaults to a static dark background.
+bill/card charts. Bill tooltips preserve Firefly's exact recurrence label,
+including skipped periods, without rounding it to quarterly or annual text.
+The dashboard defaults to a static dark background.
 
 Build with Node.js and the committed dependency lockfile:
 

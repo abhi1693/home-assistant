@@ -10,7 +10,9 @@ There is no administrator bypass on these commands.
 
 Configure the built-in **Firefly III** integration under **Settings > Devices &
 services**. In this deployment its URL is
-`http://firefly-iii.finance.svc.cluster.local:8080`. Enter the personal access
+`http://finance.home:80` or `http://firefly-iii.finance.svc.cluster.local:8080`.
+Keep the explicit port: HA 2026.9.1's Firefly client otherwise defaults to 9000.
+Enter the personal access
 token in that integration's UI. Family Finance reads the saved entry through
 HA's config-entry API; credentials never enter Lovelace, Git, browser storage,
 or response/error payloads. It detects later setup and token rotation without

@@ -34,7 +34,6 @@ const PAD = { top: 88, right: 16, bottom: 28, left: 16 };
 const PILL_Y = 24;
 const ICON = 26;
 
-const FREQ_TAG: Record<string, string> = { quarterly: "/qtr", annual: "/yr" };
 const CHART_FREQS = new Set(["weekly", "biweekly", "monthly", "quarterly", "annual"]);
 
 type MarkState = "actual" | "expected" | "overdue";
@@ -316,7 +315,6 @@ export default function BillsCard({
                       <text x={cx} y={cy - ICON / 2 - 6} textAnchor={anchor} fill="var(--nb-text)" fontSize="12">
                         {m.state === "expected" ? "~" : ""}
                         {amt(m.amount, censored)}
-                        {FREQ_TAG[m.frequency] ?? ""}
                       </text>
                     )}
                     {active && (
@@ -326,7 +324,7 @@ export default function BillsCard({
                       </text>
                     )}
                     <title>
-                      {`${m.name} — ${STATE_LABEL[m.state]}, day ${m.day}${censored ? "" : `: ${m.state === "actual" ? "" : "~"}${amt(m.amount, censored)}`} (${m.frequency})`}
+                      {`${m.name} — ${STATE_LABEL[m.state]}, day ${m.day}${censored ? "" : `: ${m.state === "actual" ? "" : "~"}${amt(m.amount, censored)}`} (${streamByKey.get(`${m.merchantKey}|false`)?.frequency_label ?? m.frequency})`}
                     </title>
                   </g>
                 );
@@ -365,9 +363,8 @@ export default function BillsCard({
                     : `looks cancelled — last charged ${s.last_seen.slice(0, 10)}`}>
                   {s.merchant ?? s.merchant_key}
                   <span className="muted">
-                    {censored ? ` ${s.frequency}` : ` ${amt(parseFloat(s.average_amount), censored)}/${
-                      { weekly: "wk", biweekly: "2wk", monthly: "mo", quarterly: "qtr", annual: "yr" }[s.frequency]
-                    }`}
+                    {censored ? "" : ` ${amt(parseFloat(s.average_amount), censored)}`}
+                    {` · ${s.frequency_label ?? s.frequency}`}
                     {s.active ? "" : " · lapsed"}
                   </span>
                 </span>
