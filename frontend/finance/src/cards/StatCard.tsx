@@ -1,178 +1,135 @@
 import PanelLoading from "../components/PanelLoading";
+import InfoTooltip from "../components/InfoTooltip";
 import { useMemo, useState } from "react";
 import Ambient from "../components/Ambient";
 import { Hass } from "../lib/ha";
-import { MASK, money, moneyCompact, pct, signedMoney } from "../lib/format";
-import { Account } from "../lib/types";
-import { alignSeries, debtOfRow, sumRow } from "../lib/series";
-import { RANGES, RangeKey } from "../lib/types";
+import { MASK, money, pct, shortDate, signedMoney } from "../lib/format";
+import { Account, RANGES, RangeKey } from "../lib/types";
+import { alignSeries, sumRow } from "../lib/series";
 import { VIEWS, ViewKey } from "../lib/views";
-import {
-  BaseCardConfig,
-  Segmented,
-  useNetwrth,
-  useVisibleAccounts,
-  ambientEffect,
-} from "./common";
+import { BaseCardConfig, Segmented, useNetwrth, useVisibleAccounts, ambientEffect } from "./common";
 
 export type StatCardConfig = BaseCardConfig & {
   view?: ViewKey;
   range?: RangeKey;
   show_controls?: boolean;
   show_range_selector?: boolean;
-  // Composition bar under the number (uncensored only: composition is
-  // exactly what censor mode hides). Default on.
+  // Retain the existing option name for the explanatory account breakdown.
   show_composition?: boolean;
-  // "banner": one slim row — label, number, chip, composition bar — for a
-  // full-width strip at the top of a dashboard. Default "card".
   layout?: "card" | "banner";
 };
 
-// The web hero's composition colors: one hue per part, shared across views.
-const PART_COLORS: Record<string, string> = {
-  Retirement: "#60a5fa",
-  Taxable: "#818cf8",
-  "Non-retirement": "#818cf8",
-  Cash: "#34d399",
-  Liquid: "#34d399",
-  Debt: "#f472b6",
-  "Credit cards": "#f472b6",
+type Part = { key: string; label: string; value: number; accounts: { name: string; value: number }[] };
+
+function partsOf(values: Record<number, number>, accounts: Account[]): Part[] {
+  const groups: Part[] = [
+    { key: "cash", label: "Cash & bank", value: 0, accounts: [] },
+    { key: "investments", label: "Investments", value: 0, accounts: [] },
+    { key: "other", label: "Other assets", value: 0, accounts: [] },
+    { key: "negative", label: "Negative balances", value: 0, accounts: [] },
+  ];
+  for (const account of accounts) {
+    const value = values[account.id] ?? 0;
+    if (!value) continue;
+    // Every balance contributes once. A negative investment is not evidence of
+    // a loan, and must not also enter the positive investment total.
+    const group = groups[value < 0 ? 3 : account.kind === "cash" ? 0 : account.kind === "investment" ? 1 : 2];
+    group.value += value;
+    group.accounts.push({ name: account.nickname || account.name, value });
+  }
+  for (const group of groups) group.accounts.sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+  return groups.filter((group) => group.accounts.length > 0);
+}
+
+const RANGE_LABELS: Record<RangeKey, string> = {
+  "1d": "over 1 day", "1w": "over 7 days", "1m": "over 30 days", "3m": "over 90 days",
+  "6m": "over 180 days", "1y": "over 365 days", all: "over available history",
 };
 
-type Part = { label: string; v: number };
-
-// What the view's total is made of, mirroring the web dashboard's hero parts.
-function partsOf(view: ViewKey, values: Record<number, number>, accounts: Account[]): Part[] {
-  const row = { ts: 0, values };
-  const sum = (pick: (a: Account) => boolean) => sumRow(row, accounts, pick);
-  if (view === "daily") {
-    return [
-      { label: "Liquid", v: sum((a) => a.kind === "cash") },
-      { label: "Credit cards", v: sum((a) => a.kind === "credit") },
-    ];
-  }
-  const retirement = sum((a) => a.category === "retirement");
-  if (view === "invest") {
-    return [
-      { label: "Retirement", v: retirement },
-      { label: "Taxable", v: sum((a) => a.category !== "retirement") },
-    ];
-  }
-  const debt = debtOfRow(row, accounts);
-  return [
-    { label: "Retirement", v: retirement },
-    { label: "Non-retirement", v: sum((a) => a.category !== "retirement" && (values[a.id] ?? 0) > 0) },
-    { label: "Debt", v: debt },
-  ];
-}
-
-function Composition({ parts }: { parts: Part[] }) {
-  const drawn = parts.filter((p) => p.v !== 0);
-  const totalAbs = drawn.reduce((s, p) => s + Math.abs(p.v), 0);
-  if (drawn.length < 2 || totalAbs === 0) return null;
-  return (
-    <div className="comp">
-      <div className="comp-bar">
-        {drawn.map((p) => (
-          <span
-            key={p.label}
-            style={{
-              background: PART_COLORS[p.label] ?? "#8b9bb4",
-              width: `${(Math.abs(p.v) / totalAbs) * 100}%`,
-            }}
-          />
-        ))}
-      </div>
-      <div className="comp-legend">
-        {drawn.map((p) => (
-          <span className="comp-item" key={p.label}>
-            <span className="comp-dot" style={{ background: PART_COLORS[p.label] ?? "#8b9bb4" }} />
-            {p.label} <b>{moneyCompact(p.v)}</b>
-          </span>
-        ))}
-      </div>
+function Breakdown({ parts }: { parts: Part[] }) {
+  if (!parts.length) return null;
+  return <section className="worth-breakdown" aria-label="Net worth breakdown">
+    <div className="worth-breakdown-heading">What makes up this total</div>
+    <div className="worth-equation">
+      {parts.map((part, index) => <div className={`worth-term worth-${part.key}`} key={part.key}>
+        <span className="worth-operator" aria-hidden="true">{part.value < 0 ? "−" : index ? "+" : ""}</span>
+        <InfoTooltip className="worth-component"
+          label={`${part.label}: ${money(Math.abs(part.value))}. Show account breakdown`}
+          content={<>
+            <h3>{part.label}</h3>
+            <p>{part.value < 0 ? "Balances below zero subtract from tracked net worth." : "These positive balances add to tracked net worth."}</p>
+            <dl className="worth-account-details">{part.accounts.map((account, i) =>
+              <div key={i}><dt>{account.name}</dt><dd>{money(account.value, true)}</dd></div>)}</dl>
+            <div className="worth-tooltip-total"><span>Total</span><strong>{money(part.value, true)}</strong></div>
+          </>}>
+          <span className="worth-component-label"><i aria-hidden="true" />{part.label}</span>
+          <strong className="worth-component-value">{money(Math.abs(part.value))}</strong>
+          <span className="worth-component-detail">{part.accounts.length} {part.accounts.length === 1 ? "account" : "accounts"}<span aria-hidden="true"> · ⓘ</span></span>
+        </InfoTooltip>
+      </div>)}
     </div>
-  );
+  </section>;
 }
 
-// One big number + its change over the window, styled like the web hero:
-// the delta as a tinted chip, the composition bar underneath. Censored, the
-// number stays masked but the percent change is real — that's the whole point.
-export default function StatCard({
-  hass,
-  config,
-}: {
-  hass: Hass;
-  config: StatCardConfig;
-}) {
+export default function StatCard({ hass, config }: { hass: Hass; config: StatCardConfig }) {
   const view = VIEWS.find((v) => v.key === (config.view ?? "all")) ?? VIEWS[2];
   const [range, setRange] = useState<RangeKey>(config.range ?? "1m");
   const { overview, series, masked, error, loading } = useNetwrth(hass, config.entry, range);
   const visible = useVisibleAccounts(overview);
   const accounts = useMemo(() => visible.filter(view.pick), [visible, view]);
-
   const stat = useMemo(() => {
     if (!series) return null;
     const ids = new Set(accounts.map((a) => a.id));
     const rows = alignSeries(series.filter((s) => ids.has(s.account_id)));
-    if (rows.length === 0) return null;
+    if (!rows.length) return null;
     const first = sumRow(rows[0], accounts);
     const last = sumRow(rows[rows.length - 1], accounts);
     return {
-      last,
-      diff: last - first,
-      delta: first !== 0 ? (last - first) / Math.abs(first) : null,
-      parts: partsOf(view.key, rows[rows.length - 1].values, accounts),
+      first, last, diff: last - first, delta: first !== 0 ? (last - first) / Math.abs(first) : null,
+      start: rows[0].ts, end: rows[rows.length - 1].ts,
+      parts: partsOf(rows[rows.length - 1].values, accounts),
     };
-  }, [series, accounts, view]);
+  }, [series, accounts]);
 
-  // Flow views (cash & credit) are dollars-only: the chip carries the $
-  // change without a percent, like the web hero.
-  const showDelta = stat != null && stat.delta != null;
-  const banner = config.layout === "banner";
-
-  return (
-    <div className={`card${banner ? " stat-banner" : ""}`} aria-busy={loading}>
-      <Ambient effect={ambientEffect(config)} />
-      <div className="head">
-        <h2>{config.title ?? view.label}</h2>
-        <span className="head-right">
-          {config.show_controls !== false && config.show_range_selector !== false && (
-            <span className="controls">
-              <Segmented options={RANGES} value={range} onChange={setRange} />
-            </span>
-          )}
-        </span>
-      </div>
-      {error && <div className="error-box">{error}</div>}
-      <PanelLoading loading={loading} refreshing={!!overview} />
-      {!loading && !error && !stat && <div className="status">No data for this view yet.</div>}
-      {!error && stat && masked && (
-        // Censored: the dollar amount is redacted anyway, so promote the real
-        // percent change to the big slot and drop the footer line entirely.
-        <div
-          className={`stat-value ${
-            showDelta && !view.flow ? (stat.delta! >= 0 ? "up" : "down") : ""
-          }`}
-        >
-          {showDelta && !view.flow ? pct(stat.delta!) : MASK}
-        </div>
-      )}
-      {!error && stat && !masked && (
-        <>
-          <div className="stat-value">{money(stat.last)}</div>
-          {showDelta && (
-            <div className="stat-delta">
-              <span className={`chip ${stat.diff >= 0 ? "up" : "down"}`}>
-                {signedMoney(stat.diff)}
-                {!view.flow && ` (${pct(stat.delta!)})`}
-              </span>
-              <span>over {range}</span>
-            </div>
-          )}
-          {config.show_composition !== false && <Composition parts={stat.parts} />}
-        </>
-      )}
+  return <div className={`card stat-card${config.layout === "banner" ? " stat-banner" : ""}`} aria-busy={loading}>
+    <Ambient effect={ambientEffect(config)} />
+    <div className="head">
+      <h2>{config.title ?? view.label}</h2>
+      {config.show_controls !== false && config.show_range_selector !== false && <span className="head-right controls">
+        <Segmented options={RANGES} value={range} onChange={setRange} />
+      </span>}
     </div>
-  );
+    {error && <div className="error-box">{error}</div>}
+    <PanelLoading loading={loading} refreshing={!!overview} />
+    {!loading && !error && !stat && <div className="status">No data for this view yet.</div>}
+    {!error && stat && masked && <div className={`stat-value ${stat.delta != null && !view.flow ? stat.delta >= 0 ? "up" : "down" : ""}`}>
+      {stat.delta != null && !view.flow ? pct(stat.delta) : MASK}
+    </div>}
+    {!error && stat && !masked && <div className="worth-summary">
+      <div className="worth-primary">
+        <div className="stat-value">{money(stat.last)}</div>
+        <div className="stat-delta">
+          <InfoTooltip key={range} className={`chip change-explainer ${stat.diff >= 0 ? "up" : "down"}`}
+            label="Explain net worth change"
+            content={<>
+              <h3>Change in tracked net worth</h3>
+              <p>Your tracked balance is {money(Math.abs(stat.diff), true)} {stat.diff < 0 ? "lower" : "higher"} than at the start of this comparison.</p>
+              <dl className="worth-change-details">
+                <div><dt>Start · {shortDate(stat.start, false, true)}</dt><dd>{money(stat.first, true)}</dd></div>
+                <div><dt>End · {shortDate(stat.end, false, true)}</dt><dd>{money(stat.last, true)}</dd></div>
+                <div className="worth-tooltip-total"><dt>End − start</dt><dd>{money(stat.diff, true)}</dd></div>
+              </dl>
+              {!view.flow && <p className="worth-formula">{stat.delta == null
+                ? "Percentage change is unavailable because the starting balance is ₹0."
+                : `Percentage = change ÷ absolute starting balance × 100 = ${pct(stat.delta)}.`}</p>}
+              <p className="worth-change-note">This includes changes across all accounts in this total, including cash movements, imported valuations and balance corrections.</p>
+            </>}>
+            {signedMoney(stat.diff)}{!view.flow && stat.delta != null && ` (${pct(stat.delta)})`}<span aria-hidden="true"> ⓘ</span>
+          </InfoTooltip>
+          <span>{RANGE_LABELS[range]}</span>
+        </div>
+      </div>
+      {config.show_composition !== false && <Breakdown parts={stat.parts} />}
+    </div>}
+  </div>;
 }

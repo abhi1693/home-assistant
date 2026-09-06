@@ -19,6 +19,17 @@ credit-card history still show these accounts.
 Chart axes and hover dates include the year whenever the displayed history
 includes another calendar year, using the dashboard's Asia/Kolkata timezone.
 
+The net-worth summary uses exact INR amounts in a signed breakdown: Cash & bank,
+Investments, any Other assets, and Negative balances. Each tracked balance enters
+one group once; negative investment/retirement balances are subtracted without
+being labelled as loans. Hover, focus, or tap an amount to see its contributing
+accounts. The change badge explains the actual start/end dates and balances,
+end minus start, and change divided by the absolute starting balance. It describes
+change across the tracked ledger, including cash movements and imported
+valuations. A zero starting balance shows the rupee change without a percentage.
+Tooltips stay within the viewport, support Escape/outside dismissal, and close
+when access changes. The net-worth range remains independent of the month picker.
+
 `family-finance-month-card` provides the top reporting-month control. Set the
 same `month_group` on it and the spending, accounts, investments, bills, and card-cycle cards
 to synchronize them; grouped cards show a month label instead of a separate
@@ -96,6 +107,8 @@ server; it does not contact the household services. Without HA installed those
 runtime tests are skipped. The model and bootstrap tests need no HA install.
 
 The Playwright suite checks 375, 768, and 1440px viewports, overflow, INR,
+the net-worth equation and account breakdown, change calculations, hover/touch/
+keyboard tooltip access, zero baselines,
 transaction drill-down, historical month requests, per-panel loading and
 refreshing, request failures, stale responses, and clearing data when the HA
 account changes. Screenshots use explicitly labelled sample ledger data

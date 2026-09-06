@@ -146,6 +146,9 @@ private server-side plans, with income remaining after spending, remaining
 bills and investments. Plans do not generate ledger transactions; statement
 matches replace their expected amounts. Investment transfers remain outside
 income and spending, while net-worth history retains its independent range.
+The net-worth summary explains its total with cash, investments and negative
+balances. Account breakdowns and the change badge expose their supporting
+amounts and comparison calculations on hover, keyboard focus or tap.
 See [Family Finance](custom_components/family_finance/README.md) for setup and
 data semantics, and [finance frontend](frontend/finance/README.md) for provenance,
 build commands, and responsive browser validation.

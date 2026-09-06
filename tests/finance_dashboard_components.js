@@ -35,6 +35,7 @@ async function fixture(page, grouped = false, initiallyLoading = false) {
       ts:new Date(today.getTime()-(180-i)*86400000).toISOString(),
       balance:String(Number(a.balance)-(a.kind==="credit"||i===180?0:((180-i)*250+Math.sin(i)*3000))),
     }))}));
+    window.financeFixture = {accounts, series};
     const recurring = {month,censored:false,today:now.slice(0,10),total_due:"25000",total_remaining:"0",bill_count:1,streams:[{
       merchant_key:"rent",merchant:"Rent",theme:"housing",frequency:"quarterly",frequency_label:"every 2 monthly periods",interval_days:60.875,
       average_amount:"25000",monthly_amount:"25000",last_amount:"25000",active:true,is_income:false,
@@ -282,12 +283,79 @@ async function sharedMonthCheck(page, width) {
   await page.screenshot({path:path.join(OUTPUT,`finance-shared-month-${width}.png`),fullPage:true});
 }
 
+async function netWorthSummaryCheck(page, width) {
+  await fixture(page);
+  await page.evaluate(() => {
+    const {accounts,series} = window.financeFixture;
+    accounts.push(
+      {...accounts[0],id:4,name:'Mutual fund',kind:'investment',balance:'100000'},
+      {...accounts[0],id:5,name:'Pension',kind:'investment',category:'retirement',balance:'50000'},
+      {...accounts[0],id:6,name:'Negative investment ledger',kind:'investment',category:'retirement',balance:'-12000'},
+    );
+    const starting = {1:90000,2:680000,3:-18000,4:120000,5:60000,6:-10000};
+    series.splice(0,series.length,...accounts.map(a=>({account_id:a.id,points:[
+      {ts:'2025-12-31T23:59:59+05:30',balance:String(starting[a.id])},
+      {ts:'2026-01-30T23:59:59+05:30',balance:a.balance},
+    ]})));
+    document.querySelector('family-finance-stat-card').setConfig({
+      type:'custom:family-finance-stat-card',allowed_user_id:window.hass.user.id,
+      title:'Tracked net worth',layout:'banner',view:'all',range:'1m',show_range_selector:false,background:'off',
+    });
+  });
+  const card=page.locator('family-finance-stat-card');
+  await card.locator('.stat-value').filter({hasText:'8,50,000'}).waitFor();
+  assert.deepEqual(await card.locator('.worth-component-label').allTextContents(),['Cash & bank','Investments','Negative balances']);
+  assert.deepEqual(await card.locator('.worth-component-value').allTextContents(),['₹7,12,000','₹1,50,000','₹12,000']);
+  assert.equal(await card.locator('.comp-bar').count(),0);
+  const badge=card.getByRole('button',{name:'Explain net worth change'});
+  assert.match(await badge.innerText(),/-₹90,000 \(-9.6%\)/);
+  await card.screenshot({path:path.join(OUTPUT,`net-worth-summary-${width}.png`)});
+  if(width===375) await badge.tap(); else await badge.hover();
+  let tooltip=card.getByRole('tooltip');
+  await tooltip.waitFor();
+  assert.match(await tooltip.innerText(),/31 Dec 2025/);
+  assert.match(await tooltip.innerText(),/30 Jan 2026/);
+  assert.match(await tooltip.innerText(),/₹9,40,000.00/);
+  assert.match(await tooltip.innerText(),/₹8,50,000.00/);
+  assert.match(await tooltip.innerText(),/absolute starting balance/);
+  const bounds=await tooltip.boundingBox();
+  assert(bounds.x>=0 && bounds.x+bounds.width<=width && bounds.y>=0,`Tooltip bounds at ${width}`);
+  await page.screenshot({path:path.join(OUTPUT,`net-worth-change-tooltip-${width}.png`),fullPage:true});
+  await page.keyboard.press('Escape');
+  await tooltip.waitFor({state:'detached'});
+  await badge.focus();
+  await page.keyboard.press('Enter');
+  await card.getByRole('tooltip').waitFor();
+  await page.keyboard.press('Escape');
+  await card.getByRole('button',{name:/Negative balances:/}).click();
+  tooltip=card.getByRole('tooltip');
+  await tooltip.waitFor();
+  assert.match(await tooltip.innerText(),/Negative investment ledger/);
+  assert.match(await tooltip.innerText(),/-₹12,000.00/);
+  assert.doesNotMatch(await tooltip.innerText(),/Credit card/);
+  await page.locator('h1').click();
+  await tooltip.waitFor({state:'detached'});
+  await page.evaluate(()=>{
+    for(const s of window.financeFixture.series)s.points[0].balance='0';
+    const card=document.querySelector('family-finance-stat-card');
+    card.setConfig({type:'custom:family-finance-stat-card',allowed_user_id:window.hass.user.id,layout:'banner',range:'all',background:'off'});
+  });
+  await card.locator('.change-explainer').filter({hasText:'+₹8,50,000'}).waitFor();
+  assert.doesNotMatch(await card.locator('.change-explainer').innerText(),/%/);
+  await card.getByRole('button',{name:'Explain net worth change'}).click();
+  await card.getByRole('tooltip').waitFor();
+  assert.match(await card.getByRole('tooltip').innerText(),/starting balance is ₹0/);
+  await page.evaluate(()=>{document.querySelector('family-finance-stat-card').hass={...window.hass,user:{id:'someone-else'}};});
+  await card.locator('.status').filter({hasText:'private'}).waitFor();
+  assert.equal(await card.getByRole('tooltip').count(),0);
+}
+
 (async()=>{
   fs.mkdirSync(OUTPUT,{recursive:true});
   const browser=await chromium.launch({headless:true});
   try {
     for(const width of [375,768,1440]) {
-      const page=await browser.newPage({viewport:{width,height:1100},timezoneId:"Asia/Kolkata"});
+      const page=await browser.newPage({viewport:{width,height:1100},timezoneId:"Asia/Kolkata",hasTouch:width===375});
       const errors=[];page.on("pageerror",e=>errors.push(e.message));
       await fixture(page);
       assert.match(await page.locator("family-finance-stat-card .stat-value").innerText(),/₹/);
@@ -315,6 +383,7 @@ async function sharedMonthCheck(page, width) {
       assert.deepEqual(errors,[]);
       await sharedMonthCheck(page, width);
       await loadingCheck(page, width);
+      await netWorthSummaryCheck(page, width);
       assert.deepEqual(errors,[]);
       await page.close();
     }

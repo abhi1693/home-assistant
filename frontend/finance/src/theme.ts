@@ -216,8 +216,7 @@ export function cardCss(mode: ThemeMode): string {
   }
   .reveal-note { font-size: 11px; color: var(--nb-muted); }
 
-  /* stat card (the web hero, card-sized): one big number, its change as a
-     tinted chip, and — uncensored — the composition bar under it. */
+  /* Net worth: balance first, then a signed account breakdown. */
   .stat-value {
     font-size: 30px;
     font-weight: 800;
@@ -248,31 +247,58 @@ export function cardCss(mode: ThemeMode): string {
   }
   .up { color: var(--nb-green); }
   .down { color: var(--nb-red); }
-  .comp { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
-  .comp-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 3px; }
-  .comp-bar span { display: block; height: 100%; min-width: 4px; border-radius: 2px; }
-  .comp-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; }
-  .comp-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--nb-muted);
-    white-space: nowrap;
+  .stat-card .head { margin-bottom: 8px; }
+  .stat-banner { padding: 20px 22px; }
+  .worth-summary { display: grid; gap: 22px; }
+  .stat-banner .worth-summary { grid-template-columns: minmax(250px, .8fr) minmax(0, 1.6fr); align-items: center; gap: 30px; }
+  .stat-banner .stat-value { font-size: 34px; line-height: 1.3; }
+  .stat-card .stat-delta { flex-wrap: wrap; gap: 6px 10px; margin-top: 10px; }
+  .change-explainer { cursor: help; font-family: inherit; border: 1px solid transparent; min-height: 36px; }
+  .change-explainer:hover { border-color: currentColor; }
+  .worth-breakdown { min-width: 0; }
+  .stat-banner .worth-breakdown { border-left: 1px solid var(--nb-border); padding-left: 26px; }
+  .worth-breakdown-heading { color: var(--nb-muted); font-size: 12px; margin: 0 0 10px 22px; }
+  .worth-equation { display: flex; gap: 12px; }
+  .worth-term { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; --worth-color: var(--nb-accent); }
+  .worth-investments { --worth-color: #a78bfa; }
+  .worth-other { --worth-color: #34d399; }
+  .worth-negative { --worth-color: var(--nb-red); }
+  .worth-operator { flex: 0 0 16px; text-align: center; font-size: 21px; color: var(--nb-muted); }
+  .worth-negative .worth-operator { color: var(--nb-red); }
+  .worth-component { appearance: none; width: 100%; min-width: 0; background: transparent; color: var(--nb-text); border: 1px solid transparent; border-radius: 9px; padding: 10px 8px; text-align: left; font-family: inherit; cursor: pointer; }
+  .worth-component:hover { background: var(--nb-panel-2); border-color: var(--nb-border); }
+  .worth-component-label { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--nb-muted); line-height: 1.4; }
+  .worth-component-label i { width: 6px; height: 6px; border-radius: 50%; background: var(--worth-color); flex: none; }
+  .worth-component-value { display: block; margin-top: 7px; font-size: 22px; font-weight: 650; letter-spacing: -.025em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .worth-component-detail { display: block; margin-top: 7px; font-size: 11px; color: var(--nb-muted); }
+  .worth-component:focus-visible, .change-explainer:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: 3px; }
+  .finance-info-tooltip { position: fixed; width: min(380px, calc(100vw - 24px)); max-height: min(520px, calc(100vh - 24px)); overflow-y: auto; padding: 18px; background: var(--nb-panel-2); color: var(--nb-text); border: 1px solid var(--nb-border); border-radius: 12px; box-shadow: 0 12px 38px rgba(0,0,0,.4); font-size: 12px; line-height: 1.6; }
+  .finance-info-tooltip h3 { margin: 0 0 8px; font-size: 14px; font-weight: 650; }
+  .finance-info-tooltip p { margin: 8px 0 12px; color: var(--nb-muted); }
+  .finance-info-tooltip dl { margin: 14px 0 0; }
+  .finance-info-tooltip dl > div, .worth-tooltip-total { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding: 7px 0; }
+  .finance-info-tooltip dt { min-width: 0; color: var(--nb-muted); overflow-wrap: anywhere; }
+  .finance-info-tooltip dd { margin: 0; flex: none; font-variant-numeric: tabular-nums; }
+  .worth-tooltip-total { border-top: 1px solid var(--nb-border); margin-top: 8px; font-weight: 600; }
+  .finance-info-tooltip .worth-formula { padding: 10px 12px; border-radius: 7px; background: var(--nb-bg); color: var(--nb-text); }
+  .finance-info-tooltip .worth-change-note { margin-bottom: 0; font-size: 11px; }
+  @media (max-width: 1000px) {
+    .stat-banner .worth-summary { grid-template-columns: 1fr; gap: 20px; }
+    .stat-banner .worth-breakdown { border-left: 0; border-top: 1px solid var(--nb-border); padding: 16px 0 0; }
+    .worth-breakdown-heading { margin-left: 0; }
+    .worth-term:first-child .worth-operator:empty { display: none; }
   }
-  .comp-item b { color: var(--nb-text); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .comp-dot { width: 8px; height: 8px; border-radius: 2.5px; flex: none; }
-  /* Banner layout: everything on one row. The header keeps its place at
-     the left (title) and right (lock), the number and chip sit between,
-     and the composition bar takes whatever width is left. */
-  .stat-banner { padding: 10px 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 18px; }
-  .stat-banner .head { margin: 0; flex: none; display: contents; }
-  .stat-banner .head h2 { flex: none; order: 0; }
-  .stat-banner .head .head-right { order: 10; margin-left: auto; }
-  .stat-banner .stat-value { order: 1; font-size: 24px; }
-  .stat-banner .stat-delta { order: 2; margin-top: 0; }
-  .stat-banner .comp { order: 3; flex: 1 1 260px; margin-top: 0; gap: 5px; min-width: 200px; }
-  .stat-banner .status, .stat-banner .error-box { order: 1; flex: 1; padding: 6px 0; }
+  @media (max-width: 500px) {
+    .stat-banner { padding: 18px 16px; }
+    .stat-banner .stat-value { font-size: 32px; }
+    .worth-equation { flex-direction: column; gap: 3px; }
+    .worth-term { align-items: center; gap: 4px; }
+    .worth-term:first-child .worth-operator:empty { display: block; }
+    .worth-component { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 10px 6px; }
+    .worth-component-value { margin: 0; font-size: 20px; grid-row: span 2; align-self: center; }
+    .worth-component-detail { margin: 0 0 0 13px; }
+    .worth-component-label { font-size: 12px; }
+  }
 
   /* accounts card */
   .account-groups { display: grid; gap: 22px; margin-top: 18px; }
