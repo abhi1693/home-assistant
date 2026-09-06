@@ -16,7 +16,7 @@ import {
 } from "recharts";
 import { Account, ChartMode, RangeKey } from "../lib/types";
 import { Row, debtOfRow, deltaSeries, flowSeries, sumRow } from "../lib/series";
-import { money, moneyCompact, pct, shortDate, signedMoney } from "../lib/format";
+import { calendarYear, money, moneyCompact, pct, shortDate, signedMoney } from "../lib/format";
 
 export type { ChartMode };
 
@@ -77,7 +77,10 @@ export default function Chart({
   compact?: boolean;
 }) {
   const withTime = range === "1d" || range === "1w";
-  const fmtX = (ts: number) => shortDate(ts, withTime);
+  const currentYear = calendarYear(Date.now());
+  const withYear = rows.some((row) => calendarYear(row.ts) !== currentYear);
+  const fmtDate = (ts: number, time = false) => shortDate(ts, time, withYear);
+  const fmtX = (ts: number) => fmtDate(ts, withTime);
   // Censored, total/category modes: series are rebased to "% change since the
   // window start" (first point = 0%), matching the stat-card percentages.
   // The stacked mode instead keeps the backend's %-of-net-worth scale, since
@@ -96,11 +99,11 @@ export default function Chart({
       <ResponsiveContainer width="100%" height={340}>
         <BarChart data={data} margin={MARGIN}>
           <CartesianGrid stroke={GRID} strokeDasharray="3 3" />
-          <XAxis dataKey="ts" tickFormatter={(ts) => shortDate(ts as number)} tick={axisStyle} minTickGap={40} />
+          <XAxis dataKey="ts" tickFormatter={(ts) => fmtDate(ts as number)} tick={axisStyle} minTickGap={40} />
           <YAxis tickFormatter={(v) => fmtYFlow(v as number)} tick={axisStyle} width={yAxisWidth(fmtYFlow, data.map((d) => d.flow))} />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelFormatter={(ts) => shortDate(ts as number)}
+            labelFormatter={(ts) => fmtDate(ts as number)}
             formatter={(v) => [fmtFlow(v as number), "Net flow"]}
             cursor={{ fill: GRID, fillOpacity: 0.4 }}
           />
@@ -138,7 +141,7 @@ export default function Chart({
           <YAxis tickFormatter={fmtY} tick={axisStyle} width={yAxisWidth(fmtY, data.map((d) => d.total))} domain={["auto", "auto"]} />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelFormatter={(ts) => shortDate(ts as number, true)}
+            labelFormatter={(ts) => fmtDate(ts as number, true)}
             formatter={(v) => [fmtVal(v as number), "Total"]}
           />
           <Area
@@ -201,7 +204,7 @@ export default function Chart({
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelFormatter={(ts) => shortDate(ts as number, true)}
+            labelFormatter={(ts) => fmtDate(ts as number, true)}
             formatter={(v, name) => [fmtVal(v as number), name as string]}
           />
           <Line type="monotone" dataKey="retirement" stroke={GREEN} strokeWidth={2} dot={false} isAnimationActive={false} />
@@ -265,7 +268,7 @@ export default function Chart({
     const net = payload.find((p) => p.dataKey === "net");
     return (
       <div style={{ ...tooltipStyle, padding: "8px 12px" }}>
-        <div style={{ marginBottom: 4 }}>{shortDate(label ?? 0)}</div>
+        <div style={{ marginBottom: 4 }}>{fmtDate(label ?? 0)}</div>
         {parts.map((p) => {
           const acc = moved.find((a) => `a${a.id}` === p.dataKey);
           return (
@@ -289,7 +292,7 @@ export default function Chart({
     <ResponsiveContainer width="100%" height={340}>
       <ComposedChart data={data} stackOffset="sign" margin={MARGIN}>
         <CartesianGrid stroke={GRID} strokeDasharray="3 3" />
-        <XAxis dataKey="ts" tickFormatter={(ts) => shortDate(ts as number)} tick={axisStyle} minTickGap={40} />
+        <XAxis dataKey="ts" tickFormatter={(ts) => fmtDate(ts as number)} tick={axisStyle} minTickGap={40} />
         <YAxis tickFormatter={fmtYDelta} tick={axisStyle} width={yAxisWidth(fmtYDelta, stackExtent)} />
         <Tooltip content={<DeltaTip />} cursor={{ fill: GRID, fillOpacity: 0.4 }} />
         <ReferenceLine y={0} stroke={MUTED} strokeOpacity={0.6} />

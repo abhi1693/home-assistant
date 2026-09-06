@@ -16,6 +16,8 @@ including skipped periods, without rounding it to quarterly or annual text.
 The dashboard defaults to a static dark background.
 Net-worth exclusions affect totals and their chart only; the account list and
 credit-card history still show these accounts.
+Chart axes and hover dates include the year whenever the displayed history
+includes another calendar year, using the dashboard's Asia/Kolkata timezone.
 
 Build with Node.js and the committed dependency lockfile:
 

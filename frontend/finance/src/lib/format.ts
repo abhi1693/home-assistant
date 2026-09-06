@@ -39,12 +39,22 @@ export function pct(v: number): string {
   return `${v >= 0 ? "+" : ""}${(v * 100).toFixed(1)}%`;
 }
 
-export function shortDate(ts: number, withTime = false): string {
+const yearFormat = new Intl.DateTimeFormat("en-IN", {
+  timeZone: "Asia/Kolkata",
+  year: "numeric",
+});
+
+export function calendarYear(ts: number): string {
+  return yearFormat.format(ts);
+}
+
+export function shortDate(ts: number, withTime = false, withYear = false): string {
   const d = new Date(ts);
   return d.toLocaleDateString("en-IN", {
     timeZone: "Asia/Kolkata",
     month: "short",
     day: "numeric",
+    ...(withYear ? { year: "numeric" as const } : {}),
     ...(withTime ? { hour: "numeric", minute: "2-digit" } : {}),
   });
 }
