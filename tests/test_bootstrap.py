@@ -648,6 +648,11 @@ class BootstrapTests(unittest.TestCase):
                         "disabled_by": None,
                     },
                     {
+                        "entity_id": "sensor.bank_balance",
+                        "platform": "firefly_iii",
+                        "disabled_by": None,
+                    },
+                    {
                         "entity_id": "sensor.owner_heart_rate",
                         "platform": "mobile_app",
                         "disabled_by": None,

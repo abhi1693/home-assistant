@@ -42,6 +42,7 @@ class DashboardStructureTests(unittest.TestCase):
                 "People",
                 "More",
                 "Health",
+                "Finance",
                 "Rack",
                 "Settings",
             ],

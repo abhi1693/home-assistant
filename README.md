@@ -15,6 +15,8 @@ Assistant installations.
 
 - Responsive family dashboard for desktop, tablet, and phone layouts.
 - Account-aware navigation, favorite rooms, calendars, cameras, and health data.
+- Abhimanyu-only finance dashboard with Firefly III ledger history, spending,
+  accounts, scheduled bills, and credit-card payments in INR, without a PIN.
 - Nested room pages that keep device controls bounded as rooms gain new devices.
 - Senior-friendly Atomberg fan controls with direct speeds, light, sleep, timer,
   unavailable-device guidance, and cloud-quota protection.
@@ -122,6 +124,23 @@ The owner's Git profile key is `abhimanyu`, and the visible Person entity is
 entities and underlying Person registry identity remain unchanged. The completed
 one-time entity migration is no longer part of bootstrap or runtime startup.
 The pre-migration entity registry is retained under `/config/backups`.
+
+### Finance
+
+`/home-tablet/finance` is available only to the `abhimanyu` profile. The cards
+adapt the MIT-licensed [netwrth HACS frontend](https://github.com/eduser25/netwrth-hacs)
+to a GET-only Firefly III adapter, using the built-in Firefly integration's saved
+connection. Amounts are shown after HA login; no additional PIN is required.
+The backend checks the exact active user ID for every response. Chart payloads
+are not published as sensors or recorded by this adapter, and bootstrap keeps
+native Firefly sensors out of other family profiles' permissions.
+
+Figures reflect imported ledger records, not live bank balances. Transfers and
+card repayments are excluded from spending. Bills require Firefly subscription
+schedules; investments need explicitly classified accounts and recorded values.
+See [Family Finance](custom_components/family_finance/README.md) for setup and
+data semantics, and [finance frontend](frontend/finance/README.md) for provenance,
+build commands, and responsive browser validation.
 
 ### Rooms
 

@@ -1,0 +1,89 @@
+---
+title: Finance
+path: finance
+icon: mdi:finance
+type: sections
+theme: Family Dark
+max_columns: 3
+dense_section_placement: true
+visible: !include ../../access/generated/profile-abhimanyu-users.json
+sections:
+  - type: grid
+    column_span: 3
+    visibility: &finance_visibility
+      - condition: user
+        users: !include ../../access/generated/profile-abhimanyu-users.json
+    cards:
+      - type: heading
+        heading: Abhimanyu · Finance
+        icon: mdi:finance
+        heading_style: title
+        grid_options: { columns: 36, rows: auto }
+      - type: custom:family-finance-stat-card
+        title: Tracked net worth
+        allowed_user_id: &finance_user 9302d11f48c64fe796a3c9e5cb563650
+        view: all
+        range: 1m
+        layout: banner
+        background: off
+        show_range_selector: false
+        grid_options: { columns: 36, rows: auto }
+      - type: custom:family-finance-worth-card
+        title: Net worth over time
+        allowed_user_id: *finance_user
+        view: all
+        mode: total
+        range: 6m
+        compact: true
+        background: off
+        grid_options: { columns: 36, rows: auto }
+  - type: grid
+    column_span: 3
+    visibility: *finance_visibility
+    cards:
+      - type: custom:family-finance-spending-card
+        title: Monthly spending
+        allowed_user_id: *finance_user
+        background: off
+        grid_options: { columns: 36, rows: auto }
+  - type: grid
+    column_span: 1
+    visibility: *finance_visibility
+    cards:
+      - type: custom:family-finance-accounts-card
+        title: Accounts
+        allowed_user_id: *finance_user
+        view: all
+        range: 1m
+        background: off
+        show_range_selector: false
+        grid_options: { columns: 12, rows: auto }
+  - type: grid
+    column_span: 2
+    visibility: *finance_visibility
+    cards:
+      - type: custom:family-finance-bills-card
+        title: Scheduled bills
+        allowed_user_id: *finance_user
+        background: off
+        grid_options: { columns: 24, rows: auto }
+  - type: grid
+    column_span: 3
+    visibility: *finance_visibility
+    cards:
+      - type: custom:family-finance-cardcycle-card
+        title: Credit cards
+        allowed_user_id: *finance_user
+        background: off
+        grid_options: { columns: 36, rows: auto }
+      - type: markdown
+        content: >-
+          Figures reflect the records imported into Firefly III. Net worth covers
+          accounts included in Firefly’s net-worth total; purchases count as
+          spending, while transfers and card repayments do not. Scheduled bills
+          come from Firefly subscriptions. This is a ledger view, not a live bank feed.
+        grid_options: { columns: 36, rows: auto }
+  - type: grid
+    column_span: 3
+    cards:
+      - !include family-navigation.yaml

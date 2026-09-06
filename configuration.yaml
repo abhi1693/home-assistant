@@ -56,6 +56,9 @@ family_camera_streams:
 
 family_room_registry:
 
+family_finance:
+  access_file: /config/access/family-dashboard.json
+
 sensor:
   - platform: family_announcements
     access_file: /config/access/family-dashboard.json
@@ -109,6 +112,8 @@ lovelace:
     - url: /local/family-camera-wall-card.js?v=2.1.0
       type: module
     - url: /local/family-camera-events-card.js?v=1.7.0
+      type: module
+    - url: /local/family-finance-cards.js?v=1.0.0
       type: module
     - url: /local/community/todo-swipe-card/todo-swipe-card.js?v=3.6.0
       type: module

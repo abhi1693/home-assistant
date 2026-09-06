@@ -2610,6 +2610,8 @@ views:
         cards:
           - *family_navigation
 
+  - !include includes/finance-view.yaml
+
   - title: Health
     path: health
     icon: mdi:heart-pulse

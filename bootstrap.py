@@ -1246,9 +1246,13 @@ def reconcile_family_access(source: Path, config: Path) -> None:
             ):
                 raise RuntimeError(f"Camera {camera_key} alert severity is invalid")
 
+    private_finance_entities = {
+        entity_id for entity_id, entity in entities.items()
+        if entity.get("platform") == "firefly_iii"
+    }
     private_domains = private_health_domains | {
         entity_id.partition(".")[0]
-        for entity_id in protected_camera_entities
+        for entity_id in protected_camera_entities | private_finance_entities
     }
     family_unrestricted_domains = unrestricted_domains - private_domains
     family_public_entities = sorted(
@@ -1257,6 +1261,7 @@ def reconcile_family_access(source: Path, config: Path) -> None:
         if entity_id.partition(".")[0] in private_domains
         and entity_id not in private_health_entities
         and entity_id not in protected_camera_entities
+        and entity_id not in private_finance_entities
     )
 
     desired_groups = {}

@@ -60,7 +60,7 @@ routes:
       action: open-popup
     selected: |
       [[[
-        return ['/home-tablet/health', '/rack-admin/overview', '/config/dashboard']
+        return ['/home-tablet/health', '/home-tablet/finance', '/rack-admin/overview', '/config/dashboard']
           .some((path) => window.location.pathname.startsWith(path));
       ]]]
     hidden: |
@@ -87,6 +87,13 @@ routes:
             icon_selected: 'mdi:heart',
             label: 'Health',
             url: '/home-tablet/health',
+          });
+        }
+        if (user?.id === '9302d11f48c64fe796a3c9e5cb563650') {
+          items.push({
+            icon: 'mdi:finance',
+            label: 'Finance',
+            url: '/home-tablet/finance',
           });
         }
         if (user?.is_admin) {
@@ -120,6 +127,13 @@ routes:
         ];
         return !navbar.isDesktop ||
           !healthUsers.includes(user?.id);
+      ]]]
+  - icon: mdi:finance
+    url: /home-tablet/finance
+    label: Finance
+    hidden: |
+      [[[
+        return !navbar.isDesktop || user?.id !== '9302d11f48c64fe796a3c9e5cb563650';
       ]]]
   - icon: mdi:server-network-outline
     icon_selected: mdi:server-network
