@@ -85,7 +85,8 @@ async function ready(page) {
    for(const kind of ['overview','series','spending_summary','spending_recurring','spending_investments','spending_transactions'])assert(requests.some(r=>r.type===`family_finance/${kind}`),`${kind} uses calendar year`);
    assert.match(await page.locator('family-finance-spending-card .period-total-comparison').innerText(),/₹67,800.*₹55,800/s);
    assert.equal(await page.locator('.comparison-history').count(),1);
-   assert(await page.locator('.account-sparkline').count()>0);
+   assert.equal(await page.locator('.savings-reference-line').count(),1);
+   assert.match(await page.locator('.payment-chart .cashflow-comparison').innerText(),/₹55,800/);
    assert.equal(await page.locator('family-finance-cardcycle-card .comparison-balance-line').count(),1);
    assert.equal(await page.locator('.period-trend').count(),3);
    assert.match(await page.locator('family-finance-investments-card .investment-total').innerText(),/6,000/);
@@ -150,7 +151,7 @@ async function ready(page) {
    const before=await page.evaluate(()=>window.messages.length);
    await page.evaluate(()=>{for(const el of document.querySelectorAll('main > *'))if(el.shadowRoot)el.hass={...window.hass,user:{id:'another-user'}};});
    await page.locator('family-finance-stat-card .status').filter({hasText:'private'}).waitFor();
-   assert.equal(await page.locator('.comparison-history,.account-sparkline,.period-trend').count(),0);
+   assert.equal(await page.locator('.comparison-history,.cashflow-charts,.period-trend').count(),0);
    assert.equal(await page.evaluate(()=>window.messages.length),before);
    assert.deepEqual(errors,[]);
    await page.close();

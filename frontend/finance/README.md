@@ -14,8 +14,8 @@ month credit history, explicit transaction types for repayments, and responsive
 bill/card charts. Bill tooltips preserve Firefly's exact recurrence label,
 including skipped periods, without rounding it to quarterly or annual text.
 The dashboard defaults to a static dark background.
-Net-worth exclusions affect totals and their chart only; the account list and
-credit-card history still show these accounts.
+Net-worth exclusions affect totals and their chart only; payment-method spending and
+credit-card history still include these accounts.
 Chart axes and hover dates include the year whenever the displayed history
 includes another calendar year, using the dashboard's Asia/Kolkata timezone.
 
@@ -39,7 +39,7 @@ existing tag and `month_group` option remain compatible). Select Month,
 Calendar year (January–December), Financial year (April–March), or Custom dates
 (up to five years), then optionally choose an earlier comparison year. The same
 panels show period totals, monthly income/spending/contribution/bill charts,
-category comparisons, account sparklines and closing balances, and credit-card
+category comparisons, savings balance lines, payment-method bars, and credit-card
 balance overlays. The net-worth summary follows every selected period. Its
 history chart keeps an independent range in ordinary Month mode; annual/custom
 views and explicit comparisons use the shared period. Assign the
@@ -77,10 +77,37 @@ visible. Others expands to its constituent spending transactions, labelled with
 their original categories; income and transfers never enter that drill-down.
 Expanded details stay beneath their category in its original grid column;
 opening a category preserves the neighboring category's position and width.
-Accounts use a responsive grid with account initials and period-end balances.
-Accounts and scheduled
-bills each occupy the full dashboard width, so an empty schedule stays compact
-without leaving a gap beside the account list.
+The Savings & spending panel replaces the account tile inventory. It shows a
+savings balance line with account filters and a stacked purchase chart by payment
+method: Direct from savings, Credit cards, and Other accounts only when needed.
+Savings use explicit `savings_account_ids` (HDFC, Digibank and SBI in this
+household); IDs survive account renames. Standalone cards without the option
+select cash accounts containing the word Savings in their names. An explicit
+empty list selects no savings accounts. Wallets, EMI and investment balances
+are excluded from the savings chart. Filtering that chart does not change the
+payment-method scope. Standalone cards have their own month control; the existing
+`family-finance-accounts-card` tag is retained, replacing the old tile-specific
+`view`, `range` and name-match options.
+
+The purchase chart counts positive, posted withdrawal journals once, in integer
+paise, using their source account. Both transfer legs, card repayments, investment
+funding and deposits are excluded. All credit cards participate regardless of
+net-worth inclusion or balance sign. Direct payments include bank transfers,
+UPI and debit purchases from the savings accounts; the chart does not infer a
+more specific method without statement evidence. Other accounts preserves the
+reconciliation with total spending without adding their balances to savings.
+Select a method to see a bounded bar breakdown by account, using already-loaded
+data. Details and filters reset with the period. A tooltip explains the scope.
+
+Savings history includes the prior closing balance as the opening baseline.
+Purchase bars use days within a month and months across longer periods. Annual,
+financial-year, custom and comparison views keep these same two charts; previous
+balances use a dashed line, and previous purchases use faded adjacent stacks.
+Actuals stop at the matching elapsed date, with future bars absent and leap-day
+comparisons counted once. Savings and payments have separate axes because one
+is a balance and the other is activity. The charts sit side by side on desktop
+and stack on narrow screens; long monthly timelines scroll inside the panel.
+Scheduled bills occupy their own full-width section.
 
 The recurring-bills tile shows the selected period's actual payments plus
 remaining scheduled occurrences, without a monthly average or unrelated active
@@ -131,6 +158,7 @@ python3 -m unittest discover -s tests -v
 NODE_PATH=/path/to/node_modules node tests/finance_dashboard_components.js
 NODE_PATH=/path/to/node_modules node tests/finance_reporting_periods.js
 NODE_PATH=/path/to/node_modules node tests/finance_investments_components.js
+NODE_PATH=/path/to/node_modules node tests/finance_cashflow_components.js
 ```
 
 Run `test_family_finance_runtime.py` in a Python environment with the deployed
@@ -152,6 +180,11 @@ all three widths; its screenshots go to `/tmp/ha-finance-periods`.
 The investment suite checks compact panel heights, grouped totals and shares,
 recorded/pending status, keyboard drill-down, single/empty/many investments and
 access cleanup. Its screenshots go to `/tmp/ha-finance-investment-design`.
+
+The cashflow suite checks savings selection, exact cents, payment classification,
+repayment and self-transfer exclusions, period boundaries, opening balances,
+leap comparisons, account filters, drill-downs, empty states and privacy. Its
+screenshots go to `/tmp/ha-finance-cashflow`.
 
 See the [integration README](../../custom_components/family_finance/README.md)
 for data semantics, access control, and connection setup.

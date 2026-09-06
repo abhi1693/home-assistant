@@ -97,7 +97,7 @@ async function fixture(page, grouped = false, initiallyLoading = false) {
       ["worth",{title:"Net worth over time",range:"6m",mode:"total",compact:true},true],
       ["spending",{title:"Spending"},true],
       ["investments",{title:"Investments"},true],
-      ["accounts",{title:"Accounts",show_range_selector:false},grouped],
+      ["accounts",{title:"Savings & spending",savings_account_ids:[1,2]},true],
       ["bills",{title:"Scheduled bills"},grouped],
       ["cardcycle",{title:"Credit cards"},true],
     ];
@@ -240,7 +240,8 @@ async function sharedMonthCheck(page, width) {
   await categories.last().click();
   assert.equal(await page.locator('family-finance-spending-card .spend-txn-desc').count(),0);
   assert(await page.locator('family-finance-spending-card .spend-row-label').first().evaluate(el=>getComputedStyle(el).whiteSpace!=='nowrap'));
-  assert.equal(await page.locator('family-finance-accounts-card .account-item').count(),11);
+  assert.equal(await page.locator('family-finance-accounts-card .account-item').count(),0);
+  assert.equal(await page.locator('family-finance-accounts-card .savings-tabs button').count(),3);
   await page.getByRole('button',{name:'View income sources',exact:true}).click();
   await page.locator('.income-source').first().waitFor();
   assert.equal(await page.locator('.income-source').count(),3);
@@ -255,7 +256,7 @@ async function sharedMonthCheck(page, width) {
   assert.match(await page.locator('.income-source[open] .income-transaction-meta').last().innerText(),/Daily account/);
   await page.screenshot({path:path.join(OUTPUT,`finance-income-sources-${width}.png`),fullPage:true});
   await picker.fill(prior);
-  await page.locator('family-finance-accounts-card .num').filter({hasText:'91,000'}).waitFor();
+  await page.locator('family-finance-accounts-card .savings-total').filter({hasText:'7,31,000'}).waitFor();
   assert.equal(await page.locator('.income-breakdown').count(),0);
   assert.equal((await page.locator('.investment-total').innerText()).trim(),'₹2,000');
   assert.equal(await page.locator('.investment-row').count(),0);
@@ -290,17 +291,17 @@ async function sharedMonthCheck(page, width) {
   assert.equal(await page.locator('family-finance-worth-card .loading-spinner').count(),0);
   assert.equal(await page.locator('family-finance-spending-card .spend-txn-desc').count(),0);
   await picker.fill(current);
-  await page.locator('family-finance-accounts-card .num').filter({hasText:'72,000'}).waitFor();
+  await page.locator('family-finance-accounts-card .savings-total').filter({hasText:'7,12,000'}).waitFor();
   await page.evaluate(()=>{window.pendingMonths.forEach(resolve=>resolve());window.pendingMonths=[];});
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   assert.equal(await page.locator(`.card[data-reporting-month="${current}"]`).count(),6);
-  assert.equal(await page.locator('family-finance-accounts-card .num').filter({hasText:'91,000'}).count(),0);
+  assert.equal(await page.locator('family-finance-accounts-card .savings-total').filter({hasText:'7,31,000'}).count(),0);
   assert.equal(await page.locator('family-finance-stat-card .stat-value').innerText(),worth);
   assert.match(await stat.locator('.worth-balance-date').innerText(),/As of/);
   assert.equal(await page.locator('.loading-spinner').count(),0,'Obsolete month cannot leave a spinner running');
   assert.equal(await page.getByRole('button',{name:'Next month',exact:true}).isDisabled(),true);
   await picker.fill(prior);
-  await page.locator('family-finance-accounts-card .num').filter({hasText:'91,000'}).waitFor();
+  await page.locator('family-finance-accounts-card .savings-total').filter({hasText:'7,31,000'}).waitFor();
   await page.evaluate(()=>{
     const other=document.createElement('family-finance-month-card');other.id='other-month';
     other.setConfig({type:'custom:family-finance-month-card',month_group:'finance'});

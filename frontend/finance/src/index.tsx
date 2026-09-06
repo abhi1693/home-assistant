@@ -189,26 +189,12 @@ defineCard({
 
 defineCard({
   tag: "family-finance-accounts-card",
-  name: "Finance accounts",
-  description: "Accounts grouped by kind with balances and sync freshness.",
+  name: "Finance savings and spending",
+  description: "Savings balance history and purchases by payment method, with year comparisons.",
   component: AccountsCard,
-  schema: [
-    monthGroupField,
-    titleField,
-    entryField,
-    viewField,
-    rangeField,
-    rangeToggleField,
-    {
-      name: "accounts",
-      label: "Only these accounts (name match, empty = all)",
-      selector: { text: { multiple: true } },
-    },
-    themeField,
-    backgroundField,
-  ],
-  stub: { view: "all", range: "1m" },
-  size: 4,
+  schema: [monthGroupField, titleField, entryField, themeField, backgroundField],
+  stub: {},
+  size: 5,
 });
 
 // Spending cards (per-user feature on the netwrth side: accounts without it

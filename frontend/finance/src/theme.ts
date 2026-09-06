@@ -302,19 +302,55 @@ export function cardCss(mode: ThemeMode): string {
     .worth-component-label { font-size: 12px; }
   }
 
-  /* accounts card */
-  .account-groups { display: grid; gap: 22px; margin-top: 18px; }
-  .account-group h3 {
-    display: flex; align-items: center; gap: 8px; margin: 0 0 10px;
-    color: var(--nb-muted); text-transform: uppercase; font-size: 11px;
-    font-weight: 500; letter-spacing: 0.08em;
+  /* Savings balances and purchase payment methods, replacing account tiles. */
+  .cashflow-card { container-type: inline-size; container-name: cashflow; }
+  .cashflow-charts { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 28px; margin-top: 18px; }
+  .cashflow-charts section { min-width: 0; }
+  .payment-chart { border-left: 1px solid var(--nb-border); padding-left: 28px; }
+  .cashflow-chart-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; min-height: 62px; }
+  .cashflow-chart-head h3 { font-size: 13px; font-weight: 500; margin: 0 0 10px; }
+  .cashflow-chart-head > .muted { font-size: 11px; text-align: right; padding-top: 1px; }
+  .cashflow-chart-head strong { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .cashflow-chart-head small { font-size: 11px; font-weight: 400; color: var(--nb-muted); }
+  .savings-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin: 12px 0 4px; min-height: 28px; }
+  .savings-tabs button { background: transparent; padding: 5px 8px; border: 1px solid var(--nb-border); border-radius: 6px; color: var(--nb-muted); font-size: 11px; }
+  .savings-tabs button[aria-pressed="true"] { color: #60a5fa; border-color: #60a5fa; background: #60a5fa12; }
+  .cashflow-comparison { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--nb-muted); margin: 8px 0 0; }
+  .cashflow-comparison strong { font-weight: 500; color: var(--nb-text); }
+  .cashflow-legend { display: flex; flex-wrap: wrap; gap: 10px; color: var(--nb-muted); font-size: 10px; padding-top: 5px; }
+  .cashflow-legend span, .payment-method > span { display: inline-flex; align-items: center; gap: 7px; }
+  .cashflow-legend i, .payment-method i, .cashflow-tooltip i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
+  .payment-methods { display: grid; gap: 4px; margin: 8px 0 0; }
+  .payment-method { background: transparent; border: 0; color: inherit; font-family: inherit; display: grid; grid-template-columns: minmax(0,1fr) auto 42px; align-items: center; gap: 8px; text-align: left; padding: 4px 6px; margin: 0 -6px; border-radius: 5px; font-size: 11px; }
+  .payment-method:hover, .payment-method[aria-expanded="true"] { background: var(--nb-panel-2); }
+  .payment-method strong, .payment-account strong { font-size: 12px; font-weight: 550; font-variant-numeric: tabular-nums; }
+  .payment-method small { text-align: right; color: var(--nb-muted); font-size: 10px; }
+  .payment-explainer { background: transparent; border: 0; color: inherit; font: inherit; padding: 0; cursor: pointer; }
+  .payment-chart-scroll { overflow-x: auto; }
+  .cashflow-plot { height: 210px; }
+  .cashflow-empty { display: grid; place-items: center; min-height: 210px; color: var(--nb-muted); font-size: 12px; text-align: center; }
+  .cashflow-tooltip { background: var(--nb-panel-2); padding: 12px; border: 1px solid var(--nb-border); border-radius: 8px; font-size: 11px; max-width: 290px; }
+  .cashflow-tooltip p { display: flex; justify-content: space-between; gap: 18px; margin: 8px 0 0; }
+  .cashflow-tooltip b { display: block; margin-top: 8px; }
+  .cashflow-tooltip b:first-child { margin-top: 0; }
+  .cashflow-tooltip i { margin-right: 6px; }
+  .payment-account-details { border-top: 1px solid var(--nb-border); margin-top: 12px; padding-top: 8px; max-height: 190px; overflow-y: auto; }
+  .payment-account-heading { display: flex; align-items: center; justify-content: space-between; }
+  .payment-account-heading h4 { font-size: 11px; font-weight: 500; margin: 0; color: var(--nb-muted); }
+  .payment-account-heading button { background: transparent; border: 0; color: inherit; font-size: 20px; padding: 0 6px; }
+  .payment-account { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px 12px; font-size: 11px; padding: 7px 0; }
+  .payment-account strong, .payment-account small { text-align: right; }
+  .payment-account small { color: var(--nb-muted); font-size: 10px; }
+  .payment-account-track { height: 4px; background: var(--nb-panel-2); border-radius: 3px; align-self: center; }
+  .payment-account-track i { display: block; height: 100%; border-radius: inherit; }
+  @container cashflow (max-width: 740px) {
+    .cashflow-plot { height: 170px; }
+    .cashflow-empty { min-height: 170px; }
+    .cashflow-charts { grid-template-columns: minmax(0,1fr); gap: 22px; }
+    .payment-chart { border-left: 0; padding-left: 0; border-top: 1px solid var(--nb-border); padding-top: 20px; }
+    .cashflow-chart-head strong { font-size: 22px; }
+    .cashflow-chart-head > .muted { max-width: 110px; line-height: 1.5; }
   }
-  .account-group h3 span { border: 1px solid var(--nb-border); border-radius: 5px; padding: 2px 5px; }
-  .account-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 10px; }
-  .account-item { min-width: 0; padding: 14px; border: 1px solid var(--nb-border); border-radius: 10px; }
-  .account-figures { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 12px; }
-  .account-balance { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .row-delta { font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .dot {
     display: inline-block;
     width: 7px;
@@ -717,9 +753,6 @@ export function cardCss(mode: ThemeMode): string {
   .history-comparison-tooltip p { display: flex; gap: 18px; justify-content: space-between; }
   .worth-year-comparison { display: flex; flex-wrap: wrap; gap: 7px; color: var(--nb-muted); font-size: 11px; margin-top: 10px; }
   .worth-year-comparison strong { color: #fbbf24; }
-  .account-sparkline { display: block; width: 100%; height: 46px; margin-top: 12px; }
-  .account-comparison { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; margin-top: 8px; color: var(--nb-muted); }
-  .account-comparison strong { color: #fbbf24; }
   @media(max-width:600px) {
     .period-scroll-hint { display: block; font-size: 11px; color: var(--nb-muted); margin: 5px 0; }
     .period-selector-top { align-items: flex-start; }

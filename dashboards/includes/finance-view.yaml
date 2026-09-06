@@ -69,13 +69,11 @@ sections:
     visibility: *finance_visibility
     cards:
       - type: custom:family-finance-accounts-card
-        title: Accounts
+        title: Savings & spending
         allowed_user_id: *finance_user
         month_group: *finance_month
-        view: all
-        range: 1m
+        savings_account_ids: [1, 9, 16]  # HDFC, Digibank, SBI
         background: "off"
-        show_range_selector: false
         grid_options: { columns: 36, rows: auto }
   - type: grid
     column_span: 3

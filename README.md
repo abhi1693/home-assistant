@@ -16,7 +16,8 @@ Assistant installations.
 - Responsive family dashboard for desktop, tablet, and phone layouts.
 - Account-aware navigation, favorite rooms, calendars, cameras, and health data.
 - Abhimanyu-only finance dashboard with Firefly III ledger history, spending,
-  accounts, scheduled bills, and credit-card payments in INR, without a PIN.
+  savings and payment-method charts, scheduled bills, and credit-card payments
+  in INR, without a PIN.
 - Nested room pages that keep device controls bounded as rooms gain new devices.
 - Senior-friendly Atomberg fan controls with direct speeds, light, sleep, timer,
   unavailable-device guidance, and cloud-quota protection.
@@ -149,7 +150,11 @@ matches replace their expected amounts. Investment transfers remain outside
 income and spending. The shared period control supports months, calendar years,
 April–March financial years, custom dates and year comparisons. All panels
 reuse the same charts; actuals use matching elapsed comparison dates, and
-account balances are snapshots at the period end. The net-worth summary follows
+savings balances are plotted over time with a closing total at the period end.
+A separate daily/monthly purchase chart compares direct savings payments with
+credit-card spending, excluding self-transfers and card repayments. Its method
+breakdown expands to contributing accounts; the full balance inventory remains
+in Firefly. The net-worth summary follows
 every selected period, comparing its closing balance with the previous day's
 closing balance before the period began. The net-worth history chart keeps its
 own range in ordinary Month mode.
