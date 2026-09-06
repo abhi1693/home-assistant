@@ -1,5 +1,5 @@
 import Ambient from "../components/Ambient";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Hass,
   fetchSeries,
@@ -13,7 +13,8 @@ import {
   useNetwrthCore,
   useChartWidth,
 } from "./common";
-import { MonthNav, amt, currentMonth } from "./spendingCommon";
+import { MonthNav, amt, monthLabel } from "./spendingCommon";
+import { useReportingMonth } from "../lib/reportingMonth";
 
 // The credit-card cycle: per card, how the balance climbs with purchases
 // and drops at payments across the selected month, with the month's
@@ -50,7 +51,7 @@ export default function CardCycleCard({
   config: CardCycleCardConfig;
 }) {
   const { ref: chartRef, width: W } = useChartWidth();
-  const [month, setMonth] = useState(currentMonth());
+  const [month, setMonth] = useReportingMonth(hass, config.month_group);
   // Hover bubble: what the cursor's x-position means on that card's line —
   // replaces the static legend with the answer in place.
   const [hover, setHover] = useState<{
@@ -61,6 +62,7 @@ export default function CardCycleCard({
     note: string;
   } | null>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => { setHover(null); }, [month]);
   // One card renders at a time; the chips are tabs. Many-card accounts
   // stay one chart tall instead of stacking a chart per card.
   const [selectedCard, setSelectedCard] = useState<number | null>(null);
@@ -79,7 +81,8 @@ export default function CardCycleCard({
   const { overview, data, masked, error, refresh } = useNetwrthCore<Payload>(
     hass,
     config.entry,
-    fetchData
+    fetchData,
+    month
   );
   const cards = useMemo(
     () => (overview?.accounts ?? []).filter((a) => a.kind === "credit"),
@@ -167,12 +170,12 @@ export default function CardCycleCard({
   };
 
   return (
-    <div className="card" ref={chartRef}>
+    <div className="card" ref={chartRef} data-reporting-month={month}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Card credit"}</h2>
         <span className="head-right">
-          <MonthNav month={month} onChange={setMonth} />
+          {config.month_group ? <span className="muted">{monthLabel(month)}</span> : <MonthNav month={month} onChange={setMonth} />}
         </span>
       </div>
       {error && <div className="error-box">{error}</div>}

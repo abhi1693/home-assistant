@@ -9,6 +9,7 @@ import {
   fetchSpendingTransactions,
 } from "../lib/ha";
 import { SpendingSummary, SpendingTxn } from "../lib/types";
+import { useReportingMonth } from "../lib/reportingMonth";
 import { BaseCardConfig, ambientEffect, useNetwrthCore } from "./common";
 import {
   MonthNav,
@@ -16,6 +17,7 @@ import {
   PER_MONTH,
   amt,
   currentMonth,
+  monthLabel,
   themeColor,
 } from "./spendingCommon";
 
@@ -137,12 +139,18 @@ export default function SpendingCard({
   hass: Hass;
   config: SpendingCardConfig;
 }) {
-  const [month, setMonth] = useState(currentMonth());
+  const [month, setMonth] = useReportingMonth(hass, config.month_group);
   const [openTheme, setOpenTheme] = useState<string | null>(null);
   const [txns, setTxns] = useState<SpendingTxn[] | null>(null);
   const [txnError, setTxnError] = useState<string | null>(null);
   const requestSequence = useRef(0);
-  useEffect(() => () => { requestSequence.current += 1; }, []);
+  useEffect(() => {
+    requestSequence.current += 1;
+    setOpenTheme(null);
+    setTxns(null);
+    setTxnError(null);
+    return () => { requestSequence.current += 1; };
+  }, [month]);
 
   const fetchData = useCallback(
     (h: Hass, e: string | undefined) =>
@@ -154,15 +162,9 @@ export default function SpendingCard({
   const { overview, data, masked, error, refresh } = useNetwrthCore<Payload>(
     hass,
     config.entry,
-    fetchData
+    fetchData,
+    month
   );
-
-  const setMonthAndClose = (m: string) => {
-    requestSequence.current += 1;
-    setMonth(m);
-    setOpenTheme(null);
-    setTxns(null);
-  };
 
   const toggleTheme = (theme: string) => {
     const sequence = ++requestSequence.current;
@@ -205,12 +207,12 @@ export default function SpendingCard({
       : null;
 
   return (
-    <div className="card">
+    <div className="card" data-reporting-month={month}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Spending"}</h2>
         <span className="head-right">
-          <MonthNav month={month} onChange={setMonthAndClose} />
+          {config.month_group ? <span className="muted">{monthLabel(month)}</span> : <MonthNav month={month} onChange={setMonth} />}
         </span>
       </div>
       {error && <div className="error-box">{error}</div>}

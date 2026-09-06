@@ -19,6 +19,14 @@ credit-card history still show these accounts.
 Chart axes and hover dates include the year whenever the displayed history
 includes another calendar year, using the dashboard's Asia/Kolkata timezone.
 
+`family-finance-month-card` provides the top reporting-month control. Set the
+same `month_group` on it and the spending, accounts, bills, and card-cycle cards
+to synchronize them; grouped cards show a month label instead of a separate
+picker. Net-worth cards keep their independent range. The selection is scoped
+to the HA connection, user and group in memory. Month changes clear obsolete
+figures and spending drill-downs while the selected period loads. Ungrouped
+cards retain their standalone controls.
+
 Build with Node.js and the committed dependency lockfile:
 
 ```sh

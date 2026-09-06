@@ -338,6 +338,17 @@ export function cardCss(mode: ThemeMode): string {
   /* ---- spending cards (styles mirror the app's globals.css spend-* set,
      retargeted onto the --nb tokens) ---- */
   .spend-month-label { min-width: 120px; cursor: default; }
+  .reporting-month-card, .reporting-month-controls {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .reporting-month-card { justify-content: space-between; }
+  .reporting-month-card h2 { margin: 0; }
+  .month-picker {
+    color-scheme: dark; color: var(--nb-text); background: var(--nb-panel-2);
+    border: 0; font: inherit; padding: 6px 8px; width: 172px; min-height: 36px;
+    box-sizing: border-box;
+  }
+  .month-picker:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
   /* Stat strip (mirrors the web's spend-headstrip merge): inline
      label/value pairs instead of tiles. */
   .spend-stats {

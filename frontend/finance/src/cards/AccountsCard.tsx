@@ -4,6 +4,8 @@ import { Hass } from "../lib/ha";
 import { money, pct } from "../lib/format";
 import { Account, RANGES, RangeKey } from "../lib/types";
 import { VIEWS, ViewKey } from "../lib/views";
+import { useReportingMonth } from "../lib/reportingMonth";
+import { monthLabel } from "./spendingCommon";
 import {
   BaseCardConfig,
   Segmented,
@@ -60,7 +62,8 @@ export default function AccountsCard({
 }) {
   const view = VIEWS.find((v) => v.key === (config.view ?? "all")) ?? VIEWS[2];
   const [range, setRange] = useState<RangeKey>(config.range ?? "1m");
-  const { overview, series, masked, error, refresh } = useNetwrth(hass, config.entry, range);
+  const [month] = useReportingMonth(hass, config.month_group);
+  const { overview, series, masked, error, refresh } = useNetwrth(hass, config.entry, range, config.month_group ? month : undefined);
   const visible = overview?.accounts ?? [];
   const nameFilter = config.accounts;
   const accounts = useMemo(() => {
@@ -105,12 +108,13 @@ export default function AccountsCard({
   );
 
   return (
-    <div className="card">
+    <div className="card" data-reporting-month={config.month_group ? month : undefined}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Accounts"}</h2>
         <span className="head-right">
-          {config.show_controls !== false && config.show_range_selector !== false && (
+          {config.month_group && <span className="muted" title="Closing balances for the selected month; current month is as of today">{monthLabel(month)}</span>}
+          {!config.month_group && config.show_controls !== false && config.show_range_selector !== false && (
             <span className="controls">
               <Segmented options={RANGES} value={range} onChange={setRange} />
             </span>

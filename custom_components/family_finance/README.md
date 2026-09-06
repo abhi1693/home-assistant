@@ -6,6 +6,12 @@ without a PIN. Every `family_finance/*` WebSocket command checks that exact
 active HA user before accessing a client/cache and again before returning data.
 There is no administrator bypass on these commands.
 
+The top reporting-month selector controls spending, accounts, bill schedules,
+and credit-card history together. Past account balances are read at month end;
+the current month uses today's balances. Net-worth cards retain their own
+range. The chosen month stays in memory for this browser's HA connection and
+user, without a shared HA helper or persistent browser storage.
+
 ## Connection
 
 Configure the built-in **Firefly III** integration under **Settings > Devices &

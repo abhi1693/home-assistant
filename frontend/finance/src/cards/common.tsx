@@ -20,6 +20,7 @@ export type BaseCardConfig = {
   // a card that blends into someone's theme shouldn't bring its own weather.
   background?: AmbientEffect;
   allowed_user_id?: string;
+  month_group?: string;
 };
 
 // Overlays (chart hover bubbles) must float above neighbouring cards. No
@@ -95,28 +96,27 @@ export function useChartWidth() {
 export function useNetwrthCore<T>(
   hass: Hass,
   entry: string | undefined,
-  fetchData: (hass: Hass, entry: string | undefined) => Promise<{ data: T; censored: boolean }>
+  fetchData: (hass: Hass, entry: string | undefined) => Promise<{ data: T; censored: boolean }>,
+  overviewMonth?: string
 ) {
-  const [overview, setOverview] = useState<Overview | null>(null);
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{
+    source: typeof fetchData; connection: Hass["connection"]; userId?: string;
+    entry?: string; month?: string; overview: Overview | null; data: T | null; error: string | null;
+  } | null>(null);
   const [tick, setTick] = useState(0);
   const refresh = useCallback(() => setTick((t) => t + 1), []);
   useEffect(() => {
     let alive = true;
-    Promise.all([fetchOverview(hass, entry), fetchData(hass, entry)])
+    const identity = { source: fetchData, connection: hass.connection, userId: hass.user?.id, entry, month: overviewMonth };
+    Promise.all([fetchOverview(hass, entry, overviewMonth), fetchData(hass, entry)])
       .then(([ov, out]) => {
         if (!alive) return;
         if (ov.currency !== "INR") throw new Error("Finance requires INR data");
-        setOverview(ov);
-        setData(out.data);
-        setError(null);
+        setResult({ ...identity, overview: ov, data: out.data, error: null });
       })
       .catch((e) => {
         if (!alive) return;
-        setData(null);
-        setOverview(null);
-        setError(e?.message ?? "Unable to load finance data");
+        setResult({ ...identity, overview: null, data: null, error: e?.message ?? "Unable to load finance data" });
       });
     const timer = setInterval(refresh, REFRESH_MS);
     const wake = () => { if (document.visibilityState === "visible") refresh(); };
@@ -126,21 +126,25 @@ export function useNetwrthCore<T>(
       clearInterval(timer);
       document.removeEventListener("visibilitychange", wake);
     };
-  }, [hass.connection, hass.user?.id, entry, fetchData, tick, refresh]);
-  return { overview, data, masked: false, error, refresh };
+  }, [hass.connection, hass.user?.id, entry, fetchData, overviewMonth, tick, refresh]);
+  // Never label the previous month's figures with a newly selected month.
+  const current = result?.source === fetchData && result.connection === hass.connection &&
+    result.userId === hass.user?.id && result.entry === entry && result.month === overviewMonth ? result : null;
+  return { overview: current?.overview ?? null, data: current?.data ?? null, masked: false, error: current?.error ?? null, refresh };
 }
 
 // The original account-series cycle, now a thin wrapper over the core.
-export function useNetwrth(hass: Hass, entry: string | undefined, range: RangeKey) {
+export function useNetwrth(hass: Hass, entry: string | undefined, range: RangeKey, month?: string) {
   const fetchData = useCallback(
     (h: Hass, e: string | undefined) =>
-      fetchSeries(h, e, range).then((se) => ({ data: se.series, censored: se.censored })),
-    [range]
+      fetchSeries(h, e, range, month).then((se) => ({ data: se.series, censored: se.censored })),
+    [range, month]
   );
   const { overview, data, masked, error, refresh } = useNetwrthCore<AccountSeries[]>(
     hass,
     entry,
-    fetchData
+    fetchData,
+    month
   );
   return { overview, series: data, masked, error, refresh };
 }

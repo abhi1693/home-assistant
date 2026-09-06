@@ -3,6 +3,7 @@
 import asyncio
 import importlib.util
 import json
+from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -14,7 +15,7 @@ if HAS_HA:
     from aiohttp import ClientSession, web
     from custom_components.family_finance import CONFIG_SCHEMA, async_setup
     from custom_components.family_finance.client import FireflyClient
-    from custom_components.family_finance.model import FinanceError
+    from custom_components.family_finance.model import FinanceError, ZONE
 
 
 @unittest.skipUnless(HAS_HA, "Requires the deployed Home Assistant version")
@@ -139,3 +140,26 @@ class FinanceRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(selected, [1, 2])
         self.assertEqual([s["account_id"] for s in result["series"]], [1, 2])
         self.assertTrue(all(s["points"][-1]["balance"] == "120.00" for s in result["series"]))
+
+    async def test_overview_month_uses_closing_balances_and_keeps_current_cache_separate(self):
+        now = datetime(2026, 9, 6, 12, tzinfo=ZONE)
+        queried = []
+        async def pages(path, params):
+            queried.append(params["date"])
+            return [{"id": "1", "attributes": {"name": "Account", "type": "asset",
+                     "currency_code": "INR", "current_balance": "250" if params["date"] == "2026-08-31" else "400"}}]
+        client = FireflyClient(Mock(), "http://firefly.invalid", "test-only", {})
+        with patch("custom_components.family_finance.client.datetime") as clock, \
+             patch.object(client, "pages", side_effect=pages):
+            clock.now.return_value = now
+            august = await client.request("overview", {"month": "2026-08"})
+            current = await client.request("overview", {})
+            september = await client.request("overview", {"month": "2026-09"})
+            august_again = await client.request("overview", {"month": "2026-08"})
+            with self.assertRaisesRegex(FinanceError, "Select a month"):
+                await client.request("overview", {"month": "2026-10"})
+        self.assertEqual(queried, ["2026-08-31", "2026-09-06"])
+        self.assertEqual(august["accounts"][0]["balance"], "250")
+        self.assertEqual(current["accounts"][0]["balance"], "400")
+        self.assertEqual(september["accounts"], current["accounts"])
+        self.assertEqual(august_again["accounts"], august["accounts"])

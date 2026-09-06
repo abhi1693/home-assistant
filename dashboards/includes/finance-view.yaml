@@ -19,9 +19,14 @@ sections:
         icon: mdi:finance
         heading_style: title
         grid_options: { columns: 36, rows: auto }
+      - type: custom:family-finance-month-card
+        title: Reporting month
+        allowed_user_id: &finance_user 9302d11f48c64fe796a3c9e5cb563650
+        month_group: &finance_month finance
+        grid_options: { columns: 36, rows: auto }
       - type: custom:family-finance-stat-card
         title: Tracked net worth
-        allowed_user_id: &finance_user 9302d11f48c64fe796a3c9e5cb563650
+        allowed_user_id: *finance_user
         view: all
         range: 1m
         layout: banner
@@ -44,6 +49,7 @@ sections:
       - type: custom:family-finance-spending-card
         title: Monthly spending
         allowed_user_id: *finance_user
+        month_group: *finance_month
         background: "off"
         grid_options: { columns: 36, rows: auto }
   - type: grid
@@ -53,6 +59,7 @@ sections:
       - type: custom:family-finance-accounts-card
         title: Accounts
         allowed_user_id: *finance_user
+        month_group: *finance_month
         view: all
         range: 1m
         background: "off"
@@ -65,6 +72,7 @@ sections:
       - type: custom:family-finance-bills-card
         title: Scheduled bills
         allowed_user_id: *finance_user
+        month_group: *finance_month
         background: "off"
         grid_options: { columns: 24, rows: auto }
   - type: grid
@@ -74,6 +82,7 @@ sections:
       - type: custom:family-finance-cardcycle-card
         title: Credit cards
         allowed_user_id: *finance_user
+        month_group: *finance_month
         background: "off"
         grid_options: { columns: 36, rows: auto }
       - type: markdown

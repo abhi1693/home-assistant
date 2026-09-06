@@ -43,6 +43,8 @@ export function currentMonth(): string {
   return new Intl.DateTimeFormat("en-CA", {timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit"}).format(new Date()).slice(0, 7);
 }
 
+export const FIRST_REPORTING_MONTH = "1970-02";
+
 export function shiftMonth(month: string, delta: number): string {
   const [y, m] = month.split("-").map(Number);
   const d = new Date(Date.UTC(y, m - 1 + delta, 1));
@@ -62,14 +64,18 @@ export function monthLabel(month: string): string {
 export function MonthNav({
   month,
   onChange,
+  picker = false,
 }: {
   month: string;
   onChange: (m: string) => void;
+  picker?: boolean;
 }) {
   return (
     <span className="seg">
-      <button aria-label="Previous month" onClick={() => onChange(shiftMonth(month, -1))}>‹</button>
-      <button className="active spend-month-label">{monthLabel(month)}</button>
+      <button aria-label="Previous month" onClick={() => onChange(shiftMonth(month, -1))} disabled={month <= FIRST_REPORTING_MONTH}>‹</button>
+      {picker ? <input className="month-picker" type="month" aria-label="Reporting month"
+        value={month} min={FIRST_REPORTING_MONTH} max={currentMonth()} onChange={(event) => onChange(event.target.value)} />
+        : <button className="active spend-month-label">{monthLabel(month)}</button>}
       <button aria-label="Next month" onClick={() => onChange(shiftMonth(month, 1))} disabled={month >= currentMonth()}>
         ›
       </button>

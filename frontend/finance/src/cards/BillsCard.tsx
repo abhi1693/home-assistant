@@ -1,5 +1,5 @@
 import Ambient from "../components/Ambient";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Hass,
   SpendingRecurring,
@@ -7,7 +7,8 @@ import {
 } from "../lib/ha";
 import { RecurringStream } from "../lib/types";
 import { BaseCardConfig, ambientEffect, useNetwrthCore, useChartWidth } from "./common";
-import { MonthNav, amt, currentMonth, themeColor } from "./spendingCommon";
+import { MonthNav, amt, monthLabel, themeColor } from "./spendingCommon";
+import { useReportingMonth } from "../lib/reportingMonth";
 
 // The recurring-bills calendar: day of month across, cost up. Vendored from
 // frontend/components/spending/SubscriptionCalendar.tsx in the app repo
@@ -70,8 +71,9 @@ export default function BillsCard({
   config: BillsCardConfig;
 }) {
   const { ref: chartRef, width: W } = useChartWidth();
-  const [month, setMonth] = useState(currentMonth());
+  const [month, setMonth] = useReportingMonth(hass, config.month_group);
   const [hover, setHover] = useState<string | null>(null);
+  useEffect(() => setHover(null), [month]);
   const [broken, setBroken] = useState<Set<string>>(new Set());
 
   const fetchData = useCallback(
@@ -82,7 +84,8 @@ export default function BillsCard({
   const { overview, data, masked, error, refresh } = useNetwrthCore<SpendingRecurring>(
     hass,
     config.entry,
-    fetchData
+    fetchData,
+    month
   );
 
   const streams = data?.streams ?? [];
@@ -226,12 +229,12 @@ export default function BillsCard({
   const empty = marks.length === 0 && pills.length === 0 && strip.length === 0;
 
   return (
-    <div className="card" ref={chartRef}>
+    <div className="card" ref={chartRef} data-reporting-month={month}>
       <Ambient effect={ambientEffect(config)} />
       <div className="head">
         <h2>{config.title ?? "Recurring bills"}</h2>
         <span className="head-right">
-          <MonthNav month={month} onChange={setMonth} />
+          {config.month_group ? <span className="muted">{monthLabel(month)}</span> : <MonthNav month={month} onChange={setMonth} />}
         </span>
       </div>
       {error && <div className="error-box">{error}</div>}

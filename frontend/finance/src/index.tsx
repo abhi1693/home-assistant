@@ -4,6 +4,7 @@ import CardCycleCard from "./cards/CardCycleCard";
 import SpendingCard from "./cards/SpendingCard";
 import StatCard from "./cards/StatCard";
 import WorthCard from "./cards/WorthCard";
+import MonthSelectorCard from "./cards/MonthSelectorCard";
 import { defineCard } from "./registerCard";
 
 const themeField = {
@@ -39,6 +40,7 @@ const backgroundField = {
 
 
 const entryField = { name: "entry", label: "Firefly connection", selector: {} };
+const monthGroupField = { name: "month_group", label: "Shared month group", selector: { text: {} } };
 const titleField = { name: "title", label: "Title", selector: { text: {} } };
 const viewField = {
   name: "view",
@@ -79,6 +81,17 @@ const compactField = {
   label: "Short axis amounts (₹1.2L instead of ₹1,20,000)",
   selector: { boolean: {} },
 };
+
+defineCard({
+  tag: "family-finance-month-card",
+  name: "Finance reporting month",
+  description: "Select the month for spending, accounts, bills and credit cards.",
+  component: MonthSelectorCard,
+  defaults: { month_group: "finance" },
+  schema: [titleField, monthGroupField, themeField],
+  stub: { month_group: "finance" },
+  size: 1,
+});
 
 defineCard({
   tag: "family-finance-worth-card",
@@ -177,6 +190,7 @@ defineCard({
   description: "Accounts grouped by kind with balances and sync freshness.",
   component: AccountsCard,
   schema: [
+    monthGroupField,
     titleField,
     entryField,
     viewField,
@@ -203,6 +217,7 @@ defineCard({
   description: "Where the month's money went: totals, share donut, and theme breakdown.",
   component: SpendingCard,
   schema: [
+    monthGroupField,
     titleField,
     entryField,
     {
@@ -227,7 +242,7 @@ defineCard({
   name: "Finance recurring bills",
   description: "Calendar of the month's bills and income — charged, expected, and overdue.",
   component: BillsCard,
-  schema: [titleField, entryField, themeField, backgroundField],
+  schema: [titleField, entryField, monthGroupField, themeField, backgroundField],
   stub: {},
   size: 5,
 });
@@ -237,7 +252,7 @@ defineCard({
   name: "Finance credit cards",
   description: "Per credit card: balance through the month with payment markers.",
   component: CardCycleCard,
-  schema: [titleField, entryField, themeField, backgroundField],
+  schema: [titleField, entryField, monthGroupField, themeField, backgroundField],
   stub: {},
   size: 4,
 });

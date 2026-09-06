@@ -74,13 +74,14 @@ class FireflyClient:
             self.cache.popitem(last=False)
         return value
 
-    async def accounts(self, now: datetime) -> list:
+    async def accounts(self, now: datetime, month: str | None = None) -> list:
+        as_of = min(month_window(month, now.date())[1], now.date()) if month else now.date()
         async def fetch():
             # Include closed accounts for historical totals. Expense/revenue
             # counterparties are filtered before sending anything to a card.
-            raw = await self.pages("accounts", {"type": "all", "date": now.date().isoformat()})
+            raw = await self.pages("accounts", {"type": "all", "date": as_of.isoformat()})
             return accounts_payload(raw, self.overrides)
-        return await self.cached(("accounts", now.date()), fetch)
+        return await self.cached(("accounts", as_of), fetch)
 
     async def transactions(self, month: str, accounts: list, now: datetime) -> list:
         async def fetch():
@@ -94,7 +95,7 @@ class FireflyClient:
         # thundering herd against the small Firefly deployment.
         async with self.lock:
             now = datetime.now(ZONE)
-            accounts = await self.accounts(now)
+            accounts = await self.accounts(now, msg.get("month"))
             if kind == "entries":
                 return [{"entry_id": "firefly", "title": "Firefly III", "scope": "read_full"}]
             if kind == "overview":
@@ -132,7 +133,7 @@ class FireflyClient:
                         })
                         output.append(series_payload(account, raw, now))
                     return {"series": output, "censored": False}
-                return await self.cached((kind, msg.get("range"), msg.get("month"), now.date()), fetch)
+                return await self.cached((kind, None if msg.get("month") else msg.get("range"), msg.get("month"), now.date()), fetch)
             if kind == "spending_recurring":
                 async def fetch():
                     start, end = month_window(month, now.date())

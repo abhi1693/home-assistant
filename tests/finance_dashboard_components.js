@@ -7,7 +7,7 @@ const ROOT = path.resolve(__dirname, "..");
 const OUTPUT = process.env.HA_FINANCE_TEST_OUTPUT || "/tmp/ha-finance-components";
 const OWNER = "9302d11f48c64fe796a3c9e5cb563650";
 
-async function fixture(page) {
+async function fixture(page, grouped = false) {
   await page.route("http://finance.test/**", route => route.fulfill({
     contentType: "text/html", body: "<!doctype html><title>Finance test data</title>"
   }));
@@ -20,7 +20,7 @@ async function fixture(page) {
   </style><main><header class="full"><h1>Abhimanyu · Finance</h1><p class="note">Sample ledger for browser validation</p></header></main>`);
   await page.addScriptTag({path: path.join(ROOT, "www/family-finance-cards.js"), type: "module"});
   await page.waitForFunction(() => customElements.get("family-finance-worth-card"));
-  await page.evaluate(owner => {
+  await page.evaluate(({owner,grouped}) => {
     const today = new Date();
     const month = new Intl.DateTimeFormat("en-CA", {timeZone:"Asia/Kolkata", year:"numeric",month:"2-digit"}).format(today).slice(0,7);
     const now = today.toISOString();
@@ -40,13 +40,15 @@ async function fixture(page) {
       first_seen:"2026-01-01",last_seen:`${month}-02`,count:1,logo_url:null,
     }],actuals:[{merchant_key:"rent",date:`${month}-02`,amount:"25000",is_income:false}],expected:[]};
     window.messages=[];
+    window.pendingMonths=[];
     const connection={sendMessagePromise:async msg=>{
       window.messages.push(msg);
+      if(msg.month&&msg.month===window.delayedMonth)await new Promise(resolve=>window.pendingMonths.push(resolve));
       const kind=msg.type.split("/")[1];
-      if(kind==="overview")return overview;
+      if(kind==="overview")return {...overview,accounts:accounts.map(a=>({...a,balance:msg.month&&msg.month!==month&&a.id===1?"91000":a.balance}))};
       if(kind==="series")return {series,censored:false};
       if(kind==="spending_recurring")return {...recurring,month:msg.month};
-      if(kind==="spending_summary")return {month:msg.month,censored:false,total_spend:"32000",total_income:"125000",themes:[
+      if(kind==="spending_summary")return {month:msg.month,censored:false,total_spend:msg.month!==month?"45000":"32000",total_income:"125000",themes:[
         {theme:"Housing",total:"25000",count:1},{theme:"Groceries",total:"5000",count:7},{theme:"Dining",total:"2000",count:3},
       ]};
       if(kind==="spending_transactions")return {month:msg.month,censored:false,transactions:[{
@@ -56,6 +58,7 @@ async function fixture(page) {
     }};
     window.hass={user:{id:owner},connection};
     const cards=[
+      ...(grouped?[["month",{title:"Reporting month",month_group:"finance"},true]]:[]),
       ["stat",{title:"Tracked net worth",layout:"banner",show_range_selector:false,range:"1m"},true],
       ["worth",{title:"Net worth over time",range:"6m",mode:"total",compact:true},true],
       ["spending",{title:"Monthly spending"},true],
@@ -65,14 +68,62 @@ async function fixture(page) {
     ];
     for(const [kind,config,full] of cards){
       const card=document.createElement(`family-finance-${kind}-card`);
-      card.setConfig({type:`custom:family-finance-${kind}-card`,allowed_user_id:owner,background:"off",...config});
+      const shared=grouped&&["spending","accounts","bills","cardcycle"].includes(kind)?{month_group:"finance"}:{};
+      card.setConfig({type:`custom:family-finance-${kind}-card`,allowed_user_id:owner,background:"off",...config,...shared});
       if(full)card.className="full";
       card.hass=window.hass;
       document.querySelector("main").append(card);
     }
-  }, OWNER);
+  }, {owner:OWNER,grouped});
   await page.locator("family-finance-stat-card .stat-value").waitFor();
   await page.waitForFunction(() => [...document.querySelectorAll("main > [class],main > family-finance-accounts-card,main > family-finance-bills-card")].every(c=>!c.shadowRoot?.textContent.includes("Loading…")));
+}
+
+async function sharedMonthCheck(page, width) {
+  await fixture(page, true);
+  const picker=page.locator('main family-finance-month-card input[type="month"]');
+  const current=await picker.inputValue();
+  const previous=new Date(`${current}-01T00:00:00Z`);previous.setUTCMonth(previous.getUTCMonth()-1);
+  const prior=previous.toISOString().slice(0,7);
+  previous.setUTCMonth(previous.getUTCMonth()-1);const delayed=previous.toISOString().slice(0,7);
+  const worth=await page.locator('family-finance-stat-card .stat-value').innerText();
+  const independent=await page.evaluate(()=>window.messages.filter(m=>!m.month).length);
+  assert.equal(await page.getByRole('button',{name:'Previous month',exact:true}).count(),1);
+  await picker.fill(prior);
+  await page.locator('family-finance-accounts-card .num').filter({hasText:'91,000'}).waitFor();
+  assert.equal(await page.locator(`.card[data-reporting-month="${prior}"]`).count(),4);
+  const requested=await page.evaluate(month=>window.messages.filter(m=>m.month===month).map(m=>m.type),prior);
+  for(const kind of ['overview','series','spending_summary','spending_recurring','spending_transactions'])assert(requested.includes(`family_finance/${kind}`));
+  assert.equal(await page.locator('family-finance-stat-card .stat-value').innerText(),worth);
+  assert.equal(await page.evaluate(()=>window.messages.filter(m=>!m.month).length),independent);
+  await page.locator('family-finance-spending-card .spend-row').first().click();
+  await page.locator('family-finance-spending-card .spend-txn-desc').first().waitFor();
+  await page.evaluate(month=>window.delayedMonth=month,delayed);
+  await picker.fill(delayed);
+  await page.locator('family-finance-accounts-card .status').filter({hasText:'Loading'}).waitFor();
+  assert.equal(await page.locator('family-finance-spending-card .spend-txn-desc').count(),0);
+  await picker.fill(current);
+  await page.locator('family-finance-accounts-card .num').filter({hasText:'72,000'}).waitFor();
+  await page.evaluate(()=>{window.pendingMonths.forEach(resolve=>resolve());window.pendingMonths=[];});
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  assert.equal(await page.locator(`.card[data-reporting-month="${current}"]`).count(),4);
+  assert.equal(await page.locator('family-finance-accounts-card .num').filter({hasText:'91,000'}).count(),0);
+  assert.equal(await page.locator('family-finance-stat-card .stat-value').innerText(),worth);
+  assert.equal(await page.getByRole('button',{name:'Next month',exact:true}).isDisabled(),true);
+  await picker.fill(prior);
+  await page.locator('family-finance-accounts-card .num').filter({hasText:'91,000'}).waitFor();
+  await page.evaluate(()=>{
+    const other=document.createElement('family-finance-month-card');other.id='other-month';
+    other.setConfig({type:'custom:family-finance-month-card',month_group:'finance'});
+    other.hass={...window.hass,user:{id:'another-user'}};document.body.append(other);
+  });
+  const other=page.locator('#other-month input[type="month"]');
+  assert.equal(await other.inputValue(),current);
+  await other.fill(delayed);
+  assert.equal(await picker.inputValue(),prior);
+  await page.evaluate(()=>document.querySelector('#other-month').remove());
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`Shared control overflow at ${width}`);
+  await page.screenshot({path:path.join(OUTPUT,`finance-shared-month-${width}.png`),fullPage:true});
 }
 
 (async()=>{
@@ -106,8 +157,10 @@ async function fixture(page) {
       assert.equal(await page.locator(".stat-value").count(),0);
       assert.equal(await page.evaluate(()=>window.messages.length),before);
       assert.deepEqual(errors,[]);
+      await sharedMonthCheck(page, width);
+      assert.deepEqual(errors,[]);
       await page.close();
     }
   } finally { await browser.close(); }
-  console.log(`Finance desktop/tablet/mobile, INR, drill-down, month requests and account switching passed. Screenshots: ${OUTPUT}`);
+  console.log(`Finance desktop/tablet/mobile, INR, drill-down, standalone/shared month controls, stale-response handling and account isolation passed. Screenshots: ${OUTPUT}`);
 })().catch(e=>{console.error(e);process.exitCode=1;});

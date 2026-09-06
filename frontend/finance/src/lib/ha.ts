@@ -49,9 +49,10 @@ export type Overview = {
 
 export type EntryInfo = { entry_id: string; title: string; scope: string | null };
 
-export function fetchOverview(hass: Hass, entry?: string): Promise<Overview> {
+export function fetchOverview(hass: Hass, entry?: string, month?: string): Promise<Overview> {
   return hass.connection.sendMessagePromise<Overview>({
     type: "family_finance/overview",
+    ...(month ? { month } : {}),
     ...(entry ? { entry_id: entry } : {}),
   });
 }
