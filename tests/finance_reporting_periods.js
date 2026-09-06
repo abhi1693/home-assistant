@@ -3,6 +3,7 @@ const path=require('node:path');
 const fs=require('node:fs');
 const {chromium}=require('playwright');
 const {fixture}=require('./finance_dashboard_components');
+const {assertChartFit}=require('./finance_chart_fit');
 const OUTPUT=process.env.HA_FINANCE_TEST_OUTPUT||'/tmp/ha-finance-periods';
 
 async function periodFixture(page) {
@@ -44,7 +45,8 @@ async function periodFixture(page) {
       if(kind==='spending_investments')return {month:start.slice(0,7),censored:false,
         total_recorded:String(observed.length*500),total_pending:'0',total_committed:String(observed.length*500),
         recorded:observed.map((m,i)=>({id:String(i),date:`${m}-01`,name:'Sample fund',amount:'500',status:'recorded',source_account_id:1,destination_account_id:12})),expected:[],
-        monthly:months.map(m=>({month:m,total:`${m}-01`<=asOf?'500':null}))};
+        monthly:months.map(m=>({month:m,total:`${m}-01`<=asOf?'500':null})),
+        planned_monthly:months.map(m=>({month:m,total:`${m}-01`>asOf?'500':null}))};
       if(kind==='spending_transactions')return {month:start.slice(0,7),censored:false,transactions:observed.flatMap((m,i)=>[
         {id:i*10+1,posted_at:`${m}-01T12:00:00+05:30`,account_id:3,transaction_type:'withdrawal',amount:String(values(m).spend*.8),theme:'Housing',merchant:'Sample housing',description:'Sample housing',pending:false},
         {id:i*10+2,posted_at:`${m}-01T12:00:00+05:30`,account_id:1,transaction_type:'withdrawal',amount:String(values(m).spend*.2),theme:'Groceries',merchant:'Sample groceries',description:'Sample groceries',pending:false},
@@ -62,12 +64,13 @@ async function periodFixture(page) {
 async function ready(page) {
   await page.waitForFunction(()=>[...document.querySelectorAll('main > *')].every(el=>!el.shadowRoot?.querySelector('.card[aria-busy="true"]')));
   assert.equal(await page.locator('.error-box').count(),0);
+  await assertChartFit(page);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'Period charts must not widen the page');
 }
 (async()=>{
  fs.mkdirSync(OUTPUT,{recursive:true});const browser=await chromium.launch({headless:true});
  try {
-  for(const width of [375,768,1440]) {
+  for(const width of [320,375,768,1440]) {
    const page=await browser.newPage({viewport:{width,height:1100},hasTouch:width===375,timezoneId:'Asia/Kolkata'});
    const errors=[];page.on('pageerror',e=>errors.push(e.message));
    await periodFixture(page);
@@ -89,6 +92,13 @@ async function ready(page) {
    assert.match(await page.locator('.payment-chart .cashflow-comparison').innerText(),/₹55,800/);
    assert.equal(await page.locator('family-finance-cardcycle-card .comparison-balance-line').count(),1);
    assert.equal(await page.locator('.period-trend').count(),3);
+   const plot=page.locator('family-finance-investments-card .period-trend .recharts-wrapper');
+   assert.equal(await plot.locator('.recharts-bar').first().locator('.recharts-rectangle').count(),12,'Every month remains plotted');
+   const plotBox=await plot.boundingBox();
+   await plot.hover({position:{x:plotBox.width-12,y:40}});
+   await assertChartFit(page);
+   await page.mouse.move(0,0);
+
    assert.match(await page.locator('family-finance-investments-card .investment-total').innerText(),/6,000/);
    assert.equal(await page.locator('family-finance-spending-card .spend-comparison').count(),4);
    assert.equal(await page.locator('family-finance-spending-card .spend-row:disabled').count(),2);
@@ -117,7 +127,7 @@ async function ready(page) {
    assert.match(await picker.locator('.period-context').innerText(),/1 Apr 2025.*31 Mar 2026/s);
    assert(await page.evaluate(()=>window.messages.some(m=>m.start==='2024-04-01'&&m.end==='2025-03-31')));
    const labels=await page.locator('family-finance-spending-card .recharts-xAxis .recharts-cartesian-axis-tick-value').allTextContents();
-   assert.equal(labels[0],'Apr');assert.equal(labels.at(-1),'Mar');
+   assert.equal(labels[0],'Apr 25');assert.equal(labels.at(-1),'Mar 26');
    await page.evaluate(()=>window.scrollTo(0,0));
    await page.screenshot({path:path.join(OUTPUT,`financial-comparison-${width}.png`)});
    await picker.getByRole('button',{name:'Calendar year',exact:true}).click();
@@ -126,6 +136,13 @@ async function ready(page) {
    await ready(page);
    assert(await page.evaluate(()=>window.messages.some(m=>m.start==='2025-01-01'&&m.end==='2025-09-06')));
    assert.match(await picker.locator('.period-context').innerText(),/Actuals through 6 Sept 2026/);
+   const futurePlot=page.locator('family-finance-investments-card .period-trend .recharts-wrapper');
+   const futureBox=await futurePlot.boundingBox();
+   await futurePlot.hover({position:{x:futureBox.width-12,y:40}});
+   await assertChartFit(page);
+   const bubble=await futurePlot.locator('.recharts-tooltip-wrapper').boundingBox();
+   assert(bubble.x>=0&&bubble.x+bubble.width<=width,'Long scheduled/comparison tooltip fits the viewport');
+   await page.mouse.move(0,0);
    // An unfinished comparison request keeps only its own panel busy.
    await page.evaluate(()=>{window.holdRequest=m=>m.type==='family_finance/spending_investments'&&m.start==='2024-01-01';});
    await picker.getByLabel('Comparison year').selectOption('2024');
@@ -138,6 +155,14 @@ async function ready(page) {
    await page.evaluate(()=>{window.holdRequest=null;window.pendingRequests.splice(0).forEach(r=>r.resolve());});
    await page.waitForTimeout(30);
    assert.equal(await page.locator('family-finance-investments-card .investment-total').innerText(),value);
+   // A multi-year range retains every month without creating a scroll area.
+   await picker.getByRole('button',{name:'Custom',exact:true}).click();
+   await picker.getByLabel('Period start').fill('2023-03-01');
+   await picker.getByLabel('Period end').fill('2026-09-06');
+   await picker.getByRole('button',{name:'Apply dates'}).click();
+   await ready(page);
+   assert.equal(await page.locator('family-finance-investments-card .period-trend .recharts-bar').first().locator('.recharts-rectangle').count(),43);
+   await page.screenshot({path:path.join(OUTPUT,`multi-year-fit-${width}.png`),fullPage:true});
    // Leap-day custom ranges clamp the comparison start to 28 February.
    await picker.getByRole('button',{name:'Custom',exact:true}).click();
    assert.equal(await picker.getByLabel('Period start').getAttribute('min'),'2023-02-28');

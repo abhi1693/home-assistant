@@ -326,11 +326,10 @@ export function cardCss(mode: ThemeMode): string {
   .payment-method strong, .payment-account strong { font-size: 12px; font-weight: 550; font-variant-numeric: tabular-nums; }
   .payment-method small { text-align: right; color: var(--nb-muted); font-size: 10px; }
   .payment-explainer { background: transparent; border: 0; color: inherit; font: inherit; padding: 0; cursor: pointer; }
-  .payment-chart-scroll { overflow-x: auto; }
-  .cashflow-plot { height: 210px; }
+  .cashflow-plot { height: 210px; width: 100%; min-width: 0; }
   .cashflow-empty { display: grid; place-items: center; min-height: 210px; color: var(--nb-muted); font-size: 12px; text-align: center; }
-  .cashflow-tooltip { background: var(--nb-panel-2); padding: 12px; border: 1px solid var(--nb-border); border-radius: 8px; font-size: 11px; max-width: 290px; }
-  .cashflow-tooltip p { display: flex; justify-content: space-between; gap: 18px; margin: 8px 0 0; }
+  .cashflow-tooltip { background: var(--nb-panel-2); padding: 12px; border: 1px solid var(--nb-border); border-radius: 8px; font-size: 11px; max-width: 100%; }
+  .cashflow-tooltip p { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin: 8px 0 0; }
   .cashflow-tooltip b { display: block; margin-top: 8px; }
   .cashflow-tooltip b:first-child { margin-top: 0; }
   .cashflow-tooltip i { margin-right: 6px; }
@@ -742,8 +741,9 @@ export function cardCss(mode: ThemeMode): string {
   .period-legend i { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
   .period-total-comparison { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--nb-muted); margin-top: 8px; }
   .period-total-comparison strong { color: var(--nb-text); }
-  .period-trend-scroll { overflow-x: auto; width: 100%; max-width: 100%; contain: inline-size; }
-  .period-scroll-hint { display: none; }
+  /* Fit every data point to the panel; label density adapts instead of scrolling. */
+  .period-trend-plot { height: 240px; width: 100%; min-width: 0; }
+  .recharts-surface { display: block; }
   .period-detail-list { max-height: 320px; overflow-y: auto; padding-right: 8px; }
   .period-detail-list .investment-row { grid-template-columns: 92px minmax(0,1fr) auto; }
   .spend-comparison { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 14px; align-items: center; color: var(--nb-muted); }
@@ -754,7 +754,6 @@ export function cardCss(mode: ThemeMode): string {
   .worth-year-comparison { display: flex; flex-wrap: wrap; gap: 7px; color: var(--nb-muted); font-size: 11px; margin-top: 10px; }
   .worth-year-comparison strong { color: #fbbf24; }
   @media(max-width:600px) {
-    .period-scroll-hint { display: block; font-size: 11px; color: var(--nb-muted); margin: 5px 0; }
     .period-selector-top { align-items: flex-start; }
     .period-modes { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
     .period-modes button { font-size: 12px; }

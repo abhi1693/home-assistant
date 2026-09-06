@@ -59,8 +59,10 @@ comparison mode. Category comparisons use the displayed category grouping.
 
 Selections remain scoped to the HA connection, user and group in memory.
 Changing periods clears obsolete figures and drill-downs. Comparison requests
-share their panel's spinner and access checks. Mobile month charts scroll
-inside their panel. Ungrouped cards retain standalone month/range controls.
+share their panel's spinner and access checks. Every chart fits its panel without
+horizontal or vertical scrolling. Bars scale to the available width and axes
+reduce label density while retaining all periods; tooltips expose exact dates
+and values. Ungrouped cards retain standalone month/range controls.
 
 Each data panel shows its own spinner during initial loading, period changes,
 and background refreshes. Refreshes retain the current figures and keep
@@ -106,7 +108,8 @@ balances use a dashed line, and previous purchases use faded adjacent stacks.
 Actuals stop at the matching elapsed date, with future bars absent and leap-day
 comparisons counted once. Savings and payments have separate axes because one
 is a balance and the other is activity. The charts sit side by side on desktop
-and stack on narrow screens; long monthly timelines scroll inside the panel.
+and stack on narrow screens; long monthly timelines fit inside the panel with
+adaptive axis labels and proportional bar spacing.
 Scheduled bills occupy their own full-width section.
 
 The recurring-bills tile shows the selected period's actual payments plus
@@ -176,7 +179,9 @@ account changes. Screenshots use explicitly labelled sample ledger data
 and are written to `/tmp/ha-finance-components` by default. The reporting-period
 suite also checks calendar/FY boundaries, same-date comparisons, custom leap-day
 ranges, annual drill-downs, comparison spinners and stale-response isolation at
-all three widths; its screenshots go to `/tmp/ha-finance-periods`.
+320, 375, 768 and 1440px widths; it also checks chart bounds, absence of scroll
+containers, non-overlapping axis labels, complete monthly bars across multi-year
+ranges and hover behavior. Its screenshots go to `/tmp/ha-finance-periods`.
 The investment suite checks compact panel heights, grouped totals and shares,
 recorded/pending status, keyboard drill-down, single/empty/many investments and
 access cleanup. Its screenshots go to `/tmp/ha-finance-investment-design`.

@@ -5,6 +5,7 @@ const path = require('node:path');
 const {chromium} = require('playwright');
 const {buildSync} = require('../frontend/finance/node_modules/esbuild');
 const {fixture} = require('./finance_dashboard_components');
+const {assertChartFit} = require('./finance_chart_fit');
 const OUTPUT = '/tmp/ha-finance-cashflow';
 
 // Exercise transaction semantics independently of chart rendering.
@@ -69,7 +70,7 @@ async function ready(page) {
 (async()=>{
   modelChecks();fs.mkdirSync(OUTPUT,{recursive:true});const browser=await chromium.launch({headless:true});
   try {
-    for(const width of [375,768,1440]) {
+    for(const width of [320,375,768,1440]) {
       const page=await browser.newPage({viewport:{width,height:1100},hasTouch:width===375,timezoneId:'Asia/Kolkata'});
       await page.clock.setFixedTime(new Date('2026-09-06T12:00:00+05:30'));
       const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -84,7 +85,7 @@ async function ready(page) {
         };
       });
       const picker=page.locator('family-finance-month-card');
-      await picker.getByLabel('Reporting month').fill('2026-08');await ready(page);
+      await picker.getByLabel('Reporting month').fill('2026-08');await ready(page);await assertChartFit(page);
       const card=page.locator('family-finance-accounts-card');
       assert.equal(await card.locator('.account-item').count(),0);
       assert.equal(await card.locator('.savings-tabs button').count(),3);

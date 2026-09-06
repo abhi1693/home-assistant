@@ -59,11 +59,11 @@ export default function CashflowCharts({ accounts, data, previous, previousAccou
         </div>
         {comparison && <div className="cashflow-comparison"><span>{comparison.label}: <strong>{referenceChosen.length ? money(referenceClosing) : "No balance"}</strong></span>
           {referenceChosen.length > 0 && <span>{signedMoney(closing - referenceClosing)} change</span>}</div>}
-        {balanceRows.length ? <div className="cashflow-plot"><ResponsiveContainer width="100%" height="100%"><LineChart data={balanceRows} accessibilityLayer margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+        {balanceRows.length ? <div className="cashflow-plot"><ResponsiveContainer width="100%" height="100%" minWidth={0}><LineChart data={balanceRows} accessibilityLayer margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
           {grid}<XAxis dataKey="ts" type="number" domain={[Date.parse(`${period.start}T00:00:00+05:30`), Date.parse(`${period.end}T23:59:59+05:30`)]}
             tickFormatter={ts => period.wide ? monthLabel(ledgerDay(ts)) : shortDate(ts)} minTickGap={35} tick={axisTick} />
           <YAxis tickFormatter={value => balanceTick(value)} width={76} tick={axisTick} domain={["auto", "auto"]} />
-          <Tooltip content={({ active, payload }) => {
+          <Tooltip wrapperStyle={{maxWidth:"calc(100% - 88px)"}} content={({ active, payload }) => {
             const row = payload?.[0]?.payload as BalancePoint | undefined;
             return active && row ? <div className="cashflow-tooltip"><b>{shortDate(row.ts, false, true)}{balanceKey(row.ts) === "opening" ? " · opening" : " · closing"}</b>
               {row.current != null && <p><span>{selected === null ? "All savings" : accountName(selected)}</span><strong>{money(row.current, true)}</strong></p>}
@@ -91,11 +91,10 @@ export default function CashflowCharts({ accounts, data, previous, previousAccou
       </button>)}</div>
       {comparison && <div className="cashflow-comparison"><span>{comparison.label}: <strong>{money((referencePayments?.total ?? 0) / 100)}</strong></span>
         <span>{signedMoney((payments.total - (referencePayments?.total ?? 0)) / 100)} change</span></div>}
-      {payments.total > 0 || (referencePayments?.total ?? 0) > 0 ? <div className="payment-chart-scroll"><div style={{ minWidth: period.wide ? Math.max(260, paymentRows.length * (comparison ? 48 : 32)) : 260 }}>
-        <div className="cashflow-plot"><ResponsiveContainer width="100%" height="100%"><BarChart data={paymentRows} accessibilityLayer margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
-          {grid}<XAxis dataKey="day" tickFormatter={day => period.wide ? monthLabel(`${day}-01`) : String(Number(day.slice(8)))} minTickGap={16} tick={axisTick} />
+      {payments.total > 0 || (referencePayments?.total ?? 0) > 0 ? <div className="cashflow-plot"><ResponsiveContainer width="100%" height="100%" minWidth={0}><BarChart data={paymentRows} barGap="10%" barCategoryGap="18%" accessibilityLayer margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
+          {grid}<XAxis dataKey="day" tickFormatter={day => period.wide ? monthLabel(`${day}-01`) : String(Number(day.slice(8)))} interval="preserveStartEnd" minTickGap={16} tick={axisTick} />
           <YAxis tickFormatter={moneyCompact} width={62} tick={axisTick} />
-          <Tooltip cursor={{ fill: "var(--nb-border)", fillOpacity: .35 }} content={({ active, payload }) => {
+          <Tooltip wrapperStyle={{maxWidth:"calc(100% - 88px)"}} cursor={{ fill: "var(--nb-border)", fillOpacity: .35 }} content={({ active, payload }) => {
             const row = payload?.[0]?.payload as typeof paymentRows[number] | undefined;
             return active && row ? <div className="cashflow-tooltip"><b>{period.wide ? monthLabel(row.date) : dateLabel(row.date)}</b>
               {methods.map(m => <p key={m.key}><span><i style={{ background: m.color }} />{m.label}</span><strong>{row[m.key] == null ? "–" : money(Number(row[m.key]), true)}</strong></p>)}
@@ -104,9 +103,7 @@ export default function CashflowCharts({ accounts, data, previous, previousAccou
           }} />
           {methods.map(m => <Bar key={m.key} dataKey={m.key} name={m.label} fill={m.color} stackId="current" isAnimationActive={false} maxBarSize={26} />)}
           {comparison && methods.map(m => <Bar key={`${m.key}-ref`} dataKey={`${m.key}Previous`} name={`${comparison.label} · ${m.label}`} fill={m.color} fillOpacity={.28} stroke={m.color} strokeDasharray="3 2" stackId="previous" isAnimationActive={false} maxBarSize={26} />)}
-        </BarChart></ResponsiveContainer></div>
-      </div></div> : <div className="cashflow-empty">No purchases recorded in this period.</div>}
-      {period.wide && paymentRows.length > 6 && <p className="period-scroll-hint">Swipe the chart to see all months.</p>}
+        </BarChart></ResponsiveContainer></div> : <div className="cashflow-empty">No purchases recorded in this period.</div>}
       {comparison && <div className="cashflow-legend"><span>Solid: {period.label}</span><span>Faded: {comparison.label}</span></div>}
       {method && <section className="payment-account-details" aria-label={`${PAYMENT_METHODS.find(m => m.key === method)!.label} spending by account`}>
         <div className="payment-account-heading"><h4>Spending by account</h4><button aria-label="Close spending by account" onClick={() => setMethod(null)}>×</button></div>
