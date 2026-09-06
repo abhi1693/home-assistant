@@ -78,9 +78,11 @@ async function ready(page) {
       await page.evaluate(()=>{
         const original=window.hass.connection.sendMessagePromise;
         window.hass.connection.sendMessagePromise=async msg=>{
-          const result=await original(msg);
+          // This suite compares complete August months; reuse the monthly fixture for reference ranges.
+          const month=msg.month||msg.start?.slice(0,7);
+          const result=await original(month?{...msg,month}:msg);
           if(msg.type!=='family_finance/spending_transactions')return result;
-          const t=(id,account_id,amount,transaction_type='withdrawal')=>({id,account_id,amount,transaction_type,posted_at:`${msg.month}-02T12:00:00+05:30`,pending:false});
+          const t=(id,account_id,amount,transaction_type='withdrawal')=>({id,account_id,amount,transaction_type,posted_at:`${month}-02T12:00:00+05:30`,pending:false});
           return {...result,transactions:window.emptyCashflow?[]:[t(1,1,'100.01'),t(2,2,'200.02'),t(3,3,'400.03'),t(4,4,'50.04'),t(5,1,'9999','transfer'),t(5,3,'-9999','transfer'),t(6,1,'-40000','deposit')]};
         };
       });
@@ -110,6 +112,36 @@ async function ready(page) {
       await card.getByRole('button',{name:'Show direct from savings spending by account'}).click();
       assert.equal(await card.locator('.payment-account').count(),2);
       await card.getByRole('button',{name:'Close spending by account'}).click();
+      await picker.getByLabel('Comparison year').selectOption('2023');await ready(page);
+      await card.getByRole('button',{name:'Daily account',exact:true}).click();
+      const balanceChart=card.locator('.savings-chart .recharts-wrapper');
+      await balanceChart.scrollIntoViewIfNeeded();
+      const chartWidth=(await balanceChart.boundingBox()).width;
+      const balanceTip=card.locator('.savings-chart [role="tooltip"]');
+      const point={x:chartWidth-14,y:70};
+      if(width===375)await balanceChart.tap({position:point});else await balanceChart.hover({position:point});
+      await balanceTip.waitFor({state:'visible'});
+      await page.waitForTimeout(150); // A touch tooltip must survive touch-end and synthesized mouse events.
+      assert.match(await balanceTip.innerText(),/31 Aug 2026 · closing/);
+      assert.match(await balanceTip.innerText(),/31 Aug 2023/);
+      assert.equal((await balanceTip.innerText()).match(/₹91,000\.00/g).length,2);
+      const bounds=await balanceTip.boundingBox();assert(bounds.x>=0&&bounds.x+bounds.width<=width);
+      await card.locator('.head h2').click();await balanceTip.waitFor({state:'hidden'});
+      await balanceChart.locator('svg.recharts-surface').focus();
+      await page.keyboard.press('ArrowRight');await balanceTip.waitFor({state:'visible'});
+      await page.keyboard.press('Escape');await balanceTip.waitFor({state:'hidden'});
+      await balanceChart.hover({position:{x:82,y:85}});await balanceTip.waitFor({state:'visible'});
+      await page.mouse.move(0,0);await balanceTip.waitFor({state:'hidden'});
+      const paymentChart=card.locator('.payment-chart .recharts-wrapper');
+      await paymentChart.scrollIntoViewIfNeeded();
+      const paymentPoint={x:(await paymentChart.boundingBox()).width-18,y:70};
+      if(width===375)await paymentChart.tap({position:paymentPoint});else await paymentChart.hover({position:paymentPoint});
+      const paymentTip=card.locator('.payment-chart [role="tooltip"]');await paymentTip.waitFor({state:'visible'});
+      assert.match(await paymentTip.innerText(),/Direct from savings/);
+      assert.match(await paymentTip.innerText(),/Credit cards/);
+      assert.match(await paymentTip.innerText(),/2023/);
+      await page.keyboard.press('Escape');await paymentTip.waitFor({state:'hidden'});
+      await assertChartFit(page);
       const explain=card.getByRole('button',{name:'Explain spending by payment method'});
       await explain.click();await card.getByRole('tooltip').waitFor();
       assert.match(await card.getByRole('tooltip').innerText(),/Paying the card bill does not count again/);

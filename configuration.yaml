@@ -115,7 +115,7 @@ lovelace:
       type: module
     - url: /local/family-camera-events-card.js?v=1.7.0
       type: module
-    - url: /local/family-finance-cards.js?v=1.10.2
+    - url: /local/family-finance-cards.js?v=1.10.3
       type: module
     - url: /local/community/todo-swipe-card/todo-swipe-card.js?v=3.6.0
       type: module

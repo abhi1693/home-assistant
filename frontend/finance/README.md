@@ -102,6 +102,11 @@ Select a method to see a bounded bar breakdown by account, using already-loaded
 data. Details and filters reset with the period. A tooltip explains the scope.
 
 Savings history includes the prior closing balance as the opening baseline.
+Hover over the savings line or tap a point to see the full date, exact balance
+and matching comparison date/value. Both savings and payment chart tooltips
+support mouse hover, touch/pen taps and keyboard arrows. Tapped values remain
+visible until another point is selected, focus leaves, the page scrolls, or the
+user taps outside or presses Escape; switching to a mouse restores hover.
 Purchase bars use days within a month and months across longer periods. Annual,
 financial-year, custom and comparison views keep these same two charts; previous
 balances use a dashed line, and previous purchases use faded adjacent stacks.
