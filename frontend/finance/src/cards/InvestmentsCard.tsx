@@ -6,11 +6,12 @@ import { Hass, SpendingInvestments, SpendingRecurring, fetchSpendingInvestments,
 import { SpendingSummary } from "../lib/types";
 import { useReportingPeriod, PeriodQuery } from "../lib/reportingPeriod";
 import PeriodTrend from "../components/PeriodTrend";
+import InfoTooltip from "../components/InfoTooltip";
+import InvestmentBreakdown from "./InvestmentBreakdown";
 import { BaseCardConfig, ambientEffect, useNetwrthCore } from "./common";
 import { MonthNav } from "./spendingCommon";
 
 type Payload = { investments: SpendingInvestments; bills: SpendingRecurring; spending: SpendingSummary };
-const statusLabel = { recorded: "Recorded", scheduled: "Scheduled", awaiting_statement: "Awaiting statement" };
 
 export default function InvestmentsCard({ hass, config }: {hass: Hass; config: BaseCardConfig}) {
   const {period,comparison,month,setMonth}=useReportingPeriod(hass,config.month_group);
@@ -20,7 +21,6 @@ export default function InvestmentsCard({ hass, config }: {hass: Hass; config: B
   const {overview, data, comparison: comparisonData, masked, error, loading} = useNetwrthCore<Payload>(hass, config.entry, fetchData, period, comparison);
   const format = (value: string | number) => masked ? MASK : money(Number(value));
   const investment = data?.investments;
-  const rows = investment ? [...investment.recorded, ...investment.expected].sort((a,b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)) : [];
   const remaining = data ? Number(data.spending.total_income) - Number(data.spending.total_spend)
     - Number(data.bills.total_remaining) - Number(data.investments.total_committed) : 0;
   return <div className="card investments-card" aria-busy={loading} data-reporting-month={period.mode==="month"?month:undefined} data-reporting-period={period.key}>
@@ -31,21 +31,13 @@ export default function InvestmentsCard({ hass, config }: {hass: Hass; config: B
     {error && <div className="error-box">{error}</div>}
     <PanelLoading loading={loading} refreshing={!!overview} />
     {!error && investment && <>
-      <div className="investment-stats">
-        <div><span className="spend-stat-label">Investments {period.mode==="month"?"this month":"in this period"}</span><strong className="investment-total">{format(investment.total_committed)}</strong></div>
-        <div><span className="spend-stat-label">Recorded</span><strong className="investment-recorded">{format(investment.total_recorded)}</strong></div>
-        <div><span className="spend-stat-label">Scheduled / awaiting statement</span><strong className="investment-pending">{format(investment.total_pending)}</strong></div>
-      </div>
+      <InvestmentBreakdown key={period.key} investment={investment} period={period} masked={masked} />
       <PeriodTrend period={period} comparison={comparison} metrics={[{key:"investments",label:"Investment contributions",
         monthly:investment.monthly,planned:investment.planned_monthly,comparison:comparisonData?.investments.monthly}]}/>
-      {rows.length === 0 ? <div className="status">No investments recorded or scheduled in this period.</div> :
-        <div className={`investment-list ${period.wide?"period-detail-list":""}`} role="list" aria-label="Investments in this period">{rows.map(row => <div className="investment-row" role="listitem" key={row.id}>
-          <time dateTime={row.date}>{new Date(`${row.date}T12:00:00+05:30`).toLocaleDateString("en-IN", {day:"numeric", month:"short", ...(period.wide?{year:"numeric" as const}:{}), timeZone:"Asia/Kolkata"})}</time>
-          <div className="investment-name">{row.name}<span className={`investment-status ${row.status}`}>{statusLabel[row.status]}</span></div>
-          <strong>{format(row.amount)}</strong>
-        </div>)}</div>}
-      <div className="investment-remaining"><div><strong>Income after commitments</strong>
-        <span className="muted">Recorded income − spending − remaining bills − investments</span></div>
+      <div className="investment-remaining"><InfoTooltip key={period.key} className="investment-remaining-label" label="Explain income after commitments"
+        content={<><h3>Income after commitments</h3><p>Recorded income − spending − remaining bills − investments.</p>
+          <p>Investments include recorded contributions and scheduled payments awaiting a statement. Paid bills are already included in spending.</p></>}>
+        <span>Income after commitments <span className="muted" aria-hidden="true">ⓘ</span></span></InfoTooltip>
         <strong className={remaining < 0 ? "down" : "up"}>{format(remaining)}</strong>
       </div>
     </>}

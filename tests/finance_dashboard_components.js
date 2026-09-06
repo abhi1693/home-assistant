@@ -208,7 +208,11 @@ async function sharedMonthCheck(page, width) {
   assert.equal((await page.locator('.recurring-month-total .spend-stat-value').innerText()).trim(),'₹25,000');
   assert.match(await page.locator('.recurring-month-total').innerText(),/1 bill this month/);
   assert.equal((await page.locator('.investment-total').innerText()).trim(),'₹3,000');
+  assert.equal(await page.locator('.investment-row').count(),0,'Payment details start collapsed');
+  assert.equal(await page.locator('.investment-provider').count(),2);
+  await page.getByRole('button',{name:'View all 2 payments',exact:true}).click();
   assert.equal(await page.locator('.investment-row').count(),2);
+  await page.getByRole('button',{name:'Hide payments',exact:true}).click();
   assert.match(await page.locator('.investment-remaining').innerText(),/95,592/);
   const categories=page.locator('family-finance-spending-card .spend-row');
   assert.equal(await categories.count(),10,'Eight named categories plus Others and Uncategorised');
@@ -254,7 +258,8 @@ async function sharedMonthCheck(page, width) {
   await page.locator('family-finance-accounts-card .num').filter({hasText:'91,000'}).waitFor();
   assert.equal(await page.locator('.income-breakdown').count(),0);
   assert.equal((await page.locator('.investment-total').innerText()).trim(),'₹2,000');
-  assert.equal(await page.locator('.investment-row').count(),1);
+  assert.equal(await page.locator('.investment-row').count(),0);
+  assert.equal(await page.locator('.investment-provider').count(),1);
   assert.equal(await page.locator(`.card[data-reporting-month="${prior}"]`).count(),6);
   const requested=await page.evaluate(month=>window.messages.filter(m=>m.month===month).map(m=>m.type),prior);
   for(const kind of ['overview','series','spending_summary','spending_recurring','spending_transactions','spending_investments'])assert(requested.includes(`family_finance/${kind}`));

@@ -85,9 +85,17 @@ without leaving a gap beside the account list.
 The recurring-bills tile shows the selected period's actual payments plus
 remaining scheduled occurrences, without a monthly average or unrelated active
 subscriptions. Its count includes only bills represented in that period.
-The investments card lists dated contributions and explicit scheduled payments,
-with separate Recorded and Scheduled / awaiting statement totals. It calculates
-income after spending, remaining bills and investment commitments. Statement
+The investments card shows a compact contribution donut grouped by the source
+investment labels, with distinct colors and separate Recorded and Scheduled /
+awaiting statement totals. The center total includes both recorded and pending
+commitments. Each label shows its amount, share and recorded/pending counts.
+Select a label or View all payments to expand dated payment details in a bounded
+scroll area. Details start collapsed and close when the period or account changes;
+opening them uses the already-loaded data. Source labels and classifications are
+preserved. Empty and single-investment periods render without invalid pie slices.
+Annual trends and year comparisons remain visible below the compact summary.
+It calculates income after spending, remaining bills and investment commitments;
+the footer's tooltip explains this calculation. Statement
 matches replace scheduled amounts, preventing a second deduction. The panel has
 its own loading/refresh spinner and follows the shared reporting period.
 Recorded contributions use their configured provider name when account, amount,
@@ -122,6 +130,7 @@ From the repository root:
 python3 -m unittest discover -s tests -v
 NODE_PATH=/path/to/node_modules node tests/finance_dashboard_components.js
 NODE_PATH=/path/to/node_modules node tests/finance_reporting_periods.js
+NODE_PATH=/path/to/node_modules node tests/finance_investments_components.js
 ```
 
 Run `test_family_finance_runtime.py` in a Python environment with the deployed
@@ -140,6 +149,9 @@ and are written to `/tmp/ha-finance-components` by default. The reporting-period
 suite also checks calendar/FY boundaries, same-date comparisons, custom leap-day
 ranges, annual drill-downs, comparison spinners and stale-response isolation at
 all three widths; its screenshots go to `/tmp/ha-finance-periods`.
+The investment suite checks compact panel heights, grouped totals and shares,
+recorded/pending status, keyboard drill-down, single/empty/many investments and
+access cleanup. Its screenshots go to `/tmp/ha-finance-investment-design`.
 
 See the [integration README](../../custom_components/family_finance/README.md)
 for data semantics, access control, and connection setup.
