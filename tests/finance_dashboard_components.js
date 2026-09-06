@@ -52,7 +52,16 @@ async function fixture(page, grouped = false, initiallyLoading = false) {
       const kind=msg.type.split("/")[1];
       if(kind==="history")return {first_date:"2023-02-28"};
       if(kind==="overview")return {...overview,accounts:accounts.map(a=>({...a,balance:msg.month&&msg.month!==month&&a.id===1?"91000":a.balance}))};
-      if(kind==="series")return {series,censored:false};
+      if(kind==="series")return {series:msg.month?accounts.map(a=>{
+        const closing=Number(msg.month!==month&&a.id===1?'91000':a.balance);
+        const start=Date.parse(`${msg.month}-01T00:00:00+05:30`);
+        const end=msg.month===month?now:new Date(Date.UTC(Number(msg.month.slice(0,4)),Number(msg.month.slice(5,7)),0,18,29,59)).toISOString();
+        return {account_id:a.id,points:[
+          {ts:new Date(start-1000).toISOString(),balance:String(closing-(a.id===1?1000:0))},
+          {ts:new Date(start+43200000).toISOString(),balance:String(closing-(a.id===1?500:0))},
+          {ts:end,balance:String(closing)},
+        ]};
+      }):series,censored:false};
       if(kind==="spending_recurring")return {...recurring,month:msg.month};
       if(kind==="spending_investments")return {month:msg.month,censored:false,total_recorded:"2000",total_pending:msg.month===month?"1000":"0",total_committed:msg.month===month?"3000":"2000",recorded:[
         {id:"fund-payment",date:`${msg.month}-01`,name:"Sample fund",amount:"2000",source_account_id:1,destination_account_id:2,status:"recorded"}],expected:msg.month===month?[
@@ -94,7 +103,7 @@ async function fixture(page, grouped = false, initiallyLoading = false) {
     ];
     for(const [kind,config,full] of cards){
       const card=document.createElement(`family-finance-${kind}-card`);
-      const shared=grouped&&["spending","accounts","bills","cardcycle","investments"].includes(kind)?{month_group:"finance"}:{};
+      const shared=grouped&&["stat","spending","accounts","bills","cardcycle","investments"].includes(kind)?{month_group:"finance"}:{};
       card.setConfig({type:`custom:family-finance-${kind}-card`,allowed_user_id:owner,background:"off",...config,...shared});
       if(full)card.className="full";
       card.hass=window.hass;
@@ -246,26 +255,43 @@ async function sharedMonthCheck(page, width) {
   assert.equal(await page.locator('.income-breakdown').count(),0);
   assert.equal((await page.locator('.investment-total').innerText()).trim(),'₹2,000');
   assert.equal(await page.locator('.investment-row').count(),1);
-  assert.equal(await page.locator(`.card[data-reporting-month="${prior}"]`).count(),5);
+  assert.equal(await page.locator(`.card[data-reporting-month="${prior}"]`).count(),6);
   const requested=await page.evaluate(month=>window.messages.filter(m=>m.month===month).map(m=>m.type),prior);
   for(const kind of ['overview','series','spending_summary','spending_recurring','spending_transactions','spending_investments'])assert(requested.includes(`family_finance/${kind}`));
-  assert.equal(await page.locator('family-finance-stat-card .stat-value').innerText(),worth);
+  const stat=page.locator('family-finance-stat-card');
+  assert.equal(await stat.locator('.stat-value').innerText(),'₹8,11,000');
+  assert.notEqual(await stat.locator('.stat-value').innerText(),worth);
+  assert.equal(await stat.locator('.worth-component-value').innerText(),'₹8,11,000');
+  assert.match(await stat.locator('.change-explainer').innerText(),/\+₹1,000 \(\+0.1%\)/);
+  assert.match(await stat.locator('.worth-balance-date').innerText(),/Closing balance/);
+  await stat.getByRole('button',{name:'Explain net worth change'}).click();
+  const tooltip=stat.getByRole('tooltip');
+  await tooltip.waitFor();
+  assert.match(await tooltip.innerText(),/previous day's closing balance/);
+  const dates=await tooltip.locator('.worth-change-details dt').allTextContents();
+  const formatDate=date=>date.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kolkata'});
+  assert.equal(dates[0],`Opening · ${formatDate(new Date(Date.parse(`${prior}-01T00:00:00+05:30`)-1000))}`);
+  assert.equal(dates[1],`Closing · ${formatDate(new Date(Date.parse(`${current}-01T00:00:00+05:30`)-1000))}`);
+  await page.keyboard.press('Escape');
   assert.equal(await page.evaluate(()=>window.messages.filter(m=>!m.month).length),independent);
   await page.locator('family-finance-spending-card .spend-row').first().click();
   await page.locator('family-finance-spending-card .spend-txn-desc').first().waitFor();
   await page.evaluate(month=>window.delayedMonth=month,delayed);
   await picker.fill(delayed);
   await page.locator('family-finance-accounts-card .status').filter({hasText:'Loading'}).waitFor();
-  assert.equal(await page.locator('.card[aria-busy="true"]').count(),5,'Shared month affects only monthly panels');
+  assert.equal(await page.locator('.card[aria-busy="true"]').count(),6,'Shared month also refreshes the net-worth summary');
+  assert.equal(await stat.locator('.stat-value').count(),0,'New period does not show an old closing balance');
+  assert.equal(await stat.getByRole('tooltip').count(),0);
   assert.equal(await page.locator('family-finance-worth-card .loading-spinner').count(),0);
   assert.equal(await page.locator('family-finance-spending-card .spend-txn-desc').count(),0);
   await picker.fill(current);
   await page.locator('family-finance-accounts-card .num').filter({hasText:'72,000'}).waitFor();
   await page.evaluate(()=>{window.pendingMonths.forEach(resolve=>resolve());window.pendingMonths=[];});
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-  assert.equal(await page.locator(`.card[data-reporting-month="${current}"]`).count(),5);
+  assert.equal(await page.locator(`.card[data-reporting-month="${current}"]`).count(),6);
   assert.equal(await page.locator('family-finance-accounts-card .num').filter({hasText:'91,000'}).count(),0);
   assert.equal(await page.locator('family-finance-stat-card .stat-value').innerText(),worth);
+  assert.match(await stat.locator('.worth-balance-date').innerText(),/As of/);
   assert.equal(await page.locator('.loading-spinner').count(),0,'Obsolete month cannot leave a spinner running');
   assert.equal(await page.getByRole('button',{name:'Next month',exact:true}).isDisabled(),true);
   await picker.fill(prior);

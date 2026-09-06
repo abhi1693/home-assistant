@@ -148,8 +148,10 @@ matches replace their expected amounts. Investment transfers remain outside
 income and spending. The shared period control supports months, calendar years,
 April–March financial years, custom dates and year comparisons. All panels
 reuse the same charts; actuals use matching elapsed comparison dates, and
-account balances are snapshots at the period end. Net worth keeps its own
-range in ordinary Month mode.
+account balances are snapshots at the period end. The net-worth summary follows
+every selected period, comparing its closing balance with the previous day's
+closing balance before the period began. The net-worth history chart keeps its
+own range in ordinary Month mode.
 Available years and date navigation follow the earliest imported transaction.
 The net-worth summary explains its total with cash, investments and negative
 balances. Account breakdowns and the change badge expose their supporting

@@ -10,8 +10,11 @@ The top reporting-period selector supports months, calendar years
 (January–December), financial years (April–March), and inclusive custom dates.
 All existing panels use those dates, including their transaction drill-downs.
 Balances are snapshots at the period end (or today), never sums of monthly
-balances. Net worth retains its independent range in ordinary Month mode and
-follows the reporting period for annual/custom views and year comparisons.
+balances. The net-worth summary follows the selected period in every mode,
+including months. Its change uses the closing balance immediately before the
+period starts, including all movements on the first day. Current-month balances
+stop at today. The net-worth history chart retains its independent range in
+ordinary Month mode and follows annual/custom views and year comparisons.
 Selections stay in memory for the HA connection and user.
 
 The private `family_finance/history` command supplies the earliest recorded

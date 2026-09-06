@@ -76,7 +76,7 @@ export default function StatCard({ hass, config }: { hass: Hass; config: StatCar
   const view = VIEWS.find((v) => v.key === (config.view ?? "all")) ?? VIEWS[2];
   const [range, setRange] = useState<RangeKey>(config.range ?? "1m");
   const {period,comparison}=useReportingPeriod(hass,config.month_group);
-  const reporting=config.month_group && (period.mode!=="month"||comparison) ? period : undefined;
+  const reporting=config.month_group ? period : undefined;
   const { overview, series, comparisonOverview, masked, error, loading } = useNetwrth(hass, config.entry, range, reporting, reporting?comparison:undefined);
   const visible = useVisibleAccounts(overview);
   const accounts = useMemo(() => visible.filter(view.pick), [visible, view]);
@@ -94,7 +94,8 @@ export default function StatCard({ hass, config }: { hass: Hass; config: StatCar
     };
   }, [series, accounts]);
 
-  return <div className={`card stat-card${config.layout === "banner" ? " stat-banner" : ""}`} aria-busy={loading}>
+  return <div className={`card stat-card${config.layout === "banner" ? " stat-banner" : ""}`} aria-busy={loading}
+    data-reporting-month={reporting?.mode==="month"?period.start.slice(0,7):undefined} data-reporting-period={reporting?.key}>
     <Ambient effect={ambientEffect(config)} />
     <div className="head">
       <h2>{config.title ?? view.label}</h2>
@@ -112,17 +113,19 @@ export default function StatCard({ hass, config }: { hass: Hass; config: StatCar
     {!error && stat && !masked && <div className="worth-summary">
       <div className="worth-primary">
         <div className="stat-value">{money(stat.last)}</div>
+        {reporting && <div className="muted worth-balance-date">{period.actualEnd<period.end?"As of":"Closing balance ·"} {shortDate(stat.end,false,true)}</div>}
         <div className="stat-delta">
           <InfoTooltip key={reporting?.key??range} className={`chip change-explainer ${stat.diff >= 0 ? "up" : "down"}`}
             label="Explain net worth change"
             content={<>
               <h3>Change in tracked net worth</h3>
-              <p>Your tracked balance is {money(Math.abs(stat.diff), true)} {stat.diff < 0 ? "lower" : "higher"} than at the start of this comparison.</p>
+              <p>Your tracked balance is {money(Math.abs(stat.diff), true)} {stat.diff < 0 ? "lower" : "higher"} than {reporting?`its opening balance for ${period.label}`:"at the start of this comparison"}.</p>
               <dl className="worth-change-details">
-                <div><dt>Start · {shortDate(stat.start, false, true)}</dt><dd>{money(stat.first, true)}</dd></div>
-                <div><dt>End · {shortDate(stat.end, false, true)}</dt><dd>{money(stat.last, true)}</dd></div>
+                <div><dt>{reporting?"Opening":"Start"} · {shortDate(stat.start, false, true)}</dt><dd>{money(stat.first, true)}</dd></div>
+                <div><dt>{reporting?"Closing":"End"} · {shortDate(stat.end, false, true)}</dt><dd>{money(stat.last, true)}</dd></div>
                 <div className="worth-tooltip-total"><dt>End − start</dt><dd>{money(stat.diff, true)}</dd></div>
               </dl>
+              {reporting && <p>The opening balance uses the previous day's closing balance, so changes on the first day of the period are included.</p>}
               {!view.flow && <p className="worth-formula">{stat.delta == null
                 ? "Percentage change is unavailable because the starting balance is ₹0."
                 : `Percentage = change ÷ absolute starting balance × 100 = ${pct(stat.delta)}.`}</p>}

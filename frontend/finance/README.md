@@ -28,7 +28,11 @@ end minus start, and change divided by the absolute starting balance. It describ
 change across the tracked ledger, including cash movements and imported
 valuations. A zero starting balance shows the rupee change without a percentage.
 Tooltips stay within the viewport, support Escape/outside dismissal, and close
-when access changes. The net-worth range remains independent of the month picker.
+when access changes. The summary follows the shared month and shows its closing
+balance (or today), the dated component breakdown, and change from the previous
+day's closing balance before the month began. The tooltip explains that opening
+baseline, including the first day's movements. The net-worth history chart keeps
+its independent range in Month mode.
 
 `family-finance-month-card` provides the shared reporting-period control (the
 existing tag and `month_group` option remain compatible). Select Month,
@@ -36,8 +40,9 @@ Calendar year (January–December), Financial year (April–March), or Custom da
 (up to five years), then optionally choose an earlier comparison year. The same
 panels show period totals, monthly income/spending/contribution/bill charts,
 category comparisons, account sparklines and closing balances, and credit-card
-balance overlays. Net worth keeps its independent range in ordinary Month mode;
-annual/custom views and explicit comparisons use the shared period. Assign the
+balance overlays. The net-worth summary follows every selected period. Its
+history chart keeps an independent range in ordinary Month mode; annual/custom
+views and explicit comparisons use the shared period. Assign the
 same `month_group` to all participating cards, including net-worth cards.
 Year and comparison options start at the first recorded Firefly transaction,
 including its containing financial year. The selector shows that first date;
