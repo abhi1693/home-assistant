@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, Mock, patch
 HAS_HA = importlib.util.find_spec("homeassistant") is not None
 if HAS_HA:
     from aiohttp import ClientSession, web
-    from custom_components.family_finance import CONFIG_SCHEMA, async_setup
+    from custom_components.family_finance import CONFIG_SCHEMA, async_setup, investment_settings
     from custom_components.family_finance.client import FireflyClient
     from custom_components.family_finance.model import FinanceError, ZONE
 
@@ -49,12 +49,26 @@ class FinanceRuntimeTests(unittest.IsolatedAsyncioTestCase):
         return connection
 
     async def test_every_endpoint_denies_other_users_before_resolving_credentials(self):
-        for kind in ["entries", "overview", "series", "spending_summary", "spending_transactions", "spending_recurring"]:
+        for kind in ["entries", "overview", "series", "spending_summary", "spending_transactions", "spending_recurring", "spending_investments"]:
             self.hass.config_entries.async_entries.reset_mock()
             connection = await self.call(kind, "b" * 32)
             self.assertEqual(connection.send_error.call_args.args[1], "unauthorized")
             self.hass.config_entries.async_entries.assert_not_called()
             connection.send_result.assert_not_called()
+
+    async def test_private_investment_file_is_loaded_and_validated(self):
+        file = Path(self.directory.name) / "investments.json"
+        plan = {"id": "fund", "name": "Sample", "amount": "200", "source_account_id": 1,
+                "destination_account_id": 2, "start_date": "2026-09-01", "frequency": "monthly"}
+        file.write_text(json.dumps({"account_ids": [2], "plans": [plan]}))
+        self.config["family_finance"]["investment_file"] = str(file)
+        with patch("custom_components.family_finance.websocket_api.async_register_command", lambda h, c: None), \
+             patch("custom_components.family_finance.async_get_clientsession", return_value=Mock()):
+            await async_setup(self.hass, self.config)
+        for changes in [{"amount": "NaN"}, {"amount": "-2"}, {"start_date": "2026-13-01"},
+                        {"end_date": "2026-08-31"}, {"destination_account_id": 99}]:
+            with self.subTest(changes=changes), self.assertRaises(Exception):
+                investment_settings({"account_ids": [2], "plans": [{**plan, **changes}]})
 
     async def test_owner_reads_are_checked_again_after_fetch_and_deactivation_denies(self):
         with patch("custom_components.family_finance.async_get_clientsession", return_value=Mock()), \

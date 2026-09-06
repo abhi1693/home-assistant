@@ -20,7 +20,7 @@ Chart axes and hover dates include the year whenever the displayed history
 includes another calendar year, using the dashboard's Asia/Kolkata timezone.
 
 `family-finance-month-card` provides the top reporting-month control. Set the
-same `month_group` on it and the spending, accounts, bills, and card-cycle cards
+same `month_group` on it and the spending, accounts, investments, bills, and card-cycle cards
 to synchronize them; grouped cards show a month label instead of a separate
 picker. Net-worth cards keep their independent range. The selection is scoped
 to the HA connection, user and group in memory. Month changes clear obsolete
@@ -40,6 +40,16 @@ full wrapping names, amounts, shares, and expandable transaction details.
 with account initials and month-specific balances. Accounts and scheduled
 bills each occupy the full dashboard width, so an empty schedule stays compact
 without leaving a gap beside the account list.
+
+The recurring-bills tile shows the selected month's actual payments plus
+remaining scheduled occurrences, without a monthly average or unrelated active
+subscriptions. Its count includes only bills represented in that month.
+The investments card lists dated contributions and explicit scheduled payments,
+with separate Recorded and Scheduled / awaiting statement totals. It calculates
+income after spending, remaining bills and investment commitments. Statement
+matches replace scheduled amounts, preventing a second deduction. The panel has
+its own loading/refresh spinner and follows the shared month while net worth
+keeps its range.
 
 The Income tile totals all external credits, including salary, royalties,
 refunds and other receipts. Its Sources control opens one breakdown

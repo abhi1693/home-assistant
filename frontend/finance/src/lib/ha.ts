@@ -81,7 +81,27 @@ export type SpendingRecurring = {
   streams: RecurringStream[];
   expected: StreamProjection[];
   actuals: StreamActual[];
+  total_due: string;
+  total_remaining: string;
+  bill_count: number;
 };
+
+export type InvestmentEntry = {
+  id: string; date: string; name: string; amount: string;
+  source_account_id: number; destination_account_id: number;
+  status: "recorded" | "scheduled" | "awaiting_statement";
+};
+
+export type SpendingInvestments = {
+  month: string; censored: boolean;
+  total_recorded: string; total_pending: string; total_committed: string;
+  recorded: InvestmentEntry[]; expected: InvestmentEntry[];
+};
+
+export function fetchSpendingInvestments(hass: Hass, entry: string | undefined, month: string): Promise<SpendingInvestments> {
+  return hass.connection.sendMessagePromise({type: "family_finance/spending_investments", month,
+    ...(entry ? {entry_id: entry} : {})});
+}
 
 export function fetchSpendingSummary(
   hass: Hass,

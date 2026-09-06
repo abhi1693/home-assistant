@@ -385,6 +385,25 @@ export function cardCss(mode: ThemeMode): string {
   .month-picker:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
   .spending-card { container: spending / inline-size; }
   /* Separate the monthly totals from the category comparisons. */
+  .investment-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
+  .investment-stats > div { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .investment-stats strong { font-size: 23px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .investment-row { display: grid; grid-template-columns: 65px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 13px 0; border-top: 1px solid var(--nb-border); font-size: 13px; }
+  .investment-row time { color: var(--nb-muted); }
+  .investment-name { overflow-wrap: anywhere; }
+  .investment-status { display: block; margin-top: 4px; color: var(--nb-muted); font-size: 11px; }
+  .investment-status.recorded { color: var(--nb-green); }
+  .investment-row > strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .investment-remaining { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding-top: 18px; margin-top: 8px; border-top: 1px solid var(--nb-border); }
+  .investment-remaining > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .investment-remaining .muted { font-size: 12px; line-height: 1.5; }
+  .investment-remaining > strong { font-size: 22px; white-space: nowrap; }
+  @media(max-width: 480px) {
+    .investment-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .investment-stats > div:first-child { grid-column: 1 / -1; }
+    .investment-row { grid-template-columns: 46px minmax(0, 1fr) auto; gap: 8px; }
+    .investment-remaining { flex-direction: column; align-items: flex-start; }
+  }
   .spend-stats {
     display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px; margin: 20px 0 24px;

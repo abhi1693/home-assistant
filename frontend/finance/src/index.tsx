@@ -5,6 +5,7 @@ import SpendingCard from "./cards/SpendingCard";
 import StatCard from "./cards/StatCard";
 import WorthCard from "./cards/WorthCard";
 import MonthSelectorCard from "./cards/MonthSelectorCard";
+import InvestmentsCard from "./cards/InvestmentsCard";
 import { defineCard } from "./registerCard";
 
 const themeField = {
@@ -235,6 +236,16 @@ defineCard({
   ],
   stub: {},
   size: 6,
+});
+
+defineCard({
+  tag: "family-finance-investments-card",
+  name: "Finance investments",
+  description: "Monthly investment contributions, scheduled commitments and remaining income.",
+  component: InvestmentsCard,
+  schema: [titleField, entryField, monthGroupField, themeField, backgroundField],
+  stub: {},
+  size: 5,
 });
 
 defineCard({

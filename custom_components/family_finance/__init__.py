@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+from datetime import date
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -14,10 +16,43 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .client import FireflyClient
-from .model import FinanceError, RANGES
+from .model import FinanceError, RANGES, amount
 
 DOMAIN = "family_finance"
-KINDS = ("entries", "overview", "series", "spending_summary", "spending_recurring", "spending_transactions")
+KINDS = ("entries", "overview", "series", "spending_summary", "spending_recurring", "spending_transactions", "spending_investments")
+
+INVESTMENT_SETTINGS = vol.Schema({
+    vol.Optional("account_ids", default=[]): vol.All(cv.ensure_list, [cv.positive_int]),
+    vol.Optional("plans", default=[]): [vol.Schema({
+        vol.Required("id"): vol.All(cv.string, vol.Length(min=1, max=100)),
+        vol.Required("name"): vol.All(cv.string, vol.Length(min=1, max=255)),
+        vol.Required("amount"): cv.string,
+        vol.Required("source_account_id"): cv.positive_int,
+        vol.Required("destination_account_id"): cv.positive_int,
+        vol.Required("start_date"): vol.All(cv.string, vol.Match(r"^\d{4}-\d{2}-\d{2}$")),
+        vol.Optional("end_date"): vol.All(cv.string, vol.Match(r"^\d{4}-\d{2}-\d{2}$")),
+        vol.Required("frequency"): vol.In(["weekly", "monthly"]),
+        vol.Optional("description_contains", default=""): cv.string,
+    })],
+})
+
+
+def investment_settings(value):
+    settings = INVESTMENT_SETTINGS(value)
+    identifiers = set()
+    for plan in settings["plans"]:
+        try:
+            start = date.fromisoformat(plan["start_date"])
+            end = date.fromisoformat(plan.get("end_date", "9999-12-31"))
+            valid_amount = amount(plan["amount"]) > 0
+        except (ValueError, FinanceError):
+            raise vol.Invalid("Investment plan needs a valid date and positive amount") from None
+        if (not valid_amount or end < start or plan["id"] in identifiers or
+                plan["destination_account_id"] not in settings["account_ids"] or
+                plan["source_account_id"] == plan["destination_account_id"]):
+            raise vol.Invalid("Investment plan has an invalid range, account, amount or duplicate ID")
+        identifiers.add(plan["id"])
+    return settings
 
 
 def base_url(value):
@@ -34,6 +69,7 @@ CONFIG_SCHEMA = vol.Schema({
         vol.Optional("api_token"): cv.string,
         vol.Optional("firefly_entry_id"): cv.string,
         vol.Optional("access_file", default="/config/access/family-dashboard.json"): cv.string,
+        vol.Optional("investment_file"): cv.string,
         vol.Optional("self_transfer_journal_ids", default=[]): vol.All(cv.ensure_list, [cv.positive_int]),
         vol.Optional("account_overrides", default={}): {
             cv.string: vol.Schema({
@@ -62,6 +98,13 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             raise ValueError("Finance requires Abhimanyu's immutable HA user ID")
         return owner
     owner_id = await hass.async_add_executor_job(read_owner)
+    investment_file = settings.get("investment_file") or os.environ.get("FAMILY_FINANCE_INVESTMENT_FILE")
+    def read_investments():
+        return investment_settings(json.loads(Path(investment_file).read_text()) if investment_file else {})
+    investments = await hass.async_add_executor_job(read_investments)
+    overrides = {**settings["account_overrides"]}
+    for identifier in investments["account_ids"]:
+        overrides[str(identifier)] = {**overrides.get(str(identifier), {}), "kind": "investment"}
     client = None
     signature = None
 
@@ -80,7 +123,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         if signature != connection_settings:
             url, token, verify_ssl = connection_settings
             client = FireflyClient(async_get_clientsession(hass, verify_ssl=verify_ssl), url, token,
-                                  settings["account_overrides"], settings["self_transfer_journal_ids"])
+                                  overrides, settings["self_transfer_journal_ids"], investments["plans"])
             signature = connection_settings
             hass.data[DOMAIN] = client
         return client

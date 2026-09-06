@@ -15,7 +15,6 @@ import { useReportingMonth } from "../lib/reportingMonth";
 import { BaseCardConfig, ambientEffect, useNetwrthCore } from "./common";
 import {
   MonthNav,
-  PER_MONTH,
   amt,
   currentMonth,
   monthLabel,
@@ -196,19 +195,9 @@ export default function SpendingCard({
   const maxTotal = Math.max(1e-9, ...spendRows.map((t) => parseFloat(t.total)));
   const visibleRows = showAll ? spendRows : spendRows.slice(0, 8);
   const totalSpend = Number(summary?.total_spend ?? 0);
-  const bills = recurring ? recurring.streams.filter((s) => !s.is_income) : [];
-  const activeBills = bills.filter((s) => s.active);
-  const recurringMonthly = activeBills.reduce(
-    (acc, s) => acc + parseFloat(s.monthly_amount ?? s.average_amount) * (s.monthly_amount ? 1 : (PER_MONTH[s.frequency] ?? 1)),
-    0
-  );
   // "On track for": what already left this month plus the bills still
   // predicted to come. Only meaningful while looking at the live month.
-  const expectedBillsRemaining = recurring
-    ? recurring.expected
-        .filter((e) => !e.is_income && !e.overdue)
-        .reduce((acc, e) => acc + e.amount, 0)
-    : 0;
+  const expectedBillsRemaining = Number(recurring?.total_remaining ?? 0);
   const projectedSpend =
     summary && month === currentMonth() && expectedBillsRemaining > 0
       ? parseFloat(summary.total_spend) + expectedBillsRemaining
@@ -245,12 +234,12 @@ export default function SpendingCard({
                   {masked ? MASK : money(parseFloat(summary.total_income))}
                 </span>
               </button>
-              <div className="spend-stat">
+              <div className="spend-stat recurring-month-total">
                 <span className="spend-stat-label">Recurring bills</span>
                 <span className="spend-stat-value">
-                  {masked ? MASK : `${money(recurringMonthly)}/mo`}
+                  {masked ? MASK : money(Number(recurring?.total_due ?? 0))}
                 </span>
-                <span className="muted">{activeBills.length} active</span>
+                <span className="muted">{recurring?.bill_count ?? 0} {(recurring?.bill_count ?? 0) === 1 ? "bill" : "bills"} this month</span>
               </div>
             </div>
           )}

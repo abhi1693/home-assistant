@@ -140,8 +140,12 @@ card repayments are excluded from spending. Income includes salary, royalties,
 refunds, family credits and other external deposits in one expandable source
 breakdown. Own-account transfers, including reviewed historical deposits, are
 excluded from both income and its source list.
-Bills require Firefly subscription
-schedules; investments need explicitly classified accounts and recorded values.
+Bills require Firefly subscription schedules and total only occurrences in the
+selected month. Investments show recorded funding and dated commitments from
+private server-side plans, with income remaining after spending, remaining
+bills and investments. Plans do not generate ledger transactions; statement
+matches replace their expected amounts. Investment transfers remain outside
+income and spending, while net-worth history retains its independent range.
 See [Family Finance](custom_components/family_finance/README.md) for setup and
 data semantics, and [finance frontend](frontend/finance/README.md) for provenance,
 build commands, and responsive browser validation.

@@ -7,7 +7,7 @@ active HA user before accessing a client/cache and again before returning data.
 There is no administrator bypass on these commands.
 
 The top reporting-month selector controls spending, accounts, bill schedules,
-and credit-card history together. Past account balances are read at month end;
+investments, and credit-card history together. Past account balances are read at month end;
 the current month uses today's balances. Net-worth cards retain their own
 range. The chosen month stays in memory for this browser's HA connection and
 user, without a shared HA helper or persistent browser storage.
@@ -74,6 +74,18 @@ Use an encrypted Secret for that environment variable; do not put tokens in YAML
   from merchant activity. Variable bills use their configured range midpoint
   for estimates; skipped periods affect the monthly estimate. An empty schedule
   remains empty. Recurring transaction templates are not subscription schedules.
+  The monthly tile sums recorded payments and remaining occurrences inside the
+  selected month. It does not annualize subscriptions or count future starts;
+  paid bills stay in the month's total without being added to remaining costs.
+- Investment funding counts only the outgoing leg of transfers from a
+  non-investment account to an explicitly classified investment account.
+  Redemptions, transfers between investment accounts, and ordinary bank/card
+  transfers do not count as new contributions. Income and spending are unchanged.
+  The investment panel shows recorded contributions plus unmatched planned
+  dates in the selected month. Past dates awaiting a statement are labelled
+  accordingly, not treated as confirmed payments. Remaining income subtracts
+  spending, remaining bills, and investment commitments; paid bills are already
+  in spending and are not deducted twice.
 - Reporting dates use `Asia/Kolkata`. Future transactions are excluded from
   current spending; future bill schedules remain visible.
 - Successful responses share a five-minute in-memory cache (maximum 32 shapes).
@@ -82,6 +94,38 @@ Use an encrypted Secret for that environment variable; do not put tokens in YAML
   100 years. Failures are shown rather than silently returning partial totals.
 - The adapter creates no entities, financial events, or Recorder entries. The
   native Firefly integration independently creates its normal sensors.
+
+## Private investment schedules
+
+Use `investment_file` or the `FAMILY_FINANCE_INVESTMENT_FILE` environment variable
+to point to a server-side JSON file. Keep household amounts and schedules in
+private deployment configuration, outside this public repository. It is read
+and validated at integration startup; a configured missing or invalid file
+fails setup instead of silently hiding commitments. Without a file, no plans
+are inferred. The optional file has this shape (sample values only):
+
+```json
+{
+  "account_ids": [456],
+  "plans": [{
+    "id": "sample-fund", "name": "Sample fund", "amount": "2000",
+    "source_account_id": 123, "destination_account_id": 456,
+    "start_date": "2026-09-01", "frequency": "monthly",
+    "description_contains": "FUND"
+  }]
+}
+```
+
+`account_ids` classifies existing asset accounts as investments. Plans support
+`weekly` (weekday anchored by `start_date`) and `monthly` (day anchored by
+`start_date`, clamped to the last day in shorter months), with optional inclusive
+`end_date`. Only dates on or after the explicit start enter forecasts. A
+recorded contribution replaces one scheduled occurrence when source,
+destination, amount and description match within three days; matching is
+case-insensitive and each payment is used once. Different amounts or narration
+and payments outside that window need review. Historical contributions remain
+visible even before a current plan's start. These plans create no Firefly
+transactions, subscriptions, rules, or HA financial entities.
 
 Example optional overrides (replace IDs with the actual Firefly account IDs):
 

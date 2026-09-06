@@ -56,6 +56,16 @@ sections:
     column_span: 3
     visibility: *finance_visibility
     cards:
+      - type: custom:family-finance-investments-card
+        title: Investments
+        allowed_user_id: *finance_user
+        month_group: *finance_month
+        background: "off"
+        grid_options: { columns: 36, rows: auto }
+  - type: grid
+    column_span: 3
+    visibility: *finance_visibility
+    cards:
       - type: custom:family-finance-accounts-card
         title: Accounts
         allowed_user_id: *finance_user

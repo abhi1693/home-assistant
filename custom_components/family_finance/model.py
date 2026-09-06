@@ -154,6 +154,11 @@ def transactions_payload(groups: list[dict], accounts: list[dict], self_transfer
                     **base, "account_id": int(account_id), "amount": money(signed),
                     "merchant": merchant, "merchant_key": merchant,
                     "theme": "transfers" if kind == "transfer" else category,
+                    "investment_account_id": int(destination) if (
+                        kind == "transfer" and account_id == source and
+                        tracked[source]["kind"] != "investment" and
+                        tracked.get(destination, {}).get("kind") == "investment"
+                    ) else None,
                 })
     return sorted(output, key=lambda t: (t["posted_at"], t["id"]), reverse=True)
 
@@ -227,5 +232,68 @@ def recurring_payload(records: list[dict], month: str, today: date) -> dict:
                 expected.append({"merchant_key": key, "merchant": b["name"], "frequency": frequency,
                                  "is_income": False, "date": day.isoformat(), "amount": float(estimate),
                                  "overdue": day < today})
+    remaining = sum((amount(e["amount"]) for e in expected), Decimal(0))
+    paid_total = sum((amount(a["amount"]) for a in actuals), Decimal(0))
     return {"month": month, "censored": False, "today": today.isoformat() if start <= today <= end else "",
-            "streams": streams, "expected": expected, "actuals": actuals}
+            "streams": streams, "expected": expected, "actuals": actuals,
+            "total_due": money(remaining + paid_total), "total_remaining": money(remaining),
+            "bill_count": len({item["merchant_key"] for item in [*expected, *actuals]})}
+
+
+def investments_payload(transactions: list[dict], plans: list[dict], month: str, today: date) -> dict:
+    """Count investment funding once; explicit plans reserve cash without posting entries."""
+    start, end = month_window(month, today)
+    recorded = []
+    seen = set()
+    for t in transactions:
+        day = local_date(t["posted_at"])
+        if not t.get("investment_account_id") or t["id"] in seen or not start <= day <= min(end, today):
+            continue
+        seen.add(t["id"])
+        recorded.append({"id": str(t["id"]), "date": day.isoformat(), "amount": t["amount"],
+                         "name": t["merchant"], "source_account_id": t["account_id"],
+                         "destination_account_id": t["investment_account_id"],
+                         "description": t["description"], "status": "recorded"})
+    schedule = []
+    for plan in plans:
+        anchor = date.fromisoformat(plan["start_date"])
+        last = date.fromisoformat(plan["end_date"]) if plan.get("end_date") else end
+        value = amount(plan["amount"])
+        if value <= 0:
+            raise FinanceError("Investment plan amounts must be positive")
+        if plan["frequency"] == "monthly":
+            dates = [start.replace(day=min(anchor.day, end.day))]
+        elif plan["frequency"] == "weekly":
+            first = max(anchor, start)
+            first += timedelta(days=(anchor.weekday() - first.weekday()) % 7)
+            dates = [first + timedelta(days=i * 7) for i in range(5)]
+        else:
+            raise FinanceError("Unsupported investment frequency")
+        for day in dates:
+            if not max(start, anchor) <= day <= min(end, last):
+                continue
+            schedule.append((day, plan, value))
+    matched = set()
+    expected = []
+    for day, plan, value in sorted(schedule, key=lambda item: (item[0], item[1]["id"])):
+        candidates = [t for t in recorded if t["id"] not in matched and
+                      t["source_account_id"] == plan["source_account_id"] and
+                      t["destination_account_id"] == plan["destination_account_id"] and
+                      amount(t["amount"]) == value and
+                      abs((date.fromisoformat(t["date"]) - day).days) <= 3 and
+                      plan.get("description_contains", "").casefold() in t["description"].casefold()]
+        if candidates:
+            match = min(candidates, key=lambda t: (abs((date.fromisoformat(t["date"]) - day).days), t["date"], t["id"]))
+            match["name"] = plan["name"]
+            match["plan_id"] = plan["id"]
+            matched.add(match["id"])
+        else:
+            expected.append({"id": f'{plan["id"]}-{day}', "date": day.isoformat(), "name": plan["name"],
+                             "amount": money(value), "source_account_id": plan["source_account_id"],
+                             "destination_account_id": plan["destination_account_id"],
+                             "status": "awaiting_statement" if day <= today else "scheduled"})
+    actual_total = sum((amount(t["amount"]) for t in recorded), Decimal(0))
+    pending_total = sum((amount(t["amount"]) for t in expected), Decimal(0))
+    return {"month": month, "censored": False, "recorded": recorded, "expected": expected,
+            "total_recorded": money(actual_total), "total_pending": money(pending_total),
+            "total_committed": money(actual_total + pending_total)}

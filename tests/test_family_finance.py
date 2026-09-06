@@ -132,6 +132,74 @@ class FinanceModelTests(unittest.TestCase):
     def test_empty_bills_remain_empty_and_no_schedule_is_inferred(self):
         self.assertEqual(MODEL.recurring_payload([], "2026-09", date(2026, 9, 6))["streams"], [])
 
+    def test_bill_total_uses_selected_occurrences_not_monthly_averages(self):
+        def bill(identifier, value, anchor, dates, frequency="monthly", paid=None):
+            return {"id": identifier, "attributes": {"name": "Sample subscription", "currency_code": "INR",
+                "amount_min": value, "amount_max": value, "date": anchor, "repeat_freq": frequency,
+                "active": True, "pay_dates": dates, "paid_dates": paid or []}}
+        records = [bill("1", "2000", "2026-10-08", ["2026-10-08"]),
+                   bill("2", "12000", "2026-09-06", ["2026-09-06"]),
+                   bill("3", "6000", "2027-02-21", ["2027-02-21"], "yearly")]
+        september = MODEL.recurring_payload(records, "2026-09", date(2027, 3, 1))
+        self.assertEqual(Decimal(september["total_due"]), 12000)
+        self.assertEqual(september["bill_count"], 1)
+        records[1]["attributes"]["pay_dates"] = ["2026-10-06"]
+        october = MODEL.recurring_payload(records, "2026-10", date(2027, 3, 1))
+        self.assertEqual(Decimal(october["total_due"]), 14000)
+        self.assertEqual(october["bill_count"], 2)
+        records[0]["attributes"]["pay_dates"] = ["2027-02-08"]
+        records[1]["attributes"]["pay_dates"] = []
+        records[1]["attributes"]["paid_dates"] = [{"date": "2027-02-06", "currency_code": "INR", "amount": "12000"}]
+        february = MODEL.recurring_payload(records, "2027-02", date(2027, 3, 1))
+        self.assertEqual(Decimal(february["total_due"]), 20000)
+        self.assertEqual(Decimal(february["total_remaining"]), 8000)
+        self.assertEqual(february["bill_count"], 3)
+
+    def test_investments_count_only_outgoing_funding_once(self):
+        accounts = MODEL.accounts_payload([account(1), account(2), account(3), account(4, account_role="ccAsset")],
+                                          {"2": {"kind": "investment"}, "3": {"kind": "investment"}})
+        splits = [transaction(1, "transfer", "100", destination="2"),
+                  transaction(2, "transfer", "20", source="2", destination="1"),
+                  transaction(3, "transfer", "30", source="2", destination="3"),
+                  transaction(4, "transfer", "40", destination="4"),
+                  transaction(5, "deposit", "1000", source="9", destination="1")]
+        rows = MODEL.transactions_payload([{"attributes": {"transactions": splits + [splits[0]]}}], accounts)
+        result = MODEL.investments_payload(rows, [], "2026-09", date(2026, 9, 6))
+        self.assertEqual(result["total_recorded"], "100")
+        self.assertEqual([r["id"] for r in result["recorded"]], ["1"])
+        summary = MODEL.spending_payload(rows, "2026-09")
+        self.assertEqual(summary["total_spend"], "0")
+        self.assertEqual(summary["total_income"], "1000")
+
+    def test_explicit_investment_dates_and_matching_prevent_double_counting(self):
+        plans = [{"id": "monthly", "name": "Sample fund", "amount": "2000", "source_account_id": 1,
+                  "destination_account_id": 2, "start_date": "2026-09-01", "frequency": "monthly", "description_contains": "FUND"},
+                 {"id": "weekly", "name": "Sample gold", "amount": "500", "source_account_id": 1,
+                  "destination_account_id": 2, "start_date": "2026-09-01", "frequency": "weekly", "description_contains": "GOLD"}]
+        accounts = MODEL.accounts_payload([account(1), account(2)], {"2": {"kind": "investment"}})
+        splits = [transaction(1, "transfer", "2000", description="Fund purchase", date="2026-09-02"),
+                  transaction(2, "transfer", "500", description="Gold purchase", date="2026-09-01")]
+        rows = MODEL.transactions_payload([{"attributes": {"transactions": splits}}], accounts)
+        result = MODEL.investments_payload(rows, plans, "2026-09", date(2026, 9, 6))
+        self.assertEqual(result["total_recorded"], "2500")
+        self.assertEqual(result["total_pending"], "2000")
+        self.assertEqual(result["total_committed"], "4500")
+        self.assertEqual([r["date"] for r in result["expected"]], ["2026-09-08", "2026-09-15", "2026-09-22", "2026-09-29"])
+        self.assertEqual({r["name"] for r in result["recorded"]}, {"Sample fund", "Sample gold"})
+        october = MODEL.investments_payload([], plans, "2026-10", date(2026, 10, 1))
+        self.assertEqual(october["total_committed"], "4000")
+        self.assertEqual(len(october["expected"]), 5)
+        self.assertEqual(october["expected"][0]["status"], "awaiting_statement")
+        self.assertEqual(MODEL.investments_payload([], plans, "2026-08", date(2026, 9, 6))["total_committed"], "0")
+
+    def test_investment_month_end_and_end_date(self):
+        plan = {"id": "fund", "name": "Fund", "amount": "12.34", "source_account_id": 1,
+                "destination_account_id": 2, "start_date": "2026-01-31", "frequency": "monthly", "end_date": "2026-03-15"}
+        february = MODEL.investments_payload([], [plan], "2026-02", date(2026, 9, 6))
+        self.assertEqual(february["expected"][0]["date"], "2026-02-28")
+        self.assertEqual(february["total_committed"], "12.34")
+        self.assertEqual(MODEL.investments_payload([], [plan], "2026-03", date(2026, 9, 6))["expected"], [])
+
     def test_history_labels_closing_balance_without_future_points(self):
         now = datetime(2026, 9, 6, 12, tzinfo=MODEL.ZONE)
         result = MODEL.series_payload({"id": 1}, [{"currency_code": "INR", "entries": {

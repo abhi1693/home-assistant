@@ -12,18 +12,19 @@ from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from .model import (
     FinanceError, RANGES, ZONE, accounts_payload, local_date, month_window,
-    recurring_payload, series_payload, spending_payload, transactions_payload,
+    recurring_payload, series_payload, spending_payload, transactions_payload, investments_payload,
 )
 
 
 class FireflyClient:
     def __init__(self, session: ClientSession, base_url: str, token: str, overrides: dict,
-                 self_transfer_journal_ids=()) -> None:
+                 self_transfer_journal_ids=(), investment_plans=()) -> None:
         self.session = session
         self.base_url = base_url.rstrip("/")
         self.token = token
         self.overrides = overrides
         self.self_transfer_journal_ids = tuple(self_transfer_journal_ids)
+        self.investment_plans = tuple(investment_plans)
         self.cache = OrderedDict()
         self.lock = asyncio.Lock()
 
@@ -143,6 +144,8 @@ class FireflyClient:
                     return recurring_payload(records, month, now.date())
                 return await self.cached((kind, month, now.date()), fetch)
             transactions = await self.transactions(month, accounts, now)
+            if kind == "spending_investments":
+                return investments_payload(transactions, self.investment_plans, month, now.date())
             if kind == "spending_summary":
                 return spending_payload(transactions, month)
             if kind == "spending_transactions":

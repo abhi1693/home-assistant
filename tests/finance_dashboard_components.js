@@ -35,7 +35,7 @@ async function fixture(page, grouped = false, initiallyLoading = false) {
       ts:new Date(today.getTime()-(180-i)*86400000).toISOString(),
       balance:String(Number(a.balance)-(a.kind==="credit"||i===180?0:((180-i)*250+Math.sin(i)*3000))),
     }))}));
-    const recurring = {month,censored:false,today:now.slice(0,10),streams:[{
+    const recurring = {month,censored:false,today:now.slice(0,10),total_due:"25000",total_remaining:"0",bill_count:1,streams:[{
       merchant_key:"rent",merchant:"Rent",theme:"housing",frequency:"quarterly",frequency_label:"every 2 monthly periods",interval_days:60.875,
       average_amount:"25000",monthly_amount:"25000",last_amount:"25000",active:true,is_income:false,
       first_seen:"2026-01-01",last_seen:`${month}-02`,count:1,logo_url:null,
@@ -52,6 +52,9 @@ async function fixture(page, grouped = false, initiallyLoading = false) {
       if(kind==="overview")return {...overview,accounts:accounts.map(a=>({...a,balance:msg.month&&msg.month!==month&&a.id===1?"91000":a.balance}))};
       if(kind==="series")return {series,censored:false};
       if(kind==="spending_recurring")return {...recurring,month:msg.month};
+      if(kind==="spending_investments")return {month:msg.month,censored:false,total_recorded:"2000",total_pending:msg.month===month?"1000":"0",total_committed:msg.month===month?"3000":"2000",recorded:[
+        {id:"fund-payment",date:`${msg.month}-01`,name:"Sample fund",amount:"2000",source_account_id:1,destination_account_id:2,status:"recorded"}],expected:msg.month===month?[
+        {id:"gold-planned",date:`${msg.month}-08`,name:"Sample gold",amount:"1000",source_account_id:1,destination_account_id:2,status:"scheduled"}]:[]};
       if(kind==="spending_summary")return {month:msg.month,censored:false,total_spend:msg.month!==month?"45000":"32000",total_income:"130592.02",
         themes:grouped?[
         {theme:'House Renovation - Fixtures and Fittings',total:'18000',count:7},
@@ -77,13 +80,14 @@ async function fixture(page, grouped = false, initiallyLoading = false) {
       ["stat",{title:"Tracked net worth",layout:"banner",show_range_selector:false,range:"1m"},true],
       ["worth",{title:"Net worth over time",range:"6m",mode:"total",compact:true},true],
       ["spending",{title:"Monthly spending"},true],
+      ["investments",{title:"Investments"},true],
       ["accounts",{title:"Accounts",show_range_selector:false},grouped],
       ["bills",{title:"Scheduled bills"},grouped],
       ["cardcycle",{title:"Credit cards"},true],
     ];
     for(const [kind,config,full] of cards){
       const card=document.createElement(`family-finance-${kind}-card`);
-      const shared=grouped&&["spending","accounts","bills","cardcycle"].includes(kind)?{month_group:"finance"}:{};
+      const shared=grouped&&["spending","accounts","bills","cardcycle","investments"].includes(kind)?{month_group:"finance"}:{};
       card.setConfig({type:`custom:family-finance-${kind}-card`,allowed_user_id:owner,background:"off",...config,...shared});
       if(full)card.className="full";
       card.hass=window.hass;
@@ -100,10 +104,10 @@ async function loadingCheck(page, width) {
   await page.waitForFunction(()=>window.pendingRequests.length>=12);
   const busy=page.locator('.card[aria-busy="true"]');
   const spinners=page.locator('.loading-spinner');
-  assert.equal(await busy.count(),6,'Every data panel shows its initial request');
-  assert.equal(await spinners.count(),6);
+  assert.equal(await busy.count(),7,'Every data panel shows its initial request');
+  assert.equal(await spinners.count(),7);
   assert.equal(await page.locator('family-finance-month-card .loading-spinner').count(),0);
-  for(const kind of ['stat','worth','spending','accounts','bills','cardcycle']) {
+  for(const kind of ['stat','worth','spending','accounts','bills','cardcycle','investments']) {
     const panel=page.locator(`family-finance-${kind}-card .card`);
     const spinner=panel.locator('.loading-spinner');
     const box=await panel.boundingBox(), ring=await spinner.boundingBox();
@@ -115,19 +119,21 @@ async function loadingCheck(page, width) {
   await page.locator('family-finance-stat-card .stat-value').waitFor();
   await page.waitForFunction(()=>[...document.querySelectorAll('main > *')].every(el=>!el.shadowRoot?.querySelector('.loading-spinner')));
 
-  // Only the slow spending panel stays busy on the normal visibility refresh.
+  // Only the slow investment panel stays busy on the normal visibility refresh.
   const spending=page.locator('family-finance-spending-card');
-  const before=await spending.locator('.spend-stat-value').allTextContents();
+  const investments=page.locator('family-finance-investments-card');
+  const before=await investments.locator('.investment-total').allTextContents();
   await page.evaluate(()=>{
-    window.holdRequest=msg=>msg.type==='family_finance/spending_summary';
+    window.holdRequest=msg=>msg.type==='family_finance/spending_investments';
     document.dispatchEvent(new Event('visibilitychange'));
   });
-  await spending.locator('.panel-loading-refresh').waitFor();
+  await investments.locator('.panel-loading-refresh').waitFor();
+  await page.waitForFunction(()=>[...document.querySelectorAll('main > *')].filter(el=>el.tagName!=='FAMILY-FINANCE-INVESTMENTS-CARD').every(el=>!el.shadowRoot?.querySelector('.loading-spinner')));
   assert.equal(await busy.count(),1);
   assert.equal(await spinners.count(),1);
-  assert.deepEqual(await spending.locator('.spend-stat-value').allTextContents(),before,'Keep current figures during refresh');
-  assert.equal(await spending.locator('.panel-loading-refresh').evaluate(el=>getComputedStyle(el).pointerEvents),'none');
-  await spending.screenshot({path:path.join(OUTPUT,`finance-spending-refresh-${width}.png`)});
+  assert.deepEqual(await investments.locator('.investment-total').allTextContents(),before,'Keep current figures during refresh');
+  assert.equal(await investments.locator('.panel-loading-refresh').evaluate(el=>getComputedStyle(el).pointerEvents),'none');
+  await investments.screenshot({path:path.join(OUTPUT,`finance-investments-refresh-${width}.png`)});
   await page.emulateMedia({reducedMotion:'reduce'});
   assert.equal(await spinners.evaluate(el=>getComputedStyle(el).animationName),'none');
   await page.emulateMedia({reducedMotion:'no-preference'});
@@ -183,6 +189,11 @@ async function sharedMonthCheck(page, width) {
   const worth=await page.locator('family-finance-stat-card .stat-value').innerText();
   const independent=await page.evaluate(()=>window.messages.filter(m=>!m.month).length);
   assert.equal(await page.getByRole('button',{name:'Previous month',exact:true}).count(),1);
+  assert.equal((await page.locator('.recurring-month-total .spend-stat-value').innerText()).trim(),'₹25,000');
+  assert.match(await page.locator('.recurring-month-total').innerText(),/1 bill this month/);
+  assert.equal((await page.locator('.investment-total').innerText()).trim(),'₹3,000');
+  assert.equal(await page.locator('.investment-row').count(),2);
+  assert.match(await page.locator('.investment-remaining').innerText(),/95,592/);
   const categories=page.locator('family-finance-spending-card .spend-row');
   assert.equal(await categories.count(),8);
   await page.getByRole('button',{name:'Show all 12 categories',exact:true}).click();
@@ -210,9 +221,11 @@ async function sharedMonthCheck(page, width) {
   await picker.fill(prior);
   await page.locator('family-finance-accounts-card .num').filter({hasText:'91,000'}).waitFor();
   assert.equal(await page.locator('.income-breakdown').count(),0);
-  assert.equal(await page.locator(`.card[data-reporting-month="${prior}"]`).count(),4);
+  assert.equal((await page.locator('.investment-total').innerText()).trim(),'₹2,000');
+  assert.equal(await page.locator('.investment-row').count(),1);
+  assert.equal(await page.locator(`.card[data-reporting-month="${prior}"]`).count(),5);
   const requested=await page.evaluate(month=>window.messages.filter(m=>m.month===month).map(m=>m.type),prior);
-  for(const kind of ['overview','series','spending_summary','spending_recurring','spending_transactions'])assert(requested.includes(`family_finance/${kind}`));
+  for(const kind of ['overview','series','spending_summary','spending_recurring','spending_transactions','spending_investments'])assert(requested.includes(`family_finance/${kind}`));
   assert.equal(await page.locator('family-finance-stat-card .stat-value').innerText(),worth);
   assert.equal(await page.evaluate(()=>window.messages.filter(m=>!m.month).length),independent);
   await page.locator('family-finance-spending-card .spend-row').first().click();
@@ -220,14 +233,14 @@ async function sharedMonthCheck(page, width) {
   await page.evaluate(month=>window.delayedMonth=month,delayed);
   await picker.fill(delayed);
   await page.locator('family-finance-accounts-card .status').filter({hasText:'Loading'}).waitFor();
-  assert.equal(await page.locator('.card[aria-busy="true"]').count(),4,'Shared month affects only monthly panels');
+  assert.equal(await page.locator('.card[aria-busy="true"]').count(),5,'Shared month affects only monthly panels');
   assert.equal(await page.locator('family-finance-worth-card .loading-spinner').count(),0);
   assert.equal(await page.locator('family-finance-spending-card .spend-txn-desc').count(),0);
   await picker.fill(current);
   await page.locator('family-finance-accounts-card .num').filter({hasText:'72,000'}).waitFor();
   await page.evaluate(()=>{window.pendingMonths.forEach(resolve=>resolve());window.pendingMonths=[];});
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-  assert.equal(await page.locator(`.card[data-reporting-month="${current}"]`).count(),4);
+  assert.equal(await page.locator(`.card[data-reporting-month="${current}"]`).count(),5);
   assert.equal(await page.locator('family-finance-accounts-card .num').filter({hasText:'91,000'}).count(),0);
   assert.equal(await page.locator('family-finance-stat-card .stat-value').innerText(),worth);
   assert.equal(await page.locator('.loading-spinner').count(),0,'Obsolete month cannot leave a spinner running');
