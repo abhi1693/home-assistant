@@ -56,6 +56,8 @@ income after spending, remaining bills and investment commitments. Statement
 matches replace scheduled amounts, preventing a second deduction. The panel has
 its own loading/refresh spinner and follows the shared month while net worth
 keeps its range.
+Recorded contributions use their configured provider name when account, amount,
+and narration identify it, including months before the current schedule starts.
 
 The Income tile totals all external credits, including salary, royalties,
 refunds and other receipts. Its Sources control opens one breakdown

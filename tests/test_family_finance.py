@@ -192,6 +192,50 @@ class FinanceModelTests(unittest.TestCase):
         self.assertEqual(october["expected"][0]["status"], "awaiting_statement")
         self.assertEqual(MODEL.investments_payload([], plans, "2026-08", date(2026, 9, 6))["total_committed"], "0")
 
+    def test_recorded_investment_names_do_not_depend_on_forecast_start(self):
+        plan = {"id": "gold", "name": "Sample gold", "amount": "500", "source_account_id": 1,
+                "destination_account_id": 2, "start_date": "2026-09-01", "frequency": "weekly",
+                "description_contains": "GOLD"}
+        accounts = MODEL.accounts_payload([account(1), account(2), account(3), account(4)],
+                                          {"2": {"kind": "investment"}, "3": {"kind": "investment"}})
+        splits = [transaction(1, "transfer", "500", description="Reference/gold purchase"),
+                  transaction(2, "transfer", "500", description="Fund purchase"),
+                  transaction(3, "transfer", "501", description="Gold purchase"),
+                  transaction(4, "transfer", "500", source="4", description="Gold purchase"),
+                  transaction(5, "transfer", "500", destination="3", description="Gold purchase")]
+        for split in splits:
+            split.update(date="2026-08-25", destination_name="Shared investment account")
+        rows = MODEL.transactions_payload([{"attributes": {"transactions": splits}}], accounts)
+        baseline = MODEL.investments_payload(rows, [], "2026-08", date(2026, 9, 6))
+        result = MODEL.investments_payload(rows, [plan], "2026-08", date(2026, 9, 6))
+        by_id = {r["id"]: r for r in result["recorded"]}
+        self.assertEqual(by_id["1"]["name"], "Sample gold")
+        self.assertTrue(all(by_id[str(i)]["name"] == "Shared investment account" for i in range(2, 6)))
+        self.assertEqual(result["expected"], [])
+        self.assertEqual(result["total_committed"], baseline["total_committed"])
+        self.assertTrue(all("plan_id" not in r for r in result["recorded"]))
+        for item in baseline["recorded"]:
+            self.assertEqual({k: v for k, v in by_id[item["id"]].items() if k != "name"},
+                             {k: v for k, v in item.items() if k != "name"})
+        ambiguous = {**plan, "id": "other", "name": "Other provider"}
+        for plans in [[{**plan, "description_contains": ""}], [plan, ambiguous]]:
+            unchanged = MODEL.investments_payload(rows, plans, "2026-08", date(2026, 9, 6))
+            self.assertEqual(unchanged["recorded"], baseline["recorded"])
+
+    def test_recorded_provider_name_alone_does_not_settle_a_scheduled_payment(self):
+        plan = {"id": "fund", "name": "Sample fund", "amount": "500", "source_account_id": 1,
+                "destination_account_id": 2, "start_date": "2026-08-01", "frequency": "monthly",
+                "description_contains": "FUND"}
+        accounts = MODEL.accounts_payload([account(1), account(2)], {"2": {"kind": "investment"}})
+        rows = MODEL.transactions_payload([{"attributes": {"transactions": [
+            transaction(1, "transfer", "500", date="2026-08-20", description="Fund purchase")
+        ]}}], accounts)
+        result = MODEL.investments_payload(rows, [plan], "2026-08", date(2026, 9, 6))
+        self.assertEqual(result["recorded"][0]["name"], "Sample fund")
+        self.assertNotIn("plan_id", result["recorded"][0])
+        self.assertEqual(result["expected"][0]["date"], "2026-08-01")
+        self.assertEqual(result["total_pending"], "500")
+
     def test_investment_month_end_and_end_date(self):
         plan = {"id": "fund", "name": "Fund", "amount": "12.34", "source_account_id": 1,
                 "destination_account_id": 2, "start_date": "2026-01-31", "frequency": "monthly", "end_date": "2026-03-15"}

@@ -240,6 +240,14 @@ def recurring_payload(records: list[dict], month: str, today: date) -> dict:
             "bill_count": len({item["merchant_key"] for item in [*expected, *actuals]})}
 
 
+def investment_plan_matches(transaction: dict, plan: dict) -> bool:
+    """Match the reviewed account, amount and narration independently of cadence."""
+    return (transaction["source_account_id"] == plan["source_account_id"] and
+            transaction["destination_account_id"] == plan["destination_account_id"] and
+            amount(transaction["amount"]) == amount(plan["amount"]) and
+            plan.get("description_contains", "").casefold() in transaction["description"].casefold())
+
+
 def investments_payload(transactions: list[dict], plans: list[dict], month: str, today: date) -> dict:
     """Count investment funding once; explicit plans reserve cash without posting entries."""
     start, end = month_window(month, today)
@@ -254,6 +262,14 @@ def investments_payload(transactions: list[dict], plans: list[dict], month: str,
                          "name": t["merchant"], "source_account_id": t["account_id"],
                          "destination_account_id": t["investment_account_id"],
                          "description": t["description"], "status": "recorded"})
+    for contribution in recorded:
+        # Imported providers can share one Firefly account. Identify recorded
+        # payments even before the current forecast starts, but only with an
+        # explicit narration and an unambiguous name. This is not a paid-date match.
+        names = {plan["name"] for plan in plans if plan.get("description_contains", "").strip()
+                 and investment_plan_matches(contribution, plan)}
+        if len(names) == 1:
+            contribution["name"] = names.pop()
     schedule = []
     for plan in plans:
         anchor = date.fromisoformat(plan["start_date"])
@@ -277,11 +293,8 @@ def investments_payload(transactions: list[dict], plans: list[dict], month: str,
     expected = []
     for day, plan, value in sorted(schedule, key=lambda item: (item[0], item[1]["id"])):
         candidates = [t for t in recorded if t["id"] not in matched and
-                      t["source_account_id"] == plan["source_account_id"] and
-                      t["destination_account_id"] == plan["destination_account_id"] and
-                      amount(t["amount"]) == value and
-                      abs((date.fromisoformat(t["date"]) - day).days) <= 3 and
-                      plan.get("description_contains", "").casefold() in t["description"].casefold()]
+                      investment_plan_matches(t, plan) and
+                      abs((date.fromisoformat(t["date"]) - day).days) <= 3]
         if candidates:
             match = min(candidates, key=lambda t: (abs((date.fromisoformat(t["date"]) - day).days), t["date"], t["id"]))
             match["name"] = plan["name"]

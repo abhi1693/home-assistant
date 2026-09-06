@@ -124,7 +124,11 @@ recorded contribution replaces one scheduled occurrence when source,
 destination, amount and description match within three days; matching is
 case-insensitive and each payment is used once. Different amounts or narration
 and payments outside that window need review. Historical contributions remain
-visible even before a current plan's start. These plans create no Firefly
+visible even before a current plan's start. When source, destination, amount,
+and a nonempty description matcher identify one provider name, recorded rows
+use that name independently of schedule dates. Empty or ambiguous matchers
+retain the Firefly counterparty name. A display-name match does not mark a
+scheduled occurrence paid or create a historical forecast. These plans create no Firefly
 transactions, subscriptions, rules, or HA financial entities.
 
 Example optional overrides (replace IDs with the actual Firefly account IDs):
