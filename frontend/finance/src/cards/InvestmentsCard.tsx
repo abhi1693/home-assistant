@@ -31,7 +31,7 @@ export default function InvestmentsCard({ hass, config }: {hass: Hass; config: B
     {error && <div className="error-box">{error}</div>}
     <PanelLoading loading={loading} refreshing={!!overview} />
     {!error && investment && <>
-      <InvestmentBreakdown key={period.key} investment={investment} period={period} masked={masked} />
+      <InvestmentBreakdown key={period.key} investment={investment} masked={masked} />
       <PeriodTrend period={period} comparison={comparison} metrics={[{key:"investments",label:"Investment contributions",
         monthly:investment.monthly,planned:investment.planned_monthly,comparison:comparisonData?.investments.monthly}]}/>
       <div className="investment-remaining"><InfoTooltip key={period.key} className="investment-remaining-label" label="Explain income after commitments"

@@ -143,8 +143,7 @@ breakdown. Own-account transfers, including reviewed historical deposits, are
 excluded from both income and its source list.
 Bills require Firefly subscription schedules and total only occurrences in the
 selected period. Investments show recorded funding and dated commitments from
-private server-side plans in a compact contribution donut with expandable payment
-details. The footer shows income remaining after spending, remaining bills and
+private server-side plans in a compact contribution donut and monthly chart. The footer shows income remaining after spending, remaining bills and
 investments. Plans do not generate ledger transactions; statement
 matches replace their expected amounts. Investment transfers remain outside
 income and spending. The shared period control supports months, calendar years,

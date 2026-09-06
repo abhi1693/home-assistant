@@ -56,25 +56,17 @@ async function ready(page) {
       const collapsed=(await card.boundingBox()).height;
       assert(collapsed<(width===375?460:340),`Compact card height: ${width}px → ${collapsed}px`);
       await card.screenshot({path:path.join(OUTPUT,`investments-${width}.png`)});
-      const before=await page.evaluate(()=>window.messages.length);
-      await card.getByRole('button',{name:'Show Gold plan payments',exact:true}).focus();
-      await page.keyboard.press('Enter');
-      assert.equal(await card.locator('.investment-row').count(),4);
-      assert((await card.locator('.investment-name').allTextContents()).every(s=>s.startsWith('Gold plan')));
-      assert.equal(await page.evaluate(()=>window.messages.length),before,'Expanding already-loaded details makes no new request');
-      await card.getByRole('button',{name:'View all 6 payments',exact:true}).click();
-      assert.equal(await card.locator('.investment-row').count(),6);
-      assert((await card.boundingBox()).height<collapsed+310,'Long details stay inside a bounded area');
-      await card.screenshot({path:path.join(OUTPUT,`investments-expanded-${width}.png`)});
+      assert.equal(await card.locator('.investment-details-toggle,.investment-payment-details').count(),0);
+      assert.equal(await card.locator('button.investment-provider,[aria-controls]').count(),0);
+      await card.locator('.investment-provider').filter({hasText:'Gold plan'}).click();
+      assert.equal(await card.locator('.investment-row').count(),0,'Legend cannot open a redundant payment list');
       await picker.fill('2026-09');await ready(page);
-      assert.equal(await card.locator('.investment-row').count(),0,'Changing the period closes details');
+      assert.equal(await card.locator('.investment-row').count(),0,'No dated list in any period');
       assert.equal(await card.locator('.investment-total').innerText(),'₹12,000');
       assert.equal(await card.locator('.investment-recorded').innerText(),'₹0');
       assert.equal(await card.locator('.investment-pending').innerText(),'₹12,000');
       assert.match(await card.locator('.investment-donut-total').innerText(),/Total committed/);
-      await card.getByRole('button',{name:'View all 2 payments',exact:true}).click();
-      assert.deepEqual(await card.locator('.investment-status').allTextContents(),['Awaiting statement','Scheduled']);
-      await card.getByRole('button',{name:'Close investment payments'}).click();
+      assert.deepEqual(await card.locator('.investment-provider-meta').allTextContents(),['1 pending · 83.3%','1 pending · 16.7%']);
       await card.getByRole('button',{name:'Explain income after commitments'}).click();
       await card.getByRole('tooltip').waitFor();
       assert.match(await card.getByRole('tooltip').innerText(),/Recorded income − spending − remaining bills − investments/);
@@ -93,15 +85,13 @@ async function ready(page) {
           assert.equal(new Set(colors).size,16);
           assert(await card.locator('.investment-provider-list').evaluate(el=>el.scrollHeight>el.clientHeight));
           assert((await card.boundingBox()).height<(width===375?480:375));
-          await card.getByRole('button',{name:'View all 16 payments'}).click();
-          assert.equal(await card.locator('.investment-row').count(),16);
-          assert(await card.locator('.investment-list').evaluate(el=>el.scrollHeight>el.clientHeight));
+          assert.equal(await card.locator('.investment-row,.investment-details-toggle').count(),0);
         }
       }
       await page.evaluate(()=>{document.querySelector('family-finance-investments-card').hass={...window.hass,user:{id:'someone-else'}};});
       await card.locator('.status').filter({hasText:'private'}).waitFor();
       assert.equal(await card.locator('.investment-row,.investment-slice,.investment-total').count(),0);
-      console.log(`${width}px: ${collapsed}px collapsed; grouping, totals, recorded/pending, drill-down, single/empty/many cases and privacy passed.`);
+      console.log(`${width}px: ${collapsed}px collapsed; grouping, totals, recorded/pending, chart-only presentation, single/empty/many cases and privacy passed.`);
       await page.close();
     }
   } finally {await browser.close();}

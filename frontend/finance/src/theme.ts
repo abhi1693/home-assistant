@@ -463,24 +463,12 @@ export function cardCss(mode: ThemeMode): string {
   .investment-pending { color: var(--nb-muted); }
   .investment-allocation { min-width: 0; }
   .investment-provider-list { max-height: 184px; overflow-y: auto; }
-  .investment-provider { width: 100%; display: grid; grid-template-columns: 8px minmax(0,1fr) auto 12px; align-items: center; gap: 3px 9px; padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--nb-text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
-  .investment-provider:hover, .investment-provider[aria-expanded="true"] { background: var(--nb-panel-2); border-color: var(--nb-border); }
-  .investment-provider:focus-visible, .investment-details-toggle:focus-visible, .investment-details-head button:focus-visible, .investment-remaining-label:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
+  .investment-provider { width: 100%; display: grid; grid-template-columns: 8px minmax(0,1fr) auto; align-items: center; gap: 3px 9px; padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--nb-text); font: inherit; font-size: 13px; text-align: left; }
+  .investment-remaining-label:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
   .investment-provider-dot { width: 8px; height: 8px; border-radius: 50%; grid-row: 1 / 3; }
   .investment-provider-name { grid-column: 2; overflow-wrap: anywhere; }
   .investment-provider > strong { grid-column: 3; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .investment-provider-meta { grid-column: 2 / 4; font-size: 11px; color: var(--nb-muted); }
-  .investment-provider-chevron { grid-column: 4; grid-row: 1 / 3; color: var(--nb-muted); }
-  .investment-details-toggle, .investment-details-head button { border: 0; background: transparent; color: var(--nb-accent); font: inherit; font-size: 12px; cursor: pointer; padding: 7px 10px; border-radius: 6px; }
-  .investment-payment-details { border: 1px solid var(--nb-border); background: var(--nb-panel-2); border-radius: 10px; padding: 2px 12px 8px; margin: 12px 0; }
-  .investment-details-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0; font-size: 12px; }
-  .investment-list { max-height: 224px; overflow-y: auto; padding-right: 6px; }
-  .investment-row { display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--nb-border); font-size: 12px; }
-  .investment-row time { color: var(--nb-muted); }
-  .investment-name { overflow-wrap: anywhere; }
-  .investment-status { display: block; margin-top: 4px; color: var(--nb-muted); font-size: 11px; }
-  .investment-status.recorded { color: var(--nb-green); }
-  .investment-row > strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
   .investment-remaining { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding-top: 12px; margin-top: 8px; border-top: 1px solid var(--nb-border); }
   .investment-remaining-label { border: 0; background: transparent; color: var(--nb-text); font: inherit; font-size: 12px; font-weight: 600; padding: 4px 0; cursor: pointer; text-align: left; }
   .investment-remaining > strong { font-size: 19px; white-space: nowrap; }
@@ -499,7 +487,6 @@ export function cardCss(mode: ThemeMode): string {
     .investment-stats strong { font-size: 19px; }
     .investment-provider-list { display: block; }
     .investment-provider { padding: 7px 4px; font-size: 12px; }
-    .investment-row { grid-template-columns: 62px minmax(0, 1fr) auto; gap: 8px; font-size: 11px; }
     .investment-remaining > strong { font-size: 18px; }
   }
   .spend-stats {
@@ -745,7 +732,6 @@ export function cardCss(mode: ThemeMode): string {
   .period-trend-plot { height: 240px; width: 100%; min-width: 0; }
   .recharts-surface { display: block; }
   .period-detail-list { max-height: 320px; overflow-y: auto; padding-right: 8px; }
-  .period-detail-list .investment-row { grid-template-columns: 92px minmax(0,1fr) auto; }
   .spend-comparison { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 14px; align-items: center; color: var(--nb-muted); }
   .spend-comparison small { font-size: 10px; }
   .spend-comparison .spend-row-bar { height: 3px; }
@@ -761,7 +747,6 @@ export function cardCss(mode: ThemeMode): string {
     .period-custom label { width: 100%; justify-content: space-between; }
     .period-custom input { min-width: 0; max-width: 220px; }
     .period-trend-head .seg { width: 100%; }
-    .period-detail-list .investment-row { grid-template-columns: 66px minmax(0,1fr) auto; font-size: 12px; }
   }
   `;
 }

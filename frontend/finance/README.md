@@ -119,10 +119,8 @@ The investments card shows a compact contribution donut grouped by the source
 investment labels, with distinct colors and separate Recorded and Scheduled /
 awaiting statement totals. The center total includes both recorded and pending
 commitments. Each label shows its amount, share and recorded/pending counts.
-Select a label or View all payments to expand dated payment details in a bounded
-scroll area. Details start collapsed and close when the period or account changes;
-opening them uses the already-loaded data. Source labels and classifications are
-preserved. Empty and single-investment periods render without invalid pie slices.
+The provider legend is informational; there is no separate dated payment list
+or expand/View all controls. Source labels and classifications are preserved. Empty and single-investment periods render without invalid pie slices.
 Annual trends and year comparisons remain visible below the compact summary.
 It calculates income after spending, remaining bills and investment commitments;
 the footer's tooltip explains this calculation. Statement
@@ -183,7 +181,8 @@ ranges, annual drill-downs, comparison spinners and stale-response isolation at
 containers, non-overlapping axis labels, complete monthly bars across multi-year
 ranges and hover behavior. Its screenshots go to `/tmp/ha-finance-periods`.
 The investment suite checks compact panel heights, grouped totals and shares,
-recorded/pending status, keyboard drill-down, single/empty/many investments and
+recorded/pending status, absence of redundant payment lists and controls,
+single/empty/many investments and
 access cleanup. Its screenshots go to `/tmp/ha-finance-investment-design`.
 
 The cashflow suite checks savings selection, exact cents, payment classification,

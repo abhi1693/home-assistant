@@ -1,20 +1,17 @@
-import { useId, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { InvestmentEntry, SpendingInvestments } from "../lib/ha";
-import { ReportPeriod } from "../lib/reportingPeriod";
 import { money, MASK } from "../lib/format";
 
 const COLORS = ["#60a5fa", "#a78bfa", "#facc15", "#34d399", "#fb923c", "#22d3ee", "#f472b6", "#f87171"];
-const statusLabel = { recorded: "Recorded", scheduled: "Scheduled", awaiting_statement: "Awaiting statement" };
-type Group = { name: string; cents: number; recorded: number; pending: number; rows: InvestmentEntry[]; color: string };
+type Group = { name: string; cents: number; recorded: number; pending: number; color: string };
 
 function groupsFor(rows: InvestmentEntry[]): Group[] {
   const groups = new Map<string, Group>();
   for (const row of rows) {
     const name = row.name || "Investment";
-    const group = groups.get(name) ?? { name, cents: 0, recorded: 0, pending: 0, rows: [], color: "" };
+    const group = groups.get(name) ?? { name, cents: 0, recorded: 0, pending: 0, color: "" };
     group.cents += Math.round(Number(row.amount) * 100);
     group[row.status === "recorded" ? "recorded" : "pending"]++;
-    group.rows.push(row);
     groups.set(name, group);
   }
   // Preserve the source labels; provider guesses must not reclassify payments.
@@ -31,20 +28,15 @@ function groupsFor(rows: InvestmentEntry[]): Group[] {
   return [...groups.values()].sort((a, b) => b.cents - a.cents || a.name.localeCompare(b.name));
 }
 
-export default function InvestmentBreakdown({ investment, period, masked }: {
-  investment: SpendingInvestments; period: ReportPeriod; masked: boolean;
+export default function InvestmentBreakdown({ investment, masked }: {
+  investment: SpendingInvestments; masked: boolean;
 }) {
-  const [open, setOpen] = useState<"all" | { name: string } | null>(null);
-  const detailsId = useId();
-  const rows = useMemo(() => [...investment.recorded, ...investment.expected]
-    .sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)), [investment]);
+  const rows = useMemo(() => [...investment.recorded, ...investment.expected], [investment]);
   const groups = useMemo(() => groupsFor(rows), [rows]);
   const total = groups.reduce((sum, group) => sum + group.cents, 0);
-  const details = open === "all" ? rows : open ? groups.find(group => group.name === open.name)?.rows ?? [] : [];
   const format = (value: string | number) => masked ? MASK : money(Number(value));
   let offset = 0;
-  return <>
-    <div className="investment-overview">
+  return <div className="investment-overview">
       <div className="investment-donut-wrap">
         <svg viewBox="0 0 160 160" className="investment-donut" role="img" aria-label="Investment contributions by name, including scheduled commitments">
           <circle cx="80" cy="80" r="65" fill="none" stroke="var(--nb-border)" strokeWidth="24" />
@@ -67,31 +59,15 @@ export default function InvestmentBreakdown({ investment, period, masked }: {
       </div>
       <div className="investment-allocation">
         {groups.length === 0 ? <p className="muted">No investments recorded or scheduled in this period.</p> : <>
-          <div className="investment-provider-list">{groups.map(group => {
-            const expanded = open !== null && open !== "all" && open.name === group.name;
-            return <button type="button" className="investment-provider" key={group.name} aria-expanded={expanded}
-              aria-controls={detailsId} aria-label={`Show ${group.name} payments`}
-              onClick={() => setOpen(expanded ? null : { name: group.name })}>
+          <div className="investment-provider-list" role="list" aria-label="Investment contributions by name">{groups.map(group =>
+            <div className="investment-provider" role="listitem" key={group.name}>
               <i className="investment-provider-dot" style={{background:group.color}} aria-hidden="true" />
               <span className="investment-provider-name">{group.name}</span><strong>{format(group.cents / 100)}</strong>
               <span className="investment-provider-meta">{[group.recorded ? `${group.recorded} recorded` : "", group.pending ? `${group.pending} pending` : "",
                 `${total > 0 ? (group.cents / total * 100).toFixed(1) : "0"}%`].filter(Boolean).join(" · ")}</span>
-              <span className="investment-provider-chevron" aria-hidden="true">{expanded ? "⌃" : "⌄"}</span>
-            </button>;
-          })}</div>
-          <button type="button" className="investment-details-toggle" aria-expanded={open === "all"} aria-controls={detailsId}
-            onClick={() => setOpen(open === "all" ? null : "all")}>{open === "all" ? "Hide payments" : `View all ${rows.length} payments`}</button>
+            </div>
+          )}</div>
         </>}
       </div>
-    </div>
-    {open && details.length > 0 && <section className="investment-payment-details" id={detailsId} aria-label="Investment payment details">
-      <div className="investment-details-head"><strong>{open === "all" ? "All payments" : open.name}</strong>
-        <button type="button" onClick={() => setOpen(null)} aria-label="Close investment payments">Close ×</button></div>
-      <div className="investment-list" role="list" aria-label="Investments in this period">{details.map(row => <div className="investment-row" role="listitem" key={row.id}>
-        <time dateTime={row.date}>{new Date(`${row.date}T12:00:00+05:30`).toLocaleDateString("en-IN", {day:"numeric", month:"short", ...(period.wide?{year:"numeric" as const}:{}), timeZone:"Asia/Kolkata"})}</time>
-        <div className="investment-name">{row.name}<span className={`investment-status ${row.status}`}>{statusLabel[row.status]}</span></div>
-        <strong>{format(row.amount)}</strong>
-      </div>)}</div>
-    </section>}
-  </>;
+    </div>;
 }
