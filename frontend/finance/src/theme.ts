@@ -407,16 +407,13 @@ export function cardCss(mode: ThemeMode): string {
   .spend-income-trigger:hover { border-color: var(--nb-accent); }
   .spend-income-trigger .spend-stat-label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; }
   .income-trigger-hint { color: var(--nb-accent); text-transform: none; letter-spacing: normal; }
-  .income-other-total { width: 100%; }
   .income-breakdown { border: 1px solid var(--nb-border); border-radius: 10px; padding: 16px; margin-bottom: 22px; }
   .income-breakdown-head, .income-group-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
   .income-breakdown-head { margin-bottom: 18px; }
   .income-breakdown-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
   .income-breakdown-head > span { font-size: 12px; }
   .income-breakdown-head strong { margin-left: 6px; color: var(--nb-text); }
-  .income-source-group + .income-source-group { margin-top: 22px; }
   .income-group-head { font-size: 13px; margin-bottom: 8px; }
-  .income-group-head small { margin-left: 6px; font-size: 11px; }
   .income-source { border-top: 1px solid var(--nb-border); }
   .income-source > summary { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 10px 0; list-style: none; cursor: pointer; font-size: 13px; }
   .income-source > summary::-webkit-details-marker { display: none; }

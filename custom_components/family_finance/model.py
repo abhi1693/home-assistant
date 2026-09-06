@@ -109,8 +109,9 @@ def series_payload(account: dict, response: list, now: datetime) -> dict:
     return {"account_id": account["id"], "points": points}
 
 
-def transactions_payload(groups: list[dict], accounts: list[dict]) -> list[dict]:
+def transactions_payload(groups: list[dict], accounts: list[dict], self_transfer_journal_ids=()) -> list[dict]:
     tracked = {str(a["id"]): a for a in accounts}
+    self_transfers = {str(identifier) for identifier in self_transfer_journal_ids}
     output = []
     seen = set()
     for group in groups:
@@ -124,6 +125,13 @@ def transactions_payload(groups: list[dict], accounts: list[dict]) -> list[dict]
                 continue  # opening balances and reconciliation are not income
             source, destination = str(split.get("source_id")), str(split.get("destination_id"))
             if source not in tracked and destination not in tracked:
+                continue
+            # Some historical imports recorded own-account receipts as deposits
+            # from an unnamed revenue account. Exclude reviewed journal IDs
+            # before totals AND drill-downs. Never infer this from a recipient's
+            # name in a salary narration or from a generic unnamed counterparty.
+            if kind == "deposit" and (journal in self_transfers or
+                                      source in tracked and destination in tracked):
                 continue
             value = in_rupees(split, "amount")
             if value < 0:
@@ -150,11 +158,9 @@ def transactions_payload(groups: list[dict], accounts: list[dict]) -> list[dict]
     return sorted(output, key=lambda t: (t["posted_at"], t["id"]), reverse=True)
 
 
-def spending_payload(transactions: list[dict], month: str, income_categories=("Salary",)) -> dict:
+def spending_payload(transactions: list[dict], month: str) -> dict:
     categories = defaultdict(lambda: {"total": Decimal(0), "count": 0})
-    income_labels = [name.strip() for name in income_categories if name.strip()]
-    confirmed_income = {name.casefold() for name in income_labels}
-    spent = income = other_credits = Decimal(0)
+    spent = income = Decimal(0)
     for transaction in transactions:
         value = amount(transaction["amount"])
         if transaction["transaction_type"] == "withdrawal":
@@ -163,17 +169,18 @@ def spending_payload(transactions: list[dict], month: str, income_categories=("S
             category["total"] += value
             category["count"] += 1
         elif transaction["transaction_type"] == "deposit":
-            # A deposit can be a refund, repayment or misclassified transfer.
-            # Only explicitly confirmed income categories feed the headline.
-            if (transaction.get("category") or "").strip().casefold() in confirmed_income:
-                income -= value
-            else:
-                other_credits -= value
+            # The household definition includes all external credits: salary,
+            # royalties, refunds and other receipts. Own-account deposits have
+            # already been removed; actual transfer legs never enter this sum.
+            income -= value
     return {
         "month": month, "censored": False,
         "total_spend": money(spent), "total_income": money(income),
-        "total_other_credits": money(other_credits), "total_credits": money(income + other_credits),
-        "income_categories": income_labels,
+        # Keep an already-open older frontend usable until its resource reloads.
+        # These describe the combined total; categories no longer gate income.
+        "total_other_credits": "0", "total_credits": money(income),
+        "income_categories": sorted({(t.get("category") or "").strip() for t in transactions
+                                     if t["transaction_type"] == "deposit"}),
         "themes": [{"theme": name, "total": money(item["total"]), "count": item["count"]}
                    for name, item in sorted(categories.items(), key=lambda pair: pair[1]["total"], reverse=True)],
     }

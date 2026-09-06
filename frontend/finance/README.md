@@ -41,13 +41,15 @@ with account initials and month-specific balances. Accounts and scheduled
 bills each occupy the full dashboard width, so an empty schedule stays compact
 without leaving a gap beside the account list.
 
-The Income tile uses the backend's confirmed income categories (Salary) and
-shows other recorded credits separately. Its Sources control opens a breakdown
-of both sets, grouped by sender with exact amounts, transaction dates and
+The Income tile totals all external credits, including salary, royalties,
+refunds and other receipts. Its Sources control opens one breakdown
+grouped by sender with exact amounts, transaction dates and
 receiving accounts. It reads the existing private monthly transaction endpoint
 on demand; closing the section or changing month discards pending responses.
-Recorded self-transfers and card repayments are excluded from income and its
-source breakdown, even if the transfer has a Salary category.
+Self-transfers, including reviewed deposits from historical imports, and card
+repayments are excluded from income and its source breakdown, even if the
+transfer has a Salary category. The backend filters these before returning
+transaction details, so the hidden amounts are never added to the source list.
 
 Build with Node.js and the committed dependency lockfile:
 

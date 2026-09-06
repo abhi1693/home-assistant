@@ -110,6 +110,25 @@ class FinanceRuntimeTests(unittest.IsolatedAsyncioTestCase):
                 await client.get("redirect")
         self.assertEqual(requests, [("GET", "/api/v1/accounts"), ("GET", "/api/v1/redirect")])
 
+    async def test_income_and_cached_details_share_the_self_transfer_filter(self):
+        client = FireflyClient(Mock(), "http://firefly.invalid", "test-only", {}, [3])
+        groups = [{"attributes": {"transactions": [
+            {"transaction_journal_id": str(identifier), "type": "deposit", "amount": value,
+             "currency_code": "INR", "source_id": "9", "destination_id": "1",
+             "date": "2026-08-18T00:00:00+05:30", "category_name": category}
+            for identifier, value, category in [(1, "1000", "Salary"), (2, "14.04", "Royalty Income"),
+                                                (3, "100000", None), (4, "25", None)]
+        ]}}]
+        with patch.object(client, "accounts", AsyncMock(return_value=[{"id": 1}])), \
+             patch.object(client, "pages", AsyncMock(return_value=groups)) as pages:
+            summary = await client.request("spending_summary", {"month": "2026-08"})
+            details = await client.request("spending_transactions", {"month": "2026-08"})
+            again = await client.request("spending_summary", {"month": "2026-08"})
+        self.assertEqual(summary["total_income"], "1039.04")
+        self.assertEqual({t["id"] for t in details["transactions"]}, {1, 2, 4})
+        self.assertEqual(again, summary)
+        pages.assert_awaited_once()
+
     async def test_history_uses_explicit_accounts_without_invalid_preselection(self):
         selected = []
         async def chart(request):

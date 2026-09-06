@@ -58,7 +58,8 @@ family_room_registry:
 
 family_finance:
   access_file: /config/access/family-dashboard.json
-  income_categories: [Salary]
+  # Reviewed historical own-account receipts imported as external deposits.
+  self_transfer_journal_ids: [276, 278, 283, 289, 291, 299, 347, 1528]
 
 sensor:
   - platform: family_announcements
@@ -114,7 +115,7 @@ lovelace:
       type: module
     - url: /local/family-camera-events-card.js?v=1.7.0
       type: module
-    - url: /local/family-finance-cards.js?v=1.4.0
+    - url: /local/family-finance-cards.js?v=1.5.0
       type: module
     - url: /local/community/todo-swipe-card/todo-swipe-card.js?v=3.6.0
       type: module

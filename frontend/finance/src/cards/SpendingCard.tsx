@@ -244,10 +244,6 @@ export default function SpendingCard({
                 <span className="spend-stat-value up">
                   {masked ? MASK : money(parseFloat(summary.total_income))}
                 </span>
-                <span className="muted">{summary.income_categories.join(" + ")}</span>
-                {Number(summary.total_other_credits) > 0 && <span className="muted income-other-total">
-                  Other credits {money(Number(summary.total_other_credits))}
-                </span>}
               </button>
               <div className="spend-stat">
                 <span className="spend-stat-label">Recurring bills</span>

@@ -48,16 +48,24 @@ Use an encrypted Secret for that environment variable; do not put tokens in YAML
 - Monetary calculations use Python `Decimal`. The dashboard uses INR and Indian
   number formatting. Foreign records need Firefly's INR primary-currency
   conversion; missing conversion returns an error rather than a mixed total.
-- Monthly spending sums withdrawal splits once. Income includes only deposits
-  in the explicitly configured `income_categories` (currently `[Salary]`).
-  Other deposits, including refunds, family credits and uncategorised receipts,
-  remain visible separately as **Other credits**; their amounts are not deleted
-  or reclassified in Firefly. The income Sources control groups both sets by
-  source and expands to dated transactions with receiving accounts.
-  Self-transfers between owned accounts, credit-card repayments, opening
-  balances, and reconciliation entries are excluded from income and its
-  source breakdown, including transfers labelled Salary. Firefly category
-  names are preserved.
+- Monthly spending sums withdrawal splits once. Income follows the household's
+  definition: all external deposits, including salary, Amazon royalties, refunds,
+  family credits and uncategorised receipts. Sources groups them by sender and
+  expands to dated transactions with receiving accounts. There is no separate
+  "Other credits" total or category allowlist.
+- Self-transfers, credit-card repayments, opening balances and reconciliation
+  entries are excluded from income and its source breakdown. A deposit whose
+  source and destination are both owned ledger accounts is excluded too.
+  `self_transfer_journal_ids` handles reviewed historical receipts imported as
+  deposits from an unnamed revenue account. The configured eight IDs were
+  identified from own-sender bank narrations in April–July 2024, April 2025 and
+  August 2026. They are removed before caching monthly transaction details, so
+  summary and display use the same filter. Review new misclassified imports
+  before adding their journal IDs; never exclude all unnamed receipts or match
+  the owner's name anywhere in a description (salary can name the recipient).
+  This filter changes only the dashboard: Firefly transactions, categories,
+  signed balances, net-worth history and actual transfer/payment data remain
+  intact.
 - Credit-card history uses the selected calendar month, including older months;
   negative card-side transfer entries identify payments. The chart displays
   daily closing ledger balances, not intraday bank snapshots.

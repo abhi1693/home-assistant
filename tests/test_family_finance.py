@@ -61,7 +61,7 @@ class FinanceModelTests(unittest.TestCase):
         repayments = [t for t in output if t["id"] == 4]
         self.assertEqual({(t["account_id"], t["amount"]) for t in repayments}, {(1, "100"), (2, "-100")})
 
-    def test_only_confirmed_income_categories_count_and_all_other_credits_remain_visible(self):
+    def test_all_external_credits_count_as_income_regardless_of_category(self):
         accounts = MODEL.accounts_payload([account(1), account(2)], {})
         splits = [
             transaction(1, "deposit", "1000.00", source="9", destination="1", category_name=" Salary "),
@@ -76,14 +76,35 @@ class FinanceModelTests(unittest.TestCase):
         output = MODEL.transactions_payload([{"attributes": {"transactions": splits}},
                                              {"attributes": {"transactions": [splits[0]]}}], accounts)
         summary = MODEL.spending_payload(output, "2026-08")
-        self.assertEqual(Decimal(summary["total_income"]), Decimal("1000"))
-        self.assertEqual(Decimal(summary["total_other_credits"]), Decimal("387.76"))
-        self.assertEqual(Decimal(summary["total_credits"]), Decimal("1387.76"))
+        self.assertEqual(Decimal(summary["total_income"]), Decimal("1387.76"))
+        self.assertEqual(summary["total_credits"], summary["total_income"])
+        self.assertEqual(summary["total_other_credits"], "0")
+        self.assertEqual(set(summary["income_categories"]), {"Salary", "Royalty Income", "Family Support", "Shopping", ""})
         self.assertEqual(Decimal(summary["total_spend"]), Decimal("300"))
         self.assertEqual(len([t for t in output if t["transaction_type"] == "deposit"]), 5)
-        extended = MODEL.spending_payload(output, "2026-08", ["salary", "Royalty Income"])
-        self.assertEqual(Decimal(extended["total_income"]), Decimal("1012.01"))
-        self.assertEqual(extended["total_credits"], summary["total_credits"])
+
+    def test_reviewed_self_deposits_are_absent_from_totals_and_details(self):
+        accounts = MODEL.accounts_payload([account(1), account(2)], {})
+        splits = [
+            transaction(1, "deposit", "1000", source="9", destination="1", category_name="Salary",
+                        description="NEFT CR-BANK-EMPLOYER-ALICE EXAMPLE-REFERENCE"),
+            transaction(2, "deposit", "14.04", source="9", destination="1", category_name="Royalty Income"),
+            transaction(3, "deposit", "25000", source="9", destination="1", source_name="(no name)"),
+            transaction(4, "deposit", "100000", source="9", destination="1", source_name="(no name)"),
+            transaction(5, "deposit", "200000", source="1", destination="2", category_name="Salary"),
+            transaction(6, "transfer", "500", source="1", destination="2", category_name="Salary"),
+        ]
+        output = MODEL.transactions_payload([{"attributes": {"transactions": splits}}], accounts, [4])
+        self.assertEqual({t["id"] for t in output}, {1, 2, 3, 6})
+        self.assertEqual(MODEL.spending_payload(output, "2026-08")["total_income"], "26014.04")
+        self.assertEqual(len([t for t in output if t["transaction_type"] == "deposit"]), 3)
+        self.assertEqual(len([t for t in output if t["transaction_type"] == "transfer"]), 2)
+
+    def test_self_transfer_review_ids_do_not_hide_real_withdrawals(self):
+        accounts = MODEL.accounts_payload([account(1)], {})
+        splits = [transaction(4, "withdrawal", "50", source="1", destination="9", category_name="Food")]
+        output = MODEL.transactions_payload([{"attributes": {"transactions": splits}}], accounts, [4])
+        self.assertEqual(MODEL.spending_payload(output, "2026-08")["total_spend"], "50")
 
     def test_preserves_firefly_category_names_even_when_named_like_a_transfer(self):
         accounts = MODEL.accounts_payload([account(1)], {})

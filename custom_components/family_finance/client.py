@@ -18,12 +18,12 @@ from .model import (
 
 class FireflyClient:
     def __init__(self, session: ClientSession, base_url: str, token: str, overrides: dict,
-                 income_categories=("Salary",)) -> None:
+                 self_transfer_journal_ids=()) -> None:
         self.session = session
         self.base_url = base_url.rstrip("/")
         self.token = token
         self.overrides = overrides
-        self.income_categories = tuple(income_categories)
+        self.self_transfer_journal_ids = tuple(self_transfer_journal_ids)
         self.cache = OrderedDict()
         self.lock = asyncio.Lock()
 
@@ -89,7 +89,7 @@ class FireflyClient:
         async def fetch():
             start, end = month_window(month, now.date())
             groups = await self.pages("transactions", {"start": str(start), "end": str(min(end, now.date()))})
-            return transactions_payload(groups, accounts)
+            return transactions_payload(groups, accounts, self.self_transfer_journal_ids)
         return await self.cached(("transactions", month, now.date()), fetch)
 
     async def request(self, kind: str, msg: dict):
@@ -144,7 +144,7 @@ class FireflyClient:
                 return await self.cached((kind, month, now.date()), fetch)
             transactions = await self.transactions(month, accounts, now)
             if kind == "spending_summary":
-                return spending_payload(transactions, month, self.income_categories)
+                return spending_payload(transactions, month)
             if kind == "spending_transactions":
                 if msg.get("theme") is not None:
                     transactions = [t for t in transactions if t["transaction_type"] == "withdrawal" and t["theme"] == msg["theme"]]
