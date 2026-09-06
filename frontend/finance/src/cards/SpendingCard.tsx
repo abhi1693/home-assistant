@@ -14,6 +14,7 @@ import { SpendingSummary, SpendingTxn } from "../lib/types";
 import { SpendingCategory, categoryTransactions, spendingCategories, isUncategorised } from "../lib/spendingCategories";
 import { useReportingPeriod, PeriodQuery } from "../lib/reportingPeriod";
 import PeriodTrend from "../components/PeriodTrend";
+import { dailySpending } from "../lib/dailySpending";
 import { BaseCardConfig, ambientEffect, useNetwrthCore } from "./common";
 import {
   MonthNav,
@@ -32,7 +33,7 @@ export type SpendingCardConfig = BaseCardConfig & {
   show_donut?: boolean;
 };
 
-type Payload = { summary: SpendingSummary; recurring: SpendingRecurring };
+type Payload = { summary: SpendingSummary; recurring: SpendingRecurring; daily?: ReturnType<typeof dailySpending> };
 
 // Small round merchant mark: logo when we have one, colored initial when
 // we don't.
@@ -150,8 +151,11 @@ export default function SpendingCard({
 
   const fetchData = useCallback(
     (h: Hass, e: string | undefined, target: PeriodQuery = period) =>
-      Promise.all([fetchSpendingSummary(h, e, target), fetchSpendingRecurring(h, e, target)]).then(
-        ([summary, recurring]) => ({ data: { summary, recurring } as Payload, censored: summary.censored })
+      Promise.all([fetchSpendingSummary(h, e, target), fetchSpendingRecurring(h, e, target),
+        period.mode === "month" && comparison ? fetchSpendingTransactions(h, e, target) : undefined]).then(
+        ([summary, recurring, transactions]) => ({ data: { summary, recurring,
+          daily: transactions && typeof target !== "string" ? dailySpending(transactions.transactions, target) : undefined,
+        } as Payload, censored: summary.censored })
       ),
     [period,comparison]
   );
@@ -246,8 +250,10 @@ export default function SpendingCard({
             </div>
           )}
           <PeriodTrend period={period} comparison={comparison} metrics={[
-            {key:"spend",label:"Spending",monthly:summary.monthly,comparison:comparisonData?.summary.monthly},
-            {key:"income",label:"Income",monthly:summary.income_monthly,comparison:comparisonData?.summary.income_monthly},
+            {key:"spend",label:"Spending",monthly:summary.monthly,comparison:comparisonData?.summary.monthly,
+              daily:data?.daily?.spending,comparisonDaily:comparisonData?.daily?.spending},
+            {key:"income",label:"Income",monthly:summary.income_monthly,comparison:comparisonData?.summary.income_monthly,
+              daily:data?.daily?.income,comparisonDaily:comparisonData?.daily?.income},
           ]}/>
           {showIncome && <section id={`${detailId}-income`} aria-label="Income sources">
             <IncomeBreakdown key={period.key} hass={hass} entry={config.entry} month={period}

@@ -5,14 +5,16 @@ const path=require('node:path');
 const {chromium}=require('playwright');
 const {buildSync}=require('../frontend/finance/node_modules/esbuild');
 const {periodFixture,ready}=require('./finance_reporting_periods');
+const {assertChartFit}=require('./finance_chart_fit');
 const OUTPUT='/tmp/ha-finance-month-comparisons';
 
 function modelChecks() {
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'finance-month-comparison-'));
  try {
-  for(const module of ['reportingPeriod','cashflow'])buildSync({entryPoints:[path.resolve(__dirname,`../frontend/finance/src/lib/${module}.ts`)],bundle:true,platform:'node',format:'cjs',outfile:path.join(dir,`${module}.cjs`),logLevel:'silent'});
+  for(const module of ['reportingPeriod','cashflow','dailySpending'])buildSync({entryPoints:[path.resolve(__dirname,`../frontend/finance/src/lib/${module}.ts`)],bundle:true,platform:'node',format:'cjs',outfile:path.join(dir,`${module}.cjs`),logLevel:'silent'});
   const {resolvePeriod,comparisonMonths,alignComparisonDate,comparisonPlotPeriod,periodTicks}=require(path.join(dir,'reportingPeriod.cjs'));
   const {paymentBreakdown,paymentTimeline}=require(path.join(dir,'cashflow.cjs'));
+  const {dailySpending,dailyComparisonRows}=require(path.join(dir,'dailySpending.cjs'));
   const select={mode:'month',month:'2026-08',year:2026,start:'2026-08-01',end:'2026-08-31',compareMonth:'2026-07',compareYear:null};
   const resolve=patch=>resolvePeriod({...select,...patch},'2026-09-06');
   assert.deepEqual(resolve({}).comparison.query,{start:'2026-07-01',end:'2026-07-31'});
@@ -42,6 +44,33 @@ function modelChecks() {
   const reverse=resolve({month:'2026-03',compareMonth:'2026-02'});
   const reverseRows=paymentTimeline(empty,reverse.period,empty,reverse.comparison);
   assert(reverseRows.slice(28).every(row=>row.savingsPrevious===null),'Short reference months do not invent extra zero days');
+  const transaction=(id,date,amount,transaction_type='withdrawal',extra={})=>({id,posted_at:date,amount,transaction_type,...extra});
+  const daily=dailySpending([
+   ...txns,...txns, // duplicated journals count once
+   transaction(100,'2026-01-31T20:00:00Z','999'), // Feb 1 in India, outside January
+   transaction(101,'2025-12-31T20:00:00Z','0.10'),
+   transaction(102,'2026-01-01T12:00:00+05:30','0.20'),
+   transaction(103,'2026-01-08T12:00:00+05:30','-1000.01','deposit'),
+   transaction(104,'2026-01-08T12:00:00+05:30','-50.02','deposit'), // royalties/other credits also count
+   transaction(105,'2026-01-08T12:00:00+05:30','-50000','transfer'),
+   transaction(105,'2026-01-08T12:00:00+05:30','50000','transfer'),
+   transaction(106,'2026-01-08T12:00:00+05:30','900','withdrawal',{pending:true}),
+  ],comparison);
+  assert.equal(daily.spending[0].total,0.30,'Amounts are summed in paise on the Indian ledger date');
+  assert.equal(daily.income[7].total,1050.03,'External deposits count, self-transfers never do');
+  assert.equal(Math.round(daily.spending.reduce((sum,r)=>sum+(r.total||0),0)*100),30033);
+  const dailyRows=dailyComparisonRows(dailySpending([],period).spending,period,daily.spending,comparison);
+  assert.equal(dailyRows.length,31);
+  assert.deepEqual(dailyRows.slice(28).map(r=>[r.current,r.previous,r.refDate]),[
+   [null,100.01,'2026-01-29'],[null,100.01,'2026-01-30'],[null,100.01,'2026-01-31']]);
+  const elapsed=resolve({month:'2026-09',compareMonth:'2026-08'});
+  const elapsedRows=dailyComparisonRows(dailySpending([],elapsed.period).spending,elapsed.period,dailySpending([],elapsed.comparison).spending,elapsed.comparison);
+  assert(elapsedRows.slice(0,6).every(r=>r.current===0&&r.previous===0));
+  assert(elapsedRows.slice(6).every(r=>r.current===null&&r.previous===null),'Unobserved days are not zero spending');
+  const leap=resolve({month:'2024-03',compareMonth:'2024-02'});
+  const leapRows=dailyComparisonRows(dailySpending([],leap.period).spending,leap.period,
+   dailySpending([transaction(201,'2024-02-29T12:00:00+05:30','300')],leap.comparison).spending,leap.comparison);
+  assert.equal(leapRows[28].previous,300);assert.equal(leapRows[29].previous,null);
   console.log('Month comparison boundaries, complete/elapsed dates, year rollover, leap day and unequal month totals passed.');
  } finally {fs.rmSync(dir,{recursive:true,force:true});}
 }
@@ -96,10 +125,37 @@ if(require.main===module)(async()=>{
    assert.equal(await page.locator('.savings-reference-line').count(),1);
    assert.equal(await page.locator('.comparison-balance-line').count(),1);
    assert.equal(await page.locator('.period-trend').count(),3);
+   const spending=page.locator('family-finance-spending-card .period-trend');
+   assert.equal(await spending.getByRole('heading').innerText(),'Spending by day');
+   assert.equal(await page.locator('family-finance-investments-card .period-trend h3').innerText(),'Investment contributions by month');
+   await assertChartFit(page);
+   const dailyChart=spending.locator('.recharts-wrapper');await dailyChart.scrollIntoViewIfNeeded();
+   const axis=await dailyChart.locator('.recharts-xAxis .recharts-cartesian-axis-line').boundingBox();
+   const chartBox=await dailyChart.boundingBox(),position={x:axis.x-chartBox.x+axis.width/62,y:70};
+   if(width===375)await dailyChart.tap({position});else await dailyChart.hover({position});
+   const dailyTip=dailyChart.locator('.recharts-tooltip-wrapper');await dailyTip.waitFor({state:'visible'});
+   assert.match(await dailyTip.innerText(),/1 Aug 2026.*1 Jul 2026/s);
+   const bounds=await dailyTip.boundingBox();assert(bounds.x>=0&&bounds.x+bounds.width<=width+1);
+   await page.keyboard.press('Escape');
+   await dailyChart.locator('svg.recharts-surface').focus();await page.keyboard.press('ArrowRight');
+   await dailyTip.waitFor({state:'visible'});assert.match(await dailyTip.innerText(),/Aug 2026.*Jul 2026/s);
+   await page.keyboard.press('Escape');
+   await spending.getByRole('button',{name:'Income',exact:true}).click();
+   assert.equal(await spending.getByRole('heading').innerText(),'Income by day');
+   assert.match(await spending.locator('.period-total-comparison').innerText(),/₹1,20,000.*₹1,20,000/s);
+   await spending.getByRole('button',{name:'Spending',exact:true}).click();
+   await spending.screenshot({path:path.join(OUTPUT,`daily-spending-${width}.png`)});
    await picker.screenshot({path:path.join(OUTPUT,`month-selector-${width}.png`)});
 
    await picker.getByLabel('Reporting month').fill('2026-02');await months.selectOption('2026-01');await ready(page);
    assert(await page.evaluate(()=>window.monthComparisonRequests.some(m=>m.start==='2026-01-01'&&m.end==='2026-01-31')));
+   await dailyChart.scrollIntoViewIfNeeded();
+   const lastAxis=await dailyChart.locator('.recharts-xAxis .recharts-cartesian-axis-line').boundingBox();
+   const lastBox=await dailyChart.boundingBox(),lastDay={x:lastAxis.x-lastBox.x+lastAxis.width*30.5/31,y:70};
+   if(width===375)await dailyChart.tap({position:lastDay});else await dailyChart.hover({position:lastDay});
+   await dailyTip.waitFor({state:'visible'});assert.match(await dailyTip.innerText(),/31 Jan 2026/);
+   assert(!/Mar 2026|Feb 2026/.test(await dailyTip.innerText()),'Daily spending tooltip omits dates that do not exist in the shorter month');
+   await page.keyboard.press('Escape');
    const accounts=page.locator('family-finance-accounts-card');
    await accounts.getByRole('button',{name:'Daily account',exact:true}).click();
    for(const selector of ['.savings-chart .recharts-wrapper','.payment-chart .recharts-wrapper']) {
@@ -140,6 +196,7 @@ if(require.main===module)(async()=>{
    await picker.getByRole('button',{name:'Calendar year',exact:true}).click();
    assert.equal(await months.count(),0);assert.equal(await picker.getByLabel('Comparison year').inputValue(),'');
    await picker.getByLabel('Comparison year').selectOption('2025');await ready(page);
+   assert.equal(await spending.getByRole('heading').innerText(),'Spending by month');
    await picker.getByRole('button',{name:'Month',exact:true}).click();await ready(page);
    assert.equal(await months.inputValue(),'');assert.equal(await page.locator('.comparison-history').count(),0);
    await picker.getByLabel('Reporting month').fill('2023-02');await ready(page);

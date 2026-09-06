@@ -38,7 +38,7 @@ its independent range in Month mode.
 existing tag and `month_group` option remain compatible). Select Month,
 Calendar year (January–December), Financial year (April–March), or Custom dates
 (up to five years), then optionally choose an earlier comparison month or year. The same
-panels show period totals, monthly income/spending/contribution/bill charts,
+panels show period totals, daily/monthly income and spending charts, monthly contribution/bill charts,
 category comparisons, savings balance lines, payment-method bars, and credit-card
 balance overlays. The net-worth summary follows every selected period. Its
 history chart keeps an independent range in ordinary Month mode; annual/custom
@@ -49,6 +49,13 @@ labels, back to the first recorded month. It excludes the selected month and
 later months; No comparison clears the overlay. At the earliest recorded month,
 comparison is disabled. Switching modes or reporting months clears the comparison.
 Calendar/FY/custom views retain their comparison-year selector.
+In Month comparisons, the Spending/Income trend displays paired bars for every
+day number, with whole-period totals retained above it. Hover, keyboard focus
+or tap shows the original dates and exact amounts. Daily totals use the same
+authorised transaction feed as the summary, sum in paise on the Asia/Kolkata
+ledger date, and exclude transfers. Empty observed days are zero; future and
+unmatched days are absent. Fetches use the spending panel's existing spinner
+and stale-response protection. Annual/custom trends remain monthly.
 Year and comparison options start at the first recorded Firefly transaction,
 including its containing financial year. The selector shows that first date;
 month navigation and custom-date inputs use it as their lower boundary. The
@@ -197,7 +204,8 @@ ranges, annual drill-downs, comparison spinners and stale-response isolation at
 320, 375, 768 and 1440px widths; it also checks chart bounds, absence of scroll
 containers, non-overlapping axis labels, complete monthly bars across multi-year
 ranges and hover behavior. Its screenshots go to `/tmp/ha-finance-periods`.
-The month-comparison suite checks history bounds, year rollover, complete and
+The month-comparison suite checks daily spending/income reconciliation, transfer
+exclusion, Indian date boundaries, chart fit and hover/tap details, plus history bounds, year rollover, complete and
 elapsed months, leap days, unequal month lengths, reference-only tooltip dates,
 all-panel queries, loading/stale responses, mode resets and privacy at those
 same four widths. Screenshots go to `/tmp/ha-finance-month-comparisons`.

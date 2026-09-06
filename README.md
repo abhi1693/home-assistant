@@ -149,7 +149,9 @@ matches replace their expected amounts. Investment transfers remain outside
 income and spending. The shared period control supports months, calendar years,
 April–March financial years, custom dates and month/year comparisons. Month
 view lists earlier months back to the first recorded month; completed months
-compare in full, and the current month compares matching days elapsed. All panels
+compare in full, and the current month compares matching days elapsed. Spending
+and income comparisons in Month view use daily bars aligned by day number,
+with exact ledger dates and amounts in hover/tap tooltips. All panels
 reuse the same charts; year comparisons use matching elapsed calendar dates, and
 savings balances are plotted over time with a closing total at the period end.
 A separate daily/monthly purchase chart compares direct savings payments with
