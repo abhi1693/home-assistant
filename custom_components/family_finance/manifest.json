@@ -1,7 +1,7 @@
 {
   "domain": "family_finance",
   "name": "Family Finance",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "codeowners": [],
   "dependencies": ["websocket_api"],
   "documentation": "https://github.com/abhi1693/home-assistant",

@@ -39,6 +39,10 @@ category comparisons, account sparklines and closing balances, and credit-card
 balance overlays. Net worth keeps its independent range in ordinary Month mode;
 annual/custom views and explicit comparisons use the shared period. Assign the
 same `month_group` to all participating cards, including net-worth cards.
+Year and comparison options start at the first recorded Firefly transaction,
+including its containing financial year. The selector shows that first date;
+month navigation and custom-date inputs use it as their lower boundary. The
+available history refreshes every five minutes and when the screen wakes.
 
 An unfinished period includes actuals only through today. Its comparison ends
 on the corresponding calendar date in the selected comparison year; leap days

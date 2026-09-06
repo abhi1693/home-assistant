@@ -102,6 +102,24 @@ class FireflyClient:
         # thundering herd against the small Firefly deployment.
         async with self.lock:
             now = datetime.now(ZONE)
+            if kind == "history":
+                async def fetch_history():
+                    # Firefly's transaction collection is ordered newest first.
+                    # Read its last page directly instead of downloading the ledger.
+                    params = {"limit": 1, "page": 1, "end": str(now.date())}
+                    first = await self.get("transactions", params)
+                    if not isinstance(first.get("data"), list):
+                        raise FinanceError("Firefly returned an invalid collection")
+                    if not first["data"]:
+                        return {"first_date": None}
+                    last_page = int(first["meta"]["pagination"]["total_pages"])
+                    last = await self.get("transactions", {**params, "page": last_page}) if last_page > 1 else first
+                    dates = [local_date(t["date"]) for group in last["data"]
+                             for t in group["attributes"]["transactions"]]
+                    if not dates or min(dates) > now.date():
+                        raise FinanceError("Unable to determine the first recorded transaction")
+                    return {"first_date": str(min(dates))}
+                return await self.cached((kind, now.date()), fetch_history)
             window = reporting_window(msg, now.date())
             start, end = window
             explicit = any(key in msg for key in ("month", "start", "end"))

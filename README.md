@@ -150,6 +150,7 @@ April–March financial years, custom dates and year comparisons. All panels
 reuse the same charts; actuals use matching elapsed comparison dates, and
 account balances are snapshots at the period end. Net worth keeps its own
 range in ordinary Month mode.
+Available years and date navigation follow the earliest imported transaction.
 The net-worth summary explains its total with cash, investments and negative
 balances. Account breakdowns and the change badge expose their supporting
 amounts and comparison calculations on hover, keyboard focus or tap.

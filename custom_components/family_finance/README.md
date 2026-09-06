@@ -14,7 +14,16 @@ balances. Net worth retains its independent range in ordinary Month mode and
 follows the reporting period for annual/custom views and year comparisons.
 Selections stay in memory for the HA connection and user.
 
-Every data command accepts the existing `month` or a paired `start`/`end`
+The private `family_finance/history` command supplies the earliest recorded
+transaction date for the selectors. It reads the first and last pages of
+Firefly's date-descending transaction collection with one record per page and
+shares the five-minute cache. It does not download the entire ledger or infer
+history from account creation dates. Calendar and comparison years start in
+that year; financial years include the April–March period containing the first
+record. Month and custom-date inputs also stop at the available history.
+An empty ledger offers only the current reporting year, without inventing dates.
+
+Every period-data command accepts the existing `month` or a paired `start`/`end`
 (`YYYY-MM-DD`), never both. Invalid, inverted, future-starting or over-five-year
 explicit windows fail before any Firefly request. Queries use Asia/Kolkata
 calendar dates. Actual transactions and balances stop at today; bill and

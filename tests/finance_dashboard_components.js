@@ -50,6 +50,7 @@ async function fixture(page, grouped = false, initiallyLoading = false) {
       if(window.holdRequest?.(msg))await new Promise((resolve,reject)=>window.pendingRequests.push({msg,resolve,reject}));
       if(msg.month&&msg.month===window.delayedMonth)await new Promise(resolve=>window.pendingMonths.push(resolve));
       const kind=msg.type.split("/")[1];
+      if(kind==="history")return {first_date:"2023-02-28"};
       if(kind==="overview")return {...overview,accounts:accounts.map(a=>({...a,balance:msg.month&&msg.month!==month&&a.id===1?"91000":a.balance}))};
       if(kind==="series")return {series,censored:false};
       if(kind==="spending_recurring")return {...recurring,month:msg.month};

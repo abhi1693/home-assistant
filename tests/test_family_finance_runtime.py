@@ -49,12 +49,40 @@ class FinanceRuntimeTests(unittest.IsolatedAsyncioTestCase):
         return connection
 
     async def test_every_endpoint_denies_other_users_before_resolving_credentials(self):
-        for kind in ["entries", "overview", "series", "spending_summary", "spending_transactions", "spending_recurring", "spending_investments"]:
+        for kind in ["entries", "history", "overview", "series", "spending_summary", "spending_transactions", "spending_recurring", "spending_investments"]:
             self.hass.config_entries.async_entries.reset_mock()
             connection = await self.call(kind, "b" * 32)
             self.assertEqual(connection.send_error.call_args.args[1], "unauthorized")
             self.hass.config_entries.async_entries.assert_not_called()
             connection.send_result.assert_not_called()
+
+    async def test_history_reads_oldest_page_and_refreshes_after_new_imports(self):
+        client = FireflyClient(Mock(), "http://firefly.invalid", "test-only", {})
+        newest = {"data": [{"attributes": {"transactions": [{"date": "2026-09-01T00:00:00+05:30"}]}}],
+                  "meta": {"pagination": {"total_pages": 25001}}}
+        oldest = {"data": [{"attributes": {"transactions": [{"date": "2023-02-27T23:30:00Z"}]}}]}
+        with patch.object(client, "get", AsyncMock(side_effect=[newest, oldest, newest, oldest])) as get, \
+             patch.object(client, "accounts", AsyncMock()) as accounts:
+            self.assertEqual(await client.request("history", {}), {"first_date": "2023-02-28"})
+            self.assertEqual(await client.request("history", {}), {"first_date": "2023-02-28"})
+            self.assertEqual(get.await_count, 2)
+            self.assertEqual(get.call_args.args[1]["page"], 25001)
+            self.assertEqual(get.call_args.args[1]["limit"], 1)
+            self.assertEqual(get.call_args.args[1]["end"], str(datetime.now(ZONE).date()))
+            accounts.assert_not_awaited()
+            client.cache.clear()
+            oldest["data"][0]["attributes"]["transactions"][0]["date"] = "2022-01-01T00:00:00+05:30"
+            self.assertEqual(await client.request("history", {}), {"first_date": "2022-01-01"})
+
+    async def test_history_empty_ledger_has_no_invented_start_date(self):
+        client = FireflyClient(Mock(), "http://firefly.invalid", "test-only", {})
+        with patch.object(client, "get", AsyncMock(return_value={"data": []})) as get:
+            self.assertEqual(await client.request("history", {}), {"first_date": None})
+            self.assertEqual(get.await_count, 1)
+        client.cache.clear()
+        with patch.object(client, "get", AsyncMock(return_value={"data": {}})):
+            with self.assertRaises(FinanceError):
+                await client.request("history", {})
 
     async def test_private_investment_file_is_loaded_and_validated(self):
         file = Path(self.directory.name) / "investments.json"

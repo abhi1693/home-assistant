@@ -19,7 +19,7 @@ from .client import FireflyClient
 from .model import FinanceError, RANGES, amount
 
 DOMAIN = "family_finance"
-KINDS = ("entries", "overview", "series", "spending_summary", "spending_recurring", "spending_transactions", "spending_investments")
+KINDS = ("entries", "history", "overview", "series", "spending_summary", "spending_recurring", "spending_transactions", "spending_investments")
 
 INVESTMENT_SETTINGS = vol.Schema({
     vol.Optional("account_ids", default=[]): vol.All(cv.ensure_list, [cv.positive_int]),

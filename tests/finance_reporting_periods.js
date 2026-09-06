@@ -73,6 +73,10 @@ async function ready(page) {
    await periodFixture(page);
    const picker=page.locator('family-finance-month-card');
    await picker.getByRole('button',{name:'Calendar year',exact:true}).click();
+   assert.deepEqual(await picker.getByLabel('Reporting year').locator('option').evaluateAll(els=>els.map(e=>e.value)),['2026','2025','2024','2023']);
+   await picker.getByLabel('Reporting year').selectOption('2023');
+   assert(await picker.getByRole('button',{name:'Previous year',exact:true}).isDisabled());
+   assert(await picker.getByLabel('Comparison year').isDisabled());
    await picker.getByLabel('Reporting year').selectOption('2025');
    await ready(page);
    await picker.getByLabel('Comparison year').selectOption('2024');
@@ -103,6 +107,9 @@ async function ready(page) {
    await page.screenshot({path:path.join(OUTPUT,`calendar-comparison-${width}.png`)});
    await page.locator('family-finance-spending-card').screenshot({path:path.join(OUTPUT,`spending-comparison-${width}.png`)});
    await picker.getByRole('button',{name:'Financial year',exact:true}).click();
+   assert.deepEqual(await picker.getByLabel('Reporting year').locator('option').evaluateAll(els=>els.map(e=>e.value)),['2026','2025','2024','2023','2022']);
+   await picker.getByLabel('Reporting year').selectOption('2022');
+   assert(await picker.getByRole('button',{name:'Previous year',exact:true}).isDisabled());
    await picker.getByLabel('Reporting year').selectOption('2025');
    await picker.getByLabel('Comparison year').selectOption('2024');
    await ready(page);
@@ -132,6 +139,7 @@ async function ready(page) {
    assert.equal(await page.locator('family-finance-investments-card .investment-total').innerText(),value);
    // Leap-day custom ranges clamp the comparison start to 28 February.
    await picker.getByRole('button',{name:'Custom',exact:true}).click();
+   assert.equal(await picker.getByLabel('Period start').getAttribute('min'),'2023-02-28');
    await picker.getByLabel('Period start').fill('2024-02-29');
    await picker.getByLabel('Period end').fill('2024-03-01');
    await picker.getByRole('button',{name:'Apply dates'}).click();

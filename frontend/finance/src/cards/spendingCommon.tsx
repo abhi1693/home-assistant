@@ -65,18 +65,22 @@ export function MonthNav({
   month,
   onChange,
   picker = false,
+  firstMonth = FIRST_REPORTING_MONTH,
+  disabled = false,
 }: {
   month: string;
   onChange: (m: string) => void;
   picker?: boolean;
+  firstMonth?: string;
+  disabled?: boolean;
 }) {
   return (
     <span className="seg">
-      <button aria-label="Previous month" onClick={() => onChange(shiftMonth(month, -1))} disabled={month <= FIRST_REPORTING_MONTH}>‹</button>
+      <button aria-label="Previous month" onClick={() => onChange(shiftMonth(month, -1))} disabled={disabled || month <= firstMonth}>‹</button>
       {picker ? <input className="month-picker" type="month" aria-label="Reporting month"
-        value={month} min={FIRST_REPORTING_MONTH} max={currentMonth()} onChange={(event) => onChange(event.target.value)} />
+        value={month} min={firstMonth} max={currentMonth()} disabled={disabled} onChange={(event) => {if(event.target.value>=firstMonth)onChange(event.target.value);}} />
         : <button className="active spend-month-label">{monthLabel(month)}</button>}
-      <button aria-label="Next month" onClick={() => onChange(shiftMonth(month, 1))} disabled={month >= currentMonth()}>
+      <button aria-label="Next month" onClick={() => onChange(shiftMonth(month, 1))} disabled={disabled || month >= currentMonth()}>
         ›
       </button>
     </span>
