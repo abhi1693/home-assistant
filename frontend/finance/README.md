@@ -36,6 +36,8 @@ technology and respect reduced-motion preferences.
 
 Spending presents separate monthly totals and eight leading categories, with
 full wrapping names, amounts, shares, and expandable transaction details.
+Expanded details stay beneath their category in its original grid column;
+opening a category preserves the neighboring category's position and width.
 "Show all" exposes the remaining categories. Accounts use a responsive grid
 with account initials and month-specific balances. Accounts and scheduled
 bills each occupy the full dashboard width, so an empty schedule stays compact

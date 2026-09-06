@@ -454,9 +454,8 @@ export function cardCss(mode: ThemeMode): string {
   .spend-category-caption { font-size: 13px; font-weight: 500; }
   .spend-breakdown-summary p { font-size: 12px; line-height: 1.6; margin: 8px 10px; }
   .spend-themes-bars { flex: 1; min-width: 0; }
-  .spend-category-grid { display: grid; gap: 6px 22px; }
+  .spend-category-grid { display: grid; gap: 6px 22px; align-items: start; }
   .spend-category-entry { min-width: 0; border-bottom: 1px solid var(--nb-border); }
-  .spend-category-entry.expanded { grid-column: 1 / -1; }
   .spend-theme-dot {
     display: inline-block;
     width: 8px;
