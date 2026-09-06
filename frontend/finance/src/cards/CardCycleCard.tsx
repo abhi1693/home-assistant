@@ -15,7 +15,7 @@ import {
   useChartWidth,
 } from "./common";
 import { MonthNav, amt } from "./spendingCommon";
-import { useReportingPeriod, PeriodQuery, dateLabel, periodTicks, shiftYear } from "../lib/reportingPeriod";
+import { useReportingPeriod, PeriodQuery, dateLabel, periodTicks, alignComparisonDate, comparisonPlotPeriod } from "../lib/reportingPeriod";
 
 // The credit-card cycle: per card, how the balance climbs with purchases
 // and drops at payments across the selected month, with the month's
@@ -45,6 +45,7 @@ export default function CardCycleCard({
 }) {
   const { ref: chartRef, width: W } = useChartWidth();
   const {period,comparison,month,setMonth}=useReportingPeriod(hass,config.month_group);
+  const plotPeriod=comparisonPlotPeriod(period,comparison);
   // Hover bubble: what the cursor's x-position means on that card's line —
   // replaces the static legend with the answer in place.
   const [hover, setHover] = useState<{
@@ -147,7 +148,7 @@ export default function CardCycleCard({
   const active = withData.find((c) => c.card.id === selectedCard) ?? withData[0];
   const visible = active ? [active] : [];
 
-  const daysInMonth = Math.round((to.getTime() - from.getTime()) / 86400000);
+  const daysInMonth = Math.round((Date.parse(`${plotPeriod.end}T00:00:00+05:30`)+86400000 - from.getTime()) / 86400000);
   const x = (d: Date) =>
     PAD.left +
     (Math.min(Math.max((d.getTime() - from.getTime()) / 86400000, 0), daysInMonth) / daysInMonth) *
@@ -196,8 +197,8 @@ export default function CardCycleCard({
         visible.map(({ card, line, recon, spent, paid, payments }) => {
           const reference=comparison?(comparisonData?.series.find(s=>s.account_id===card.id)?.points??[]).map(p=>{
             const day=new Date(new Date(p.ts).getTime()+19800000).toISOString().slice(0,10);
-            const mapped=shiftYear(day,Number(period.start.slice(0,4))-Number(comparison.start.slice(0,4)));
-            return {ts:new Date(Math.min(Date.parse(`${mapped}T23:59:59+05:30`),Date.now())),debt:Math.max(0,-Number(p.balance))};
+            const mapped=alignComparisonDate(day,comparison,period);
+            return {ts:new Date(Math.min(Date.parse(`${mapped}T23:59:59+05:30`),period.actualEnd<period.end?Date.now():Infinity)),debt:Math.max(0,-Number(p.balance))};
           }).map(p=>({...p,ts:p.ts<from?from:p.ts})):[];
           const maxDebt = Math.max(
             1,
@@ -212,14 +213,15 @@ export default function CardCycleCard({
           // A finished month's balance holds to the right edge; the current
           // month's observation stops at today — no line for days that
           // haven't happened yet.
-          const edgeX = todayX ?? W - PAD.right;
+          const edgeX = todayX ?? x(to);
+          const referenceEdgeX=comparison ? todayX ?? x(new Date(Date.parse(`${alignComparisonDate(comparison.end,comparison,period)}T00:00:00+05:30`)+86400000)) : edgeX;
           // Step paths: balance holds until the next point.
-          const stepPath = (pts: { ts: Date; debt: number }[], extendToEdge: boolean) => {
+          const stepPath = (pts: { ts: Date; debt: number }[], extendToEdge: boolean, edge=edgeX) => {
             let p = "";
             pts.forEach((pt, i) => {
               p += i === 0 ? `M${x(pt.ts)},${y(pt.debt)}` : `H${x(pt.ts)}V${y(pt.debt)}`;
             });
-            if (p && extendToEdge) p += `H${edgeX}`;
+            if (p && extendToEdge) p += `H${edge}`;
             return p;
           };
           const reconPath = stepPath(recon, line.length === 0);
@@ -282,17 +284,19 @@ export default function CardCycleCard({
                     note = "a payment landed on the card";
                   } else {
                     const observed = line.length > 0 && t >= line[0].ts.getTime();
-                    const v = observed ? valueAt(line, t) : valueAt(recon, t);
-                    if (v === null) {
+                    const v = t<to.getTime() ? observed ? valueAt(line, t) : valueAt(recon, t) : null;
+                    const referenceDate=comparison?alignComparisonDate(new Date(t+19800000).toISOString().slice(0,10),period,comparison):"";
+                    const previous=comparison&&referenceDate<=comparison.actualEnd?valueAt(reference,t):null;
+                    if (v === null && previous === null) {
                       setHover(null);
                       return;
                     }
-                    rows = [
+                    rows = v!==null ? [
                       { label: "date", value: day },
                       { label: "owing", value: amt(v, censored) },
-                    ];
-                    if(comparison) { const previous=valueAt(reference,t); if(previous!=null)rows.push({label:comparison.label,value:amt(previous,censored)}); }
-                    note = observed
+                    ] : [];
+                    if(previous!=null)rows.push({label:dateLabel(referenceDate),value:amt(previous,censored)});
+                    note = v===null ? "balance for the comparison month" : observed
                       ? "balance reported by the card"
                       : "estimated from transactions — before the first report we have";
                   }
@@ -304,7 +308,7 @@ export default function CardCycleCard({
                     <stop offset="1" stopColor="var(--nb-ink)" stopOpacity="0" />
                   </linearGradient>
                 </defs>
-                {periodTicks(period,W<600?4:12).map(tick => {
+                {periodTicks(plotPeriod,W<600?4:12).map(tick => {
                   const d=tick.ts; const gx = x(new Date(tick.ts));
                   return (
                     <g key={d}>
@@ -332,7 +336,7 @@ export default function CardCycleCard({
                   <path d={path} fill="none" stroke="var(--nb-ink)" strokeWidth="2"
                     strokeLinejoin="round" opacity="0.95" />
                 )}
-                {reference.length>0&&<path className="comparison-balance-line" d={stepPath(reference,true)} fill="none" stroke="#fbbf24" strokeWidth="2" strokeDasharray="6 4"/>}
+                {reference.length>0&&<path className="comparison-balance-line" d={stepPath(reference,true,referenceEdgeX)} fill="none" stroke="#fbbf24" strokeWidth="2" strokeDasharray="6 4"/>}
                 {todayX !== null && (
                   <g>
                     <line x1={todayX} y1={PAD.top - 6} x2={todayX} y2={H - PAD.bottom}

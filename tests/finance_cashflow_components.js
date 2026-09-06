@@ -112,7 +112,7 @@ async function ready(page) {
       await card.getByRole('button',{name:'Show direct from savings spending by account'}).click();
       assert.equal(await card.locator('.payment-account').count(),2);
       await card.getByRole('button',{name:'Close spending by account'}).click();
-      await picker.getByLabel('Comparison year').selectOption('2023');await ready(page);
+      await picker.getByLabel('Comparison month').selectOption('2023-08');await ready(page);
       await card.getByRole('button',{name:'Daily account',exact:true}).click();
       const balanceChart=card.locator('.savings-chart .recharts-wrapper');
       await balanceChart.scrollIntoViewIfNeeded();

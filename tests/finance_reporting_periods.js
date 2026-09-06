@@ -67,7 +67,7 @@ async function ready(page) {
   await assertChartFit(page);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'Period charts must not widen the page');
 }
-(async()=>{
+if(require.main===module)(async()=>{
  fs.mkdirSync(OUTPUT,{recursive:true});const browser=await chromium.launch({headless:true});
  try {
   for(const width of [320,375,768,1440]) {
@@ -184,3 +184,5 @@ async function ready(page) {
  }finally{await browser.close();}
  console.log(`Calendar/FY/custom periods, same-date year comparisons, aggregated charts, drill-down, leap day, per-panel loading, stale responses and access isolation passed. Screenshots: ${OUTPUT}`);
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
+module.exports={periodFixture,ready};

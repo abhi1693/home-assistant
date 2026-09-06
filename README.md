@@ -147,8 +147,10 @@ private server-side plans in a compact contribution donut and monthly chart. The
 investments. Plans do not generate ledger transactions; statement
 matches replace their expected amounts. Investment transfers remain outside
 income and spending. The shared period control supports months, calendar years,
-April–March financial years, custom dates and year comparisons. All panels
-reuse the same charts; actuals use matching elapsed comparison dates, and
+April–March financial years, custom dates and month/year comparisons. Month
+view lists earlier months back to the first recorded month; completed months
+compare in full, and the current month compares matching days elapsed. All panels
+reuse the same charts; year comparisons use matching elapsed calendar dates, and
 savings balances are plotted over time with a closing total at the period end.
 A separate daily/monthly purchase chart compares direct savings payments with
 credit-card spending, excluding self-transfers and card repayments. Its method

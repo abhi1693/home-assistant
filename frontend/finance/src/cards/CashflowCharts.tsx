@@ -3,7 +3,7 @@ import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Too
 import InfoTooltip from "../components/InfoTooltip";
 import { money, moneyCompact, shortDate, signedMoney } from "../lib/format";
 import { Account } from "../lib/types";
-import { dateLabel, ReportPeriod, shiftYear } from "../lib/reportingPeriod";
+import { dateLabel, ReportPeriod, alignComparisonDate, comparisonPlotPeriod, isMonthComparison, dayOfPeriod } from "../lib/reportingPeriod";
 import { ledgerDay, PAYMENT_METHODS, PaymentMethod, paymentBreakdown, paymentTimeline, savingsAccounts, savingsTimeline } from "../lib/cashflow";
 import { CashflowPayload } from "./AccountsCard";
 import { useChartTooltip } from "../lib/useChartTooltip";
@@ -19,6 +19,8 @@ export default function CashflowCharts({ accounts, data, previous, previousAccou
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const balanceTooltip = useChartTooltip();
   const paymentTooltip = useChartTooltip();
+  const monthlyComparison = isMonthComparison(period, comparison);
+  const plotPeriod = comparisonPlotPeriod(period, comparison);
   const savings = useMemo(() => savingsAccounts(accounts, savingsIds), [accounts, savingsIds]);
   const referenceSavings = useMemo(() => savingsAccounts(previousAccounts, savingsIds), [previousAccounts, savingsIds]);
   const chosen = savings.filter(a => selected === null || a.id === selected);
@@ -31,7 +33,7 @@ export default function CashflowCharts({ accounts, data, previous, previousAccou
   const balanceKey = (ts: number) => ts === Date.parse(`${period.start}T00:00:00+05:30`) ? "opening" : ledgerDay(ts);
   for (const row of currentLine) balanceMap.set(balanceKey(row.ts), { ts: row.ts, current: row.value });
   for (const row of oldLine) {
-    const refDate = ledgerDay(row.ts), day = shiftYear(refDate, Number(period.start.slice(0, 4)) - Number(comparison!.start.slice(0, 4)));
+    const refDate = ledgerDay(row.ts), day = alignComparisonDate(refDate, comparison!, period);
     const opening = row.ts === Date.parse(`${comparison!.start}T00:00:00+05:30`);
     const key = opening ? "opening" : day;
     const point = balanceMap.get(key) ?? { ts: Date.parse(`${day}T${opening ? "00:00:00" : "23:59:59"}+05:30`) };
@@ -63,12 +65,12 @@ export default function CashflowCharts({ accounts, data, previous, previousAccou
         {comparison && <div className="cashflow-comparison"><span>{comparison.label}: <strong>{referenceChosen.length ? money(referenceClosing) : "No balance"}</strong></span>
           {referenceChosen.length > 0 && <span>{signedMoney(closing - referenceClosing)} change</span>}</div>}
         {balanceRows.length ? <div className="cashflow-plot" {...balanceTooltip.plot}><ResponsiveContainer width="100%" height="100%" minWidth={0}><LineChart data={balanceRows} accessibilityLayer margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
-          {grid}<XAxis dataKey="ts" type="number" domain={[Date.parse(`${period.start}T00:00:00+05:30`), Date.parse(`${period.end}T23:59:59+05:30`)]}
-            tickFormatter={ts => period.wide ? monthLabel(ledgerDay(ts)) : shortDate(ts)} minTickGap={35} tick={axisTick} />
+          {grid}<XAxis dataKey="ts" type="number" domain={[Date.parse(`${period.start}T00:00:00+05:30`), Date.parse(`${plotPeriod.end}T23:59:59+05:30`)]}
+            tickFormatter={ts => monthlyComparison ? String(dayOfPeriod(ledgerDay(ts),period)) : period.wide ? monthLabel(ledgerDay(ts)) : shortDate(ts)} minTickGap={35} tick={axisTick} />
           <YAxis tickFormatter={value => balanceTick(value)} width={76} tick={axisTick} domain={["auto", "auto"]} />
           <Tooltip key={balanceTooltip.key} {...balanceTooltip.tooltip} wrapperStyle={{maxWidth:"calc(100% - 88px)"}} content={({ active, payload }) => {
             const row = payload?.[0]?.payload as BalancePoint | undefined;
-            return active && row ? <div className="cashflow-tooltip" role="tooltip"><b>{shortDate(row.ts, false, true)}{balanceKey(row.ts) === "opening" ? " · opening" : " · closing"}</b>
+            return active && row ? <div className="cashflow-tooltip" role="tooltip"><b>{row.current!=null?shortDate(row.ts, false, true):dateLabel(row.referenceDate!)}{balanceKey(row.ts) === "opening" ? " · opening" : " · closing"}</b>
               {row.current != null && <p><span>{selected === null ? "All savings" : accountName(selected)}</span><strong>{money(row.current, true)}</strong></p>}
               {row.previous != null && <p><span>{dateLabel(row.referenceDate!)}</span><strong>{money(row.previous, true)}</strong></p>}</div> : null;
           }} />
@@ -95,13 +97,14 @@ export default function CashflowCharts({ accounts, data, previous, previousAccou
       {comparison && <div className="cashflow-comparison"><span>{comparison.label}: <strong>{money((referencePayments?.total ?? 0) / 100)}</strong></span>
         <span>{signedMoney((payments.total - (referencePayments?.total ?? 0)) / 100)} change</span></div>}
       {payments.total > 0 || (referencePayments?.total ?? 0) > 0 ? <div className="cashflow-plot" {...paymentTooltip.plot}><ResponsiveContainer width="100%" height="100%" minWidth={0}><BarChart data={paymentRows} barGap="10%" barCategoryGap="18%" accessibilityLayer margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
-          {grid}<XAxis dataKey="day" tickFormatter={day => period.wide ? monthLabel(`${day}-01`) : String(Number(day.slice(8)))} interval="preserveStartEnd" minTickGap={16} tick={axisTick} />
+          {grid}<XAxis dataKey="day" tickFormatter={day => period.wide ? monthLabel(`${day}-01`) : monthlyComparison ? String(dayOfPeriod(day,period)) : String(Number(day.slice(8)))} interval="preserveStartEnd" minTickGap={16} tick={axisTick} />
           <YAxis tickFormatter={moneyCompact} width={62} tick={axisTick} />
           <Tooltip key={paymentTooltip.key} {...paymentTooltip.tooltip} wrapperStyle={{maxWidth:"calc(100% - 88px)"}} cursor={{ fill: "var(--nb-border)", fillOpacity: .35 }} content={({ active, payload }) => {
             const row = payload?.[0]?.payload as typeof paymentRows[number] | undefined;
-            return active && row ? <div className="cashflow-tooltip" role="tooltip"><b>{period.wide ? monthLabel(row.date) : dateLabel(row.date)}</b>
-              {methods.map(m => <p key={m.key}><span><i style={{ background: m.color }} />{m.label}</span><strong>{row[m.key] == null ? "–" : money(Number(row[m.key]), true)}</strong></p>)}
-              {comparison && <><b>{period.wide ? monthLabel(row.refDate) : `${dateLabel(row.refDate)}${row.refEndDate !== row.refDate ? ` – ${dateLabel(row.refEndDate)}` : ""}`}</b>{methods.map(m => <p key={m.key}><span>{m.label}</span><strong>{row[`${m.key}Previous`] == null ? "–" : money(Number(row[`${m.key}Previous`]), true)}</strong></p>)}</>}
+            return active && row ? <div className="cashflow-tooltip" role="tooltip">
+              {methods.some(m=>row[m.key]!=null)&&<><b>{period.wide ? monthLabel(row.date) : dateLabel(row.date)}</b>
+                {methods.map(m => <p key={m.key}><span><i style={{ background: m.color }} />{m.label}</span><strong>{row[m.key] == null ? "–" : money(Number(row[m.key]), true)}</strong></p>)}</>}
+              {comparison && methods.some(m=>row[`${m.key}Previous`]!=null) && <><b>{period.wide ? monthLabel(row.refDate) : `${dateLabel(row.refDate)}${row.refEndDate !== row.refDate ? ` – ${dateLabel(row.refEndDate)}` : ""}`}</b>{methods.map(m => <p key={m.key}><span>{m.label}</span><strong>{row[`${m.key}Previous`] == null ? "–" : money(Number(row[`${m.key}Previous`]), true)}</strong></p>)}</>}
             </div> : null;
           }} />
           {methods.map(m => <Bar key={m.key} dataKey={m.key} name={m.label} fill={m.color} stackId="current" isAnimationActive={false} maxBarSize={26} />)}

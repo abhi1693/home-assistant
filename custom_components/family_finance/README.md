@@ -14,7 +14,7 @@ balances. The net-worth summary follows the selected period in every mode,
 including months. Its change uses the closing balance immediately before the
 period starts, including all movements on the first day. Current-month balances
 stop at today. The net-worth history chart retains its independent range in
-ordinary Month mode and follows annual/custom views and year comparisons.
+ordinary Month mode and follows annual/custom views and explicit month/year comparisons.
 Selections stay in memory for the HA connection and user.
 
 The private `family_finance/history` command supplies the earliest recorded
@@ -23,7 +23,8 @@ Firefly's date-descending transaction collection with one record per page and
 shares the five-minute cache. It does not download the entire ledger or infer
 history from account creation dates. Calendar and comparison years start in
 that year; financial years include the April–March period containing the first
-record. Month and custom-date inputs also stop at the available history.
+record. Month comparisons list earlier months back to that first recorded month;
+month and custom-date inputs also stop at the available history.
 An empty ledger offers only the current reporting year, without inventing dates.
 
 Every period-data command accepts the existing `month` or a paired `start`/`end`
@@ -33,7 +34,8 @@ calendar dates. Actual transactions and balances stop at today; bill and
 investment forecasts can extend to the requested end. Overview and spending responses include
 `start`, `end`, `as_of`; spending responses also include decimal monthly totals, with `null` recorded totals
 for future months. Comparison requests use the same authorized endpoints,
-clipped to corresponding elapsed calendar dates by the frontend. Cache keys
+using full completed months or matching elapsed days for a current-month
+comparison, and matching elapsed calendar dates for year comparisons. Cache keys
 include both dates and actuals' cutoff, keeping years separate.
 
 Investment schedules are expanded over the full date range before matching,

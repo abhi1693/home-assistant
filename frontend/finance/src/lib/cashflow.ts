@@ -1,5 +1,5 @@
 import { Account, AccountSeries, SpendingTxn } from "./types";
-import { ReportPeriod, shiftYear } from "./reportingPeriod";
+import { ReportPeriod, alignComparisonDate, comparisonPlotPeriod } from "./reportingPeriod";
 import { shiftMonth } from "../cards/spendingCommon";
 import { alignSeries, clipRows, sumRow } from "./series";
 
@@ -48,16 +48,17 @@ export type PaymentBreakdown = ReturnType<typeof paymentBreakdown>;
 
 export function paymentTimeline(current: PaymentBreakdown, period: ReportPeriod, previous?: PaymentBreakdown, comparison?: ReportPeriod) {
   const days: string[] = [];
+  const plot = comparisonPlotPeriod(period, comparison);
   if (period.wide) {
     for (let m = period.start.slice(0, 7); `${m}-01` <= period.end; m = shiftMonth(m, 1)) days.push(m);
   } else {
-    for (let ts = Date.parse(period.start); ts <= Date.parse(period.end); ts += 86_400_000) days.push(new Date(ts).toISOString().slice(0, 10));
+    for (let ts = Date.parse(period.start); ts <= Date.parse(plot.end); ts += 86_400_000) days.push(new Date(ts).toISOString().slice(0, 10));
   }
   const referenceBuckets = new Map<string, { totals: Totals; from: string; to: string }>();
   if (comparison && previous) {
     for (const [key, totals] of previous.byDate) {
       const originalDate = key.length === 7 ? `${key}-01` : key;
-      let date = shiftYear(originalDate, Number(period.start.slice(0, 4)) - Number(comparison.start.slice(0, 4)));
+      let date = alignComparisonDate(originalDate, comparison, period);
       if (date < period.start) date = period.start;
       const mapped = period.wide ? date.slice(0, 7) : date;
       const bucket = referenceBuckets.get(mapped) ?? { totals: zero(), from: originalDate, to: originalDate };
@@ -69,7 +70,7 @@ export function paymentTimeline(current: PaymentBreakdown, period: ReportPeriod,
   }
   return days.map(day => {
     const date = day.length === 7 ? `${day}-01` : day;
-    const refDate = comparison ? shiftYear(date, Number(comparison.start.slice(0, 4)) - Number(period.start.slice(0, 4))) : "";
+    const refDate = comparison ? alignComparisonDate(date, period, comparison) : "";
     const reference = referenceBuckets.get(day);
     const values: Record<PaymentMethod | `${PaymentMethod}Previous`, number | null> = { ...zero(), savingsPrevious: null, creditPrevious: null, otherPrevious: null };
     for (const { key } of PAYMENT_METHODS) {

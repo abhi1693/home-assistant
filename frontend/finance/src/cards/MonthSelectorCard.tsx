@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Hass } from "../lib/ha";
-import { PeriodMode, useReportingPeriod, dateLabel, todayDate, resolvePeriod } from "../lib/reportingPeriod";
+import { PeriodMode, useReportingPeriod, dateLabel, todayDate, resolvePeriod, comparisonMonths } from "../lib/reportingPeriod";
 import { BaseCardConfig } from "./common";
-import { currentMonth, MonthNav } from "./spendingCommon";
+import { currentMonth, monthLabel, MonthNav } from "./spendingCommon";
 
 export default function MonthSelectorCard({ hass, config }: { hass: Hass; config: BaseCardConfig }) {
   const {selection,select,period,comparison,month,setMonth}=useReportingPeriod(hass,config.month_group);
@@ -36,19 +36,24 @@ export default function MonthSelectorCard({ hass, config }: { hass: Hass; config
     const candidate=resolvePeriod({...selection,compareYear:year}).comparison;
     return candidate&&candidate.end>=firstDate;
   });
+  const months=currentHistory?.firstDate ? comparisonMonths(month,firstMonth) : [];
+  const monthly=selection.mode==="month";
+  const options=monthly ? months.map(value=>({value,label:monthLabel(value)}))
+    : comparisonYears.map(year=>({value:String(year),label:selection.mode==="financial"?`FY ${year}–${String(year+1).slice(-2)}`:String(year)}));
   useEffect(()=>{
     if(!currentHistory||currentHistory.error)return;
-    if(selection.mode==="month"&&month<firstMonth)select({month:firstMonth,compareYear:null});
+    if(selection.mode==="month"&&month<firstMonth)select({month:firstMonth,compareYear:null,compareMonth:null});
     else if(["calendar","financial"].includes(selection.mode)&&selection.year<earliestYear)select({year:earliestYear,compareYear:null});
     else if(selection.mode==="custom"&&selection.start<firstDate)select({start:firstDate,end:selection.end<firstDate?firstDate:selection.end,compareYear:null});
-    else if(selection.compareYear!==null&&!comparisonYears.includes(selection.compareYear))select({compareYear:null});
-  },[currentHistory,selection,firstDate,firstMonth,earliestYear,comparisonYears.join(","),month,select]);
+    else if(monthly&&selection.compareMonth!==null&&!months.includes(selection.compareMonth))select({compareMonth:null});
+    else if(!monthly&&selection.compareYear!==null&&!comparisonYears.includes(selection.compareYear))select({compareYear:null});
+  },[currentHistory,selection,firstDate,firstMonth,earliestYear,comparisonYears.join(","),months.join(","),monthly,month,select]);
   const invalidCustom=!start||!end||start<firstDate||start>end||start>todayDate()||Date.parse(end)-Date.parse(start)>1830*86400000;
   const modes:[PeriodMode,string][]=[["month","Month"],["calendar","Calendar year"],["financial","Financial year"],["custom","Custom"]];
   return <div className="card reporting-month-card reporting-period-card">
     <div className="period-selector-top"><h2>{config.title ?? "Reporting period"}</h2>
       <span className="seg period-modes">{modes.map(([mode,label])=><button key={mode} aria-pressed={selection.mode===mode}
-        disabled={loading||!!currentHistory?.error} className={selection.mode===mode?"active":""} onClick={()=>select({mode,compareYear:null,
+        disabled={loading||!!currentHistory?.error} className={selection.mode===mode?"active":""} onClick={()=>select({mode,compareYear:null,compareMonth:null,
           ...(mode==="financial"?{year:Math.min(selection.year,Number(currentMonth().slice(5))<4?currentYear-1:currentYear)}:{})})}>{label}</button>)}</span>
     </div>
     <div className="reporting-month-controls period-controls">
@@ -64,10 +69,10 @@ export default function MonthSelectorCard({ hass, config }: { hass: Hass; config
             {years.map(year=><option key={year} value={year}>{selection.mode==="financial"?`FY ${year}–${String(year+1).slice(-2)}`:year}</option>)}
           </select><button aria-label="Next year" disabled={selection.year>=latestYear} onClick={()=>select({year:selection.year+1,compareYear:null})}>›</button>
         </span>}
-      <label className="period-compare-select">Compare with<select aria-label="Comparison year" disabled={loading||comparisonYears.length===0} value={comparison?selection.compareYear!:""}
-        onChange={e=>select({compareYear:e.target.value?Number(e.target.value):null})}>
+      <label className="period-compare-select">Compare with<select aria-label={monthly?"Comparison month":"Comparison year"} disabled={loading||!!currentHistory?.error||options.length===0} value={comparison?(monthly?selection.compareMonth!:selection.compareYear!):""}
+        onChange={e=>select(monthly?{compareMonth:e.target.value||null,compareYear:null}:{compareYear:e.target.value?Number(e.target.value):null,compareMonth:null})}>
         <option value="">No comparison</option>
-        {comparisonYears.map(year=><option key={year} value={year}>{selection.mode==="financial"?`FY ${year}–${String(year+1).slice(-2)}`:year}</option>)}
+        {options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}
       </select></label>
     </div>
     {loading?<p className="muted" role="status">Loading available dates…</p>
@@ -77,6 +82,7 @@ export default function MonthSelectorCard({ hass, config }: { hass: Hass; config
       <span>{dateLabel(period.start)} – {dateLabel(period.end)}</span>
       {period.actualEnd<period.end && <span>Actuals through {dateLabel(period.actualEnd)}; later commitments stay scheduled.</span>}
       {comparison && <span>Compared with {dateLabel(comparison.start)} – {dateLabel(comparison.end)}.</span>}
+      {monthly&&comparison&&<span>{period.actualEnd<period.end?"Matching days elapsed in each month.":"Full calendar months."} Charts align by day of month.</span>}
     </div>}
     {selection.mode==="custom"&&invalidCustom&&<p className="muted">Choose dates in order, up to five years, starting on or before today.</p>}
   </div>;

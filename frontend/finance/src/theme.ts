@@ -735,8 +735,8 @@ export function cardCss(mode: ThemeMode): string {
   .spend-comparison { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 14px; align-items: center; color: var(--nb-muted); }
   .spend-comparison small { font-size: 10px; }
   .spend-comparison .spend-row-bar { height: 3px; }
-  .history-comparison-tooltip { background: var(--nb-panel-2); border: 1px solid var(--nb-border); border-radius: 8px; padding: 8px 14px; font-size: 12px; }
-  .history-comparison-tooltip p { display: flex; gap: 18px; justify-content: space-between; }
+  .history-comparison-tooltip { background: var(--nb-panel-2); border: 1px solid var(--nb-border); border-radius: 8px; padding: 8px 14px; font-size: 12px; max-width: 100%; }
+  .history-comparison-tooltip p { display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: space-between; }
   .worth-year-comparison { display: flex; flex-wrap: wrap; gap: 7px; color: var(--nb-muted); font-size: 11px; margin-top: 10px; }
   .worth-year-comparison strong { color: #fbbf24; }
   @media(max-width:600px) {

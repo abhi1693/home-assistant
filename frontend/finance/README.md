@@ -37,21 +37,32 @@ its independent range in Month mode.
 `family-finance-month-card` provides the shared reporting-period control (the
 existing tag and `month_group` option remain compatible). Select Month,
 Calendar year (January–December), Financial year (April–March), or Custom dates
-(up to five years), then optionally choose an earlier comparison year. The same
+(up to five years), then optionally choose an earlier comparison month or year. The same
 panels show period totals, monthly income/spending/contribution/bill charts,
 category comparisons, savings balance lines, payment-method bars, and credit-card
 balance overlays. The net-worth summary follows every selected period. Its
 history chart keeps an independent range in ordinary Month mode; annual/custom
 views and explicit comparisons use the shared period. Assign the
 same `month_group` to all participating cards, including net-worth cards.
+In Month view, Compare with lists earlier months newest first, with month/year
+labels, back to the first recorded month. It excludes the selected month and
+later months; No comparison clears the overlay. At the earliest recorded month,
+comparison is disabled. Switching modes or reporting months clears the comparison.
+Calendar/FY/custom views retain their comparison-year selector.
 Year and comparison options start at the first recorded Firefly transaction,
 including its containing financial year. The selector shows that first date;
 month navigation and custom-date inputs use it as their lower boundary. The
 available history refreshes every five minutes and when the screen wakes.
 
-An unfinished period includes actuals only through today. Its comparison ends
-on the corresponding calendar date in the selected comparison year; leap days
-clamp to the last valid day of February. Future months have no recorded bars,
+Completed months compare both full calendar months. The current month's
+comparison ends on the matching day number, capped at the reference month's
+last day. Daily balance/payment charts align by day number and extend their
+axis for a longer reference month; unmatched days remain absent on the shorter
+side. No purchases are dropped or duplicated, and tooltips retain the original
+dates rather than the dates used internally for chart positioning.
+An unfinished annual/custom period includes actuals only through today. Its
+comparison ends on the corresponding calendar date in the selected year; leap
+days clamp to the last valid day of February. Future months have no recorded bars,
 while explicit future commitments remain separately labelled. The selector
 shows the actual comparison dates. Net-worth comparison uses total balance
 lines on a shared axis; standalone chart modes remain available outside
@@ -126,7 +137,7 @@ awaiting statement totals. The center total includes both recorded and pending
 commitments. Each label shows its amount, share and recorded/pending counts.
 The provider legend is informational; there is no separate dated payment list
 or expand/View all controls. Source labels and classifications are preserved. Empty and single-investment periods render without invalid pie slices.
-Annual trends and year comparisons remain visible below the compact summary.
+Period trends and month/year comparisons remain visible below the compact summary.
 It calculates income after spending, remaining bills and investment commitments;
 the footer's tooltip explains this calculation. Statement
 matches replace scheduled amounts, preventing a second deduction. The panel has
@@ -163,6 +174,7 @@ From the repository root:
 python3 -m unittest discover -s tests -v
 NODE_PATH=/path/to/node_modules node tests/finance_dashboard_components.js
 NODE_PATH=/path/to/node_modules node tests/finance_reporting_periods.js
+NODE_PATH=/path/to/node_modules node tests/finance_month_comparisons.js
 NODE_PATH=/path/to/node_modules node tests/finance_investments_components.js
 NODE_PATH=/path/to/node_modules node tests/finance_cashflow_components.js
 ```
@@ -185,6 +197,10 @@ ranges, annual drill-downs, comparison spinners and stale-response isolation at
 320, 375, 768 and 1440px widths; it also checks chart bounds, absence of scroll
 containers, non-overlapping axis labels, complete monthly bars across multi-year
 ranges and hover behavior. Its screenshots go to `/tmp/ha-finance-periods`.
+The month-comparison suite checks history bounds, year rollover, complete and
+elapsed months, leap days, unequal month lengths, reference-only tooltip dates,
+all-panel queries, loading/stale responses, mode resets and privacy at those
+same four widths. Screenshots go to `/tmp/ha-finance-month-comparisons`.
 The investment suite checks compact panel heights, grouped totals and shares,
 recorded/pending status, absence of redundant payment lists and controls,
 single/empty/many investments and
