@@ -494,12 +494,6 @@ export function cardCss(mode: ThemeMode): string {
   }
   .spend-row-amount { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .spend-row-count { text-align: right; font-size: 11px; }
-  .spend-show-all {
-    display: flex; justify-content: center; align-items: center; gap: 10px; width: 100%; min-height: 44px;
-    margin-top: 10px; border: 1px solid var(--nb-border); border-radius: 8px;
-    color: var(--nb-accent); background: transparent; cursor: pointer; font: inherit; font-size: 12px;
-  }
-  .spend-show-all:hover { background: var(--nb-panel-2); }
   .spend-txns { padding: 8px; }
   .spend-txn {
     display: grid;
@@ -512,6 +506,7 @@ export function cardCss(mode: ThemeMode): string {
   }
   .spend-txn:last-child { border-bottom: none; }
   .spend-txn-desc { min-width: 0; overflow-wrap: anywhere; line-height: 1.5; }
+  .spend-txn-category { display: block; margin-top: 2px; font-size: 10px; }
   .spend-txn-amount { text-align: right; font-variant-numeric: tabular-nums; }
   .spend-txn-logo {
     width: 18px;

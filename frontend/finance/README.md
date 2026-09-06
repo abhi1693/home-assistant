@@ -34,12 +34,16 @@ cannot settle a newer request. Income-source and category details show their
 spinner inside the expanded section. Loading states are labelled for assistive
 technology and respect reduced-motion preferences.
 
-Spending presents separate monthly totals and eight leading categories, with
-full wrapping names, amounts, shares, and expandable transaction details.
+Spending presents separate monthly totals and the eight largest named categories,
+with remaining categories combined into Others and Uncategorised shown separately
+when present. The donut and list share the same groups and a distinct color for
+every displayed group. Names, amounts, shares, and transaction counts remain
+visible. Others expands to its constituent spending transactions, labelled with
+their original categories; income and transfers never enter that drill-down.
 Expanded details stay beneath their category in its original grid column;
 opening a category preserves the neighboring category's position and width.
-"Show all" exposes the remaining categories. Accounts use a responsive grid
-with account initials and month-specific balances. Accounts and scheduled
+Accounts use a responsive grid with account initials and month-specific balances.
+Accounts and scheduled
 bills each occupy the full dashboard width, so an empty schedule stays compact
 without leaving a gap beside the account list.
 

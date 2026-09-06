@@ -59,15 +59,20 @@ async function fixture(page, grouped = false, initiallyLoading = false) {
         themes:grouped?[
         {theme:'House Renovation - Fixtures and Fittings',total:'18000',count:7},
         {theme:'Networking Equipment and Home Office Supplies',total:'8000',count:4},
-        ...Array.from({length:10},(_,i)=>({theme:`Household category ${i+1}`,total:'600',count:2})),
+        ...Array.from({length:10},(_,i)=>({theme:`Household category ${i+1}`,total:'480',count:2})),
+        {theme:'Uncategorised',total:'1200',count:1},
       ]:[
         {theme:"Housing",total:"25000",count:1},{theme:"Groceries",total:"5000",count:7},{theme:"Dining",total:"2000",count:3},
       ]};
       if(kind==="spending_transactions")return {month:msg.month,censored:false,transactions:[{
-        id:1,account_id:3,posted_at:`${msg.month}-02T12:00:00+05:30`,amount:"25000",merchant:"Rent <script>bad()</script>",merchant_key:"rent",description:"Test rent",theme:"Housing",logo_url:null,pending:false,transaction_type:"withdrawal",
+        id:1,account_id:3,posted_at:`${msg.month}-02T12:00:00+05:30`,amount:"25000",merchant:"Rent <script>bad()</script>",merchant_key:"rent",description:"Test rent",theme:grouped?'House Renovation - Fixtures and Fittings':"Housing",logo_url:null,pending:false,transaction_type:"withdrawal",
       },{id:2,account_id:3,posted_at:`${msg.month}-03T12:00:00+05:30`,amount:"-12000",merchant:"Card payment",merchant_key:"payment",description:"Repayment",theme:"transfers",pending:false,transaction_type:"transfer"},
+      ...(grouped ? [
+        ...Array.from({length:20},(_,i)=>({id:100+i,account_id:1,posted_at:`${msg.month}-04T12:00:00+05:30`,amount:'240',merchant:`Sample merchant ${i+1}`,merchant_key:`sample-${i}`,description:'Sample category expense',theme:`Household category ${Math.floor(i/2)+1}`,pending:false,transaction_type:'withdrawal'})),
+        {id:200,account_id:1,posted_at:`${msg.month}-04T12:00:00+05:30`,amount:'1200',merchant:'Unassigned purchase',description:'Sample unassigned expense',theme:'Uncategorised',pending:false,transaction_type:'withdrawal'},
+      ] : []),
       ...(!msg.theme?[
-        {id:3,account_id:1,posted_at:`${msg.month}-03T12:00:00+05:30`,amount:"-125000",merchant:"Employer",description:"Monthly salary",category:"Salary",transaction_type:"deposit"},
+        {id:3,account_id:1,posted_at:`${msg.month}-03T12:00:00+05:30`,amount:"-125000",merchant:"Employer",description:"Monthly salary",category:"Salary",theme:'Household category 6',transaction_type:"deposit"},
         {id:5,account_id:1,posted_at:`${msg.month}-05T12:00:00+05:30`,amount:"-14.04",merchant:"Amazon Royalties",description:"Book royalty",category:"Royalty Income",transaction_type:"deposit"},
         {id:6,account_id:1,posted_at:`${msg.month}-06T12:00:00+05:30`,amount:"-577.98",merchant:"Amazon Royalties",description:"Book royalty",category:"Royalty Income",transaction_type:"deposit"},
         {id:4,account_id:1,posted_at:`${msg.month}-04T12:00:00+05:30`,amount:"-5000",merchant:"Retailer",description:"Purchase refund",category:"Shopping",transaction_type:"deposit"},
@@ -195,13 +200,29 @@ async function sharedMonthCheck(page, width) {
   assert.equal(await page.locator('.investment-row').count(),2);
   assert.match(await page.locator('.investment-remaining').innerText(),/95,592/);
   const categories=page.locator('family-finance-spending-card .spend-row');
-  assert.equal(await categories.count(),8);
-  await page.getByRole('button',{name:'Show all 12 categories',exact:true}).click();
-  assert.equal(await categories.count(),12);
+  assert.equal(await categories.count(),10,'Eight named categories plus Others and Uncategorised');
+  const spending=page.locator('family-finance-spending-card');
+  const labels=await spending.locator('.spend-row-label').allTextContents();
+  assert.deepEqual(labels.slice(-2),['Others','Uncategorised']);
+  assert.equal(await spending.locator('.spend-show-all').count(),0);
+  const colors=await spending.locator('.spend-theme-dot').evaluateAll(els=>els.map(el=>el.style.background));
+  assert.equal(new Set(colors).size,10,'Every displayed category has a distinct color');
+  const slices=spending.locator('.spend-donut path');
+  assert.equal(await slices.count(),10,'Donut uses exactly the displayed groups');
+  assert.deepEqual(await slices.evaluateAll(els=>els.map(el=>{const probe=document.createElement('span');probe.style.color=el.getAttribute('fill');return probe.style.color;})),colors);
+  const others=categories.filter({has:page.locator('.spend-row-label',{hasText:/^Others$/})});
+  assert.match(await others.innerText(),/1,920/);
+  assert.match(await others.innerText(),/8 txns/);
+  await others.click();
+  await spending.locator('.spend-txn-desc').first().waitFor();
+  assert.equal(await spending.locator('.spend-txn').count(),8,'Others contains only its member withdrawals');
+  assert.doesNotMatch(await spending.locator('.spend-txns').innerText(),/Employer|Card payment|Unassigned purchase/);
+  assert.equal(await spending.locator('.spend-txn-category').count(),8);
+  await spending.screenshot({path:path.join(OUTPUT,`finance-others-${width}.png`)});
   await categories.last().click();
-  await page.locator('family-finance-spending-card .spend-txn-desc').first().waitFor();
-  await page.getByRole('button',{name:'Show top 8 categories',exact:true}).click();
-  assert.equal(await categories.count(),8);
+  await spending.getByText('Unassigned purchase',{exact:true}).waitFor();
+  assert.equal(await spending.locator('.spend-txn').count(),1);
+  await categories.last().click();
   assert.equal(await page.locator('family-finance-spending-card .spend-txn-desc').count(),0);
   assert(await page.locator('family-finance-spending-card .spend-row-label').first().evaluate(el=>getComputedStyle(el).whiteSpace!=='nowrap'));
   assert.equal(await page.locator('family-finance-accounts-card .account-item').count(),11);
