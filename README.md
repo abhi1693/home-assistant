@@ -328,8 +328,11 @@ credentials and config-entry state are not stored in this repository.
 This is the live configuration for one household, not a drop-in starter
 template. Before adapting it:
 
-1. Replace the user IDs, usernames, person entities, device trackers,
+1. Replace the user IDs, usernames, person entities, active device trackers,
    notification targets, cameras, calendars, and room entities under `access/`.
+   Optional Wi-Fi presence trackers may be `null` in
+   `access/household-policy.json`; do not list unavailable trackers in
+   `access/family-dashboard.json`.
 2. Replace site and route definitions under `location/`.
 3. Review all entity IDs used by `packages/` and `dashboards/`.
 4. Supply secrets through the deployment environment or encrypted Kubernetes

@@ -4,7 +4,7 @@
   "profiles": {
     "abhimanyu": {
       "gps": "device_tracker.abhimanyu_pixel_8_2",
-      "wifi": "device_tracker.abhimanyu_pixel_8",
+      "wifi": null,
       "notify": "notify.abhimanyu_pixel_8"
     },
     "krishna": {

@@ -898,11 +898,9 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("device_tracker.abhi_pc", owner["device_trackers"])
         self.assertEqual(
             set(owner["device_trackers"]),
-            {
-                policy["profiles"]["abhimanyu"]["gps"],
-                policy["profiles"]["abhimanyu"]["wifi"],
-            },
+            {policy["profiles"]["abhimanyu"]["gps"]},
         )
+        self.assertIsNone(policy["profiles"]["abhimanyu"]["wifi"])
 
         package = (ROOT / "packages/household.yaml").read_text()
         home = (ROOT / "dashboards/home-tablet.yaml").read_text()
