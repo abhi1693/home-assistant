@@ -8,12 +8,87 @@ class FamilyDailyMaxChartCard extends HTMLElement {
     this._historyKey = null;
     this._loading = false;
     this._error = null;
+    this._activeDay = null;
+    this._pinnedDay = null;
+    this._dismissOutside = (event) => {
+      if (!event.composedPath().includes(this)) this._hideTooltip();
+    };
+    this.shadowRoot.addEventListener("pointerover", (event) => {
+      if (event.pointerType === "touch") return;
+      const bar = event.target.closest(".bar-wrap");
+      if (bar) this._showTooltip(bar.dataset.day);
+    });
+    this.shadowRoot.addEventListener("pointerout", (event) => {
+      const bar = event.target.closest(".bar-wrap");
+      if (bar && !bar.contains(event.relatedTarget)) this._showTooltip(this._pinnedDay);
+    });
+    this.shadowRoot.addEventListener("focusin", (event) => {
+      const bar = event.target.closest(".bar-wrap");
+      if (bar) this._showTooltip(bar.dataset.day);
+    });
+    this.shadowRoot.addEventListener("focusout", () => this._showTooltip(this._pinnedDay));
+    this.shadowRoot.addEventListener("click", (event) => {
+      const bar = event.target.closest(".bar-wrap");
+      if (!bar) return;
+      this._pinnedDay = this._pinnedDay === bar.dataset.day ? null : bar.dataset.day;
+      this._showTooltip(this._pinnedDay);
+    });
+    this.shadowRoot.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        this._hideTooltip();
+        return;
+      }
+      const bars = [...this.shadowRoot.querySelectorAll(".bar-wrap")];
+      const index = bars.indexOf(event.target);
+      if (index < 0) return;
+      const next = { ArrowLeft: Math.max(0, index - 1), ArrowRight: Math.min(bars.length - 1, index + 1), Home: 0, End: bars.length - 1 }[event.key];
+      if (next === undefined) return;
+      event.preventDefault();
+      this._pinnedDay = null;
+      bars[next].focus();
+    });
+  }
+
+  connectedCallback() {
+    document.addEventListener("pointerdown", this._dismissOutside);
+  }
+
+  disconnectedCallback() {
+    document.removeEventListener("pointerdown", this._dismissOutside);
+  }
+
+  _hideTooltip() {
+    this._pinnedDay = null;
+    this._showTooltip(null);
+  }
+
+  _showTooltip(day) {
+    this._activeDay = day;
+    const tooltip = this.shadowRoot.querySelector(".tooltip");
+    if (!tooltip) return;
+    const bucket = this._series().find((item) => item.key === day);
+    tooltip.hidden = !bucket;
+    if (bucket) {
+      const date = new Date(`${bucket.key}T12:00:00`).toLocaleDateString([], {
+        weekday: "long", day: "numeric", month: "short", year: "numeric",
+      });
+      tooltip.textContent = `${date} · ${bucket.value === null ? "No recorded data" : this._tooltipValue(bucket.value)}`;
+    }
+    for (const bar of this.shadowRoot.querySelectorAll(".bar-wrap")) {
+      const active = bar.dataset.day === day;
+      bar.classList.toggle("selected", active);
+      if (active) bar.setAttribute("aria-describedby", "daily-tooltip");
+      else bar.removeAttribute("aria-describedby");
+    }
   }
 
   setConfig(config) {
     if (!config.entity) {
       throw new Error("Family daily max chart requires an entity");
     }
+    this._activeDay = null;
+    this._pinnedDay = null;
     this._config = {
       days: 7,
       color: "var(--blue)",
@@ -134,8 +209,17 @@ class FamilyDailyMaxChartCard extends HTMLElement {
     return `${Math.round(value).toLocaleString()}${unit ? ` ${unit}` : ""}`;
   }
 
+  _tooltipValue(value) {
+    if (this._config.format === "distance" && value >= 1000) {
+      return `${this._format(value)} (${value.toLocaleString(undefined, { maximumFractionDigits: 20 })} m)`;
+    }
+    return this._format(value);
+  }
+
   _render() {
     if (!this._config) return;
+    const activeDay = this._activeDay;
+    const focusedDay = this.shadowRoot.activeElement?.dataset.day;
     const series = this._series();
     const values = series.map((item) => item.value).filter((value) => value !== null);
     const max = Math.max(1, ...values);
@@ -143,10 +227,10 @@ class FamilyDailyMaxChartCard extends HTMLElement {
     const bars = series.map((item) => {
       const height = item.value === null ? 2 : Math.max(6, Math.round((item.value / max) * 92));
       return `
-        <div class="bar-wrap" title="${item.label}: ${this._format(item.value)}">
-          <div class="bar ${item.value === null ? "empty" : ""}" style="height:${height}%;"></div>
-          <span>${item.label}</span>
-        </div>
+        <button type="button" class="bar-wrap" data-day="${item.key}">
+          <span aria-hidden="true" class="bar ${item.value === null ? "empty" : ""}" style="height:${height}%;"></span>
+          <span aria-hidden="true">${item.label}</span>
+        </button>
       `;
     }).join("");
     const subtitle = this._error
@@ -161,6 +245,7 @@ class FamilyDailyMaxChartCard extends HTMLElement {
       <style>
         :host { display: block; }
         ha-card {
+          position: relative;
           display: grid;
           gap: 14px;
           min-height: 248px;
@@ -182,7 +267,35 @@ class FamilyDailyMaxChartCard extends HTMLElement {
           min-height: 142px;
           padding-top: 6px;
         }
+        .tooltip {
+          position: absolute;
+          z-index: 1;
+          top: 84px;
+          left: 12px;
+          right: 12px;
+          padding: 9px 12px;
+          border-radius: 10px;
+          background: var(--contrast4, #263342);
+          color: var(--contrast20, #fff);
+          box-shadow: 0 4px 16px #0005;
+          font-size: 12px;
+          line-height: 1.4;
+          text-align: center;
+          overflow-wrap: anywhere;
+          pointer-events: none;
+        }
+        .tooltip[hidden] { display: none; }
+        .bar-wrap:focus-visible { outline: 2px solid var(--contrast20, #fff); outline-offset: 3px; }
+        .bar-wrap.selected .bar { filter: brightness(1.2); }
         .bar-wrap {
+          appearance: none;
+          padding: 0;
+          border: 0;
+          border-radius: 6px;
+          background: transparent;
+          font: inherit;
+          cursor: pointer;
+          touch-action: manipulation;
           display: grid;
           grid-template-rows: minmax(100px, 1fr) min-content;
           align-items: end;
@@ -219,9 +332,21 @@ class FamilyDailyMaxChartCard extends HTMLElement {
           </div>
           <ha-icon icon="mdi:chevron-right"></ha-icon>
         </div>
+        <div id="daily-tooltip" class="tooltip" role="tooltip" hidden></div>
         <div class="bars">${bars}</div>
       </ha-card>
     `;
+    for (const bar of this.shadowRoot.querySelectorAll(".bar-wrap")) {
+      const item = series.find((bucket) => bucket.key === bar.dataset.day);
+      const date = new Date(`${item.key}T12:00:00`).toLocaleDateString([], {
+        weekday: "long", day: "numeric", month: "short", year: "numeric",
+      });
+      bar.setAttribute("aria-label", `${date}: ${item.value === null ? "No recorded data" : this._tooltipValue(item.value)}`);
+    }
+    if (focusedDay) {
+      this.shadowRoot.querySelector(`[data-day="${focusedDay}"]`)?.focus({ preventScroll: true });
+    }
+    this._showTooltip(activeDay);
   }
 }
 

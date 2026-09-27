@@ -795,10 +795,28 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertEqual(
             krishna.count("type: custom:family-daily-max-chart-card"), 3
         )
+        self.assertEqual(
+            manisha.count("type: custom:family-daily-max-chart-card"), 4
+        )
+        manisha_movement = manisha.split("heading: Movement · 7 days", 1)[1]
+        self.assertEqual(
+            set(re.findall(r"entity: (sensor\.\w+)", manisha_movement)),
+            {
+                "sensor.iphone_steps",
+                "sensor.iphone_distance",
+                "sensor.iphone_floors_ascended",
+                "sensor.iphone_floors_descended",
+            },
+        )
+        self.assertTrue(
+            set(re.findall(r"entity: (sensor\.\w+)", manisha)).issubset(
+                access["health_profiles"]["manisha"]["entities"]
+            )
+        )
         self.assertNotIn("type: statistics-graph", manisha)
         self.assertNotIn("type: statistics-graph", "\n".join((abhimanyu, krishna)))
         self.assertNotIn("stat_types:", "\n".join((abhimanyu, krishna)))
-        self.assertEqual(combined.count("days: 7"), 6)
+        self.assertEqual(combined.count("days: 7"), 10)
         abhimanyu_movement = abhimanyu.split("heading: Movement · 7 days", 1)[1]
         krishna_movement = krishna.split("heading: Movement · 7 days", 1)[1]
         self.assertEqual(abhimanyu_movement.count("format:"), 3)
@@ -1066,7 +1084,7 @@ class DashboardStructureTests(unittest.TestCase):
             "/local/family-fan-card.js?v=3.3.1",
             "/local/family-agenda-card.js?v=1.1.0",
             "/local/family-seerr-requests-card.js?v=1.1.0",
-            "/local/family-daily-max-chart-card.js?v=1.0.2",
+            "/local/family-daily-max-chart-card.js?v=1.1.0",
             "/local/family-room-card.js?v=1.2.0",
             "/local/family-room-summary-card.js?v=1.0.0",
             "/local/family-appliance-card.js?v=1.0.0",

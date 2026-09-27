@@ -109,7 +109,15 @@ The shared `/home-tablet/health` route renders a mutually exclusive personal
 section for Abhimanyu, Krishna, or Manisha. Each section shows only measurements
 and charts backed by that person's available phone data; unsupported categories
 and explanatory cards are omitted. Reading cards retain concise freshness labels,
-and Android movement data uses native seven-day daily statistics where available.
+and movement charts show seven-day daily maximums from existing Recorder history.
+Manisha's iPhone view uses the same metric cards and movement charts as Abhimanyu's:
+steps, distance, floors ascended, and floors descended have daily charts, while
+active pace and current activity remain reading cards. Her charts form two columns
+on wide screens and stack on phones. Days without readings remain gaps; these
+charts use existing movement records and do not enable additional health recording.
+All family movement charts show exact dates and values on hover, keyboard focus,
+or tap. Arrow keys move between days; Escape or tapping outside dismisses the
+tooltip, and missing days explicitly show “No recorded data”.
 
 Health privacy is enforced independently of Lovelace visibility. Every declared
 health entity belongs to exactly one family profile. The three declared daily
@@ -363,6 +371,7 @@ Run the responsive component suite with Playwright available on `NODE_PATH`:
 
 ```sh
 NODE_PATH=/path/to/node_modules node tests/mobile_dashboard_components.js
+NODE_PATH=/path/to/node_modules node tests/health_chart_tooltips.js
 ```
 
 The browser suite exercises phone, landscape, tablet, and desktop viewports
@@ -370,7 +379,9 @@ using mocked Home Assistant services, so it does not control household devices.
 It checks overflow, navigation, responsive reflow, touch-target sizing, room
 modules, fan controls, appliance guards, media rendering, agenda interaction,
 announcements, Seerr confirmation actions, account-filtered camera walls,
-camera-event timelines, and camera-speaker actions.
+camera-event timelines, and camera-speaker actions. The health chart suite checks
+mouse, keyboard, and touch tooltips, missing history, distance/floor formatting,
+focus retention during refresh, and phone/desktop tooltip fit.
 
 Before deploying a source revision:
 

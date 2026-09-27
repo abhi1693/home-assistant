@@ -68,3 +68,36 @@ cards:
     styles:
       card: [{ "--health-accent": var(--teal) }]
     grid_options: { columns: 12, rows: auto }
+  - type: heading
+    heading: Movement · 7 days
+    heading_style: subtitle
+    icon: mdi:chart-bar
+    grid_options: { columns: 36, rows: 1 }
+  - type: custom:family-daily-max-chart-card
+    title: Steps
+    entity: sensor.iphone_steps
+    days: 7
+    format: steps
+    color: "#67c587"
+    grid_options: { columns: 18, rows: 4 }
+  - type: custom:family-daily-max-chart-card
+    title: Distance
+    entity: sensor.iphone_distance
+    days: 7
+    format: distance
+    color: "#54a7e8"
+    grid_options: { columns: 18, rows: 4 }
+  - type: custom:family-daily-max-chart-card
+    title: Floors ascended
+    entity: sensor.iphone_floors_ascended
+    days: 7
+    format: floors
+    color: "#ef9f59"
+    grid_options: { columns: 18, rows: 4 }
+  - type: custom:family-daily-max-chart-card
+    title: Floors descended
+    entity: sensor.iphone_floors_descended
+    days: 7
+    format: floors
+    color: "#b28de0"
+    grid_options: { columns: 18, rows: 4 }
