@@ -1782,7 +1782,7 @@ def reconcile_commute(source: Path, config: Path) -> None:
         or not isinstance(home_routes, list)
         or len(home_routes) != 3
         or not isinstance(proximities, list)
-        or len(proximities) != 2
+        or len(proximities) != 1
         or zone.get("id") != "work"
         or zone.get("name") != "Work"
         or not isinstance(zone.get("radius"), (int, float))
@@ -1793,10 +1793,7 @@ def reconcile_commute(source: Path, config: Path) -> None:
     ):
         raise RuntimeError("Commute configuration is invalid")
 
-    expected_proximities = {
-        "zone.home": "Family arrivals",
-        "zone.manzil_apartment": "Manzil Apartment arrivals",
-    }
+    expected_proximities = {"zone.home": "Family arrivals"}
     proximity_ids = set()
     proximity_zones = set()
     for proximity in proximities:
@@ -1922,8 +1919,6 @@ def reconcile_commute(source: Path, config: Path) -> None:
         route_tracker_id = route.get("tracker_entity_id")
         to_home_entity_id = route.get("to_home_entity_id")
         direction_entity_id = route.get("direction_entity_id")
-        to_manzil_entity_id = route.get("to_manzil_entity_id")
-        manzil_direction_entity_id = route.get("manzil_direction_entity_id")
         route_tracker = entities.get(route_tracker_id)
         person_entity = entities.get(person_entity_id)
         if (
@@ -1940,12 +1935,6 @@ def reconcile_commute(source: Path, config: Path) -> None:
             or not to_home_entity_id.startswith("sensor.")
             or not isinstance(direction_entity_id, str)
             or not direction_entity_id.startswith("sensor.family_arrivals_")
-            or not isinstance(to_manzil_entity_id, str)
-            or not to_manzil_entity_id.startswith("sensor.")
-            or not isinstance(manzil_direction_entity_id, str)
-            or not manzil_direction_entity_id.startswith(
-                "sensor.manzil_apartment_arrivals_"
-            )
         ):
             raise RuntimeError(f"Home commute route {profile_key!r} is invalid")
         route_profiles.add(profile_key)
@@ -1955,15 +1944,13 @@ def reconcile_commute(source: Path, config: Path) -> None:
             (
                 to_home_entity_id,
                 direction_entity_id,
-                to_manzil_entity_id,
-                manzil_direction_entity_id,
             )
         )
     if (
         len(route_profiles) != len(home_routes)
         or len(route_people) != len(home_routes)
         or len(route_trackers) != len(home_routes)
-        or len(route_sensors) != len(home_routes) * 4
+        or len(route_sensors) != len(home_routes) * 2
         or tracker_entity_id not in route_trackers
     ):
         raise RuntimeError("Home commute routes must be unique")
@@ -2065,9 +2052,9 @@ def reconcile_commute(source: Path, config: Path) -> None:
         atomic_json(private_package, private_document, mode=0o600)
 
     if changed or package_changed:
-        print("Reconciled private Work zones and dual-home commute routing")
+        print("Reconciled private Work zones and home commute routing")
     else:
-        print("Private Work zones and dual-home commute routing are already current")
+        print("Private Work zones and home commute routing are already current")
 
 
 def remove_storage_dashboards(config: Path) -> None:

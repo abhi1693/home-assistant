@@ -491,31 +491,19 @@ class DashboardStructureTests(unittest.TestCase):
                 "Abhimanyu",
                 "sensor.abhimanyu_to_home",
                 "sensor.family_arrivals_abhimanyu_direction_of_travel",
-                "sensor.abhimanyu_to_manzil_apartment",
-                "sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel",
             ),
             "krishna": (
                 "Krishna",
                 "sensor.krishna_to_home",
                 "sensor.family_arrivals_krishna_direction_of_travel",
-                "sensor.krishna_to_manzil_apartment",
-                "sensor.manzil_apartment_arrivals_krishna_direction_of_travel",
             ),
             "manisha": (
                 "Manisha",
                 "sensor.manisha_to_home",
                 "sensor.family_arrivals_manisha_direction_of_travel",
-                "sensor.manisha_to_manzil_apartment",
-                "sensor.manzil_apartment_arrivals_manisha_direction_of_travel",
             ),
         }
-        for profile_key, (
-            name,
-            route_entity,
-            direction_entity,
-            manzil_entity,
-            manzil_direction,
-        ) in arrivals.items():
+        for profile_key, (name, route_entity, direction_entity) in arrivals.items():
             self.assertIn(f'"{profile_key}": {{', access)
             self.assertIn(f'"to_home_entity_id": "{route_entity}"', access)
             self.assertIn(f'"direction_entity_id": "{direction_entity}"', access)
@@ -527,17 +515,6 @@ class DashboardStructureTests(unittest.TestCase):
             self.assertIn("state: towards", route_card)
             self.assertIn("condition: user", route_card)
             self.assertIn("family-members-users.json", route_card)
-            self.assertIn(f'"to_manzil_entity_id": "{manzil_entity}"', access)
-            self.assertIn(
-                f'"manzil_direction_entity_id": "{manzil_direction}"', access
-            )
-            manzil_card = home_view.split(f"entity: {manzil_entity}", 1)[1].split(
-                "          - type:", 1
-            )[0]
-            self.assertIn(f"traveler: {name}", manzil_card)
-            self.assertIn("destination: Manzil Apartment", manzil_card)
-            self.assertIn(f"entity: {manzil_direction}", manzil_card)
-            self.assertIn("state: towards", manzil_card)
 
         self.assertIn("entity: sensor.abhimanyu_home_to_work", home_view)
         self.assertIn("profile-abhimanyu-users.json", commute_work)
@@ -590,17 +567,17 @@ class DashboardStructureTests(unittest.TestCase):
             self.assertIn(f"entity: {window}", card)
             self.assertIn('state: "on"', card)
 
-    def test_dual_home_routes_do_not_send_notifications(self):
+    def test_commute_announcements_target_available_alexa_devices(self):
         commute = (ROOT / "packages/commute.yaml").read_text()
 
-        self.assertIn("name: Manzil Apartment", commute)
-        self.assertIn("latitude: 28.5815757", commute)
-        self.assertIn("longitude: 77.0663691", commute)
-        self.assertEqual(commute.count("destination: zone.manzil_apartment"), 3)
-        self.assertNotIn("notify.", commute)
+        self.assertIn("action: notify.send_message", commute)
+        self.assertIn("integration_entities('alexa_devices')", commute)
+        self.assertIn("select('has_value')", commute)
+        self.assertIn("media_player.abhimanyu_s_echo_dot_2", commute)
+        self.assertIn("ns.kitchen + ns.other", commute)
+        self.assertNotIn("notify.alexa_media", commute)
         self.assertNotIn("household_share_family_journey", commute)
         self.assertNotIn("homeward_journey_active", commute)
-        self.assertNotIn("manzil_journey_active", commute)
         self.assertNotIn("family-journey", commute)
 
     def test_camera_wall_applies_each_camera_user_gate(self):

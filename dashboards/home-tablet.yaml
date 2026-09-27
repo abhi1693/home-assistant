@@ -1967,15 +1967,6 @@ views:
                   - condition: state
                     entity: sensor.family_arrivals_manisha_direction_of_travel
                     state: towards
-                  - condition: state
-                    entity: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
-                    state: towards
-                  - condition: state
-                    entity: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
-                    state: towards
-                  - condition: state
-                    entity: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
-                    state: towards
           - type: custom:button-card
             template: family_commute
             entity: sensor.abhimanyu_to_home
@@ -2017,48 +2008,6 @@ views:
                 users: !include ../access/generated/family-members-users.json
               - condition: state
                 entity: sensor.family_arrivals_manisha_direction_of_travel
-                state: towards
-          - type: custom:button-card
-            template: family_commute
-            entity: sensor.abhimanyu_to_manzil_apartment
-            variables:
-              traveler: Abhimanyu
-              destination: Manzil Apartment
-              icon: mdi:home-heart
-              arrival_eta: true
-            visibility:
-              - condition: user
-                users: !include ../access/generated/family-members-users.json
-              - condition: state
-                entity: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
-                state: towards
-          - type: custom:button-card
-            template: family_commute
-            entity: sensor.krishna_to_manzil_apartment
-            variables:
-              traveler: Krishna
-              destination: Manzil Apartment
-              icon: mdi:home-heart
-              arrival_eta: true
-            visibility:
-              - condition: user
-                users: !include ../access/generated/family-members-users.json
-              - condition: state
-                entity: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
-                state: towards
-          - type: custom:button-card
-            template: family_commute
-            entity: sensor.manisha_to_manzil_apartment
-            variables:
-              traveler: Manisha
-              destination: Manzil Apartment
-              icon: mdi:home-heart
-              arrival_eta: true
-            visibility:
-              - condition: user
-                users: !include ../access/generated/family-members-users.json
-              - condition: state
-                entity: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
                 state: towards
           - type: custom:button-card
             template: family_commute
@@ -2534,15 +2483,6 @@ views:
                   - condition: state
                     entity: sensor.family_arrivals_manisha_direction_of_travel
                     state: towards
-                  - condition: state
-                    entity: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
-                    state: towards
-                  - condition: state
-                    entity: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
-                    state: towards
-                  - condition: state
-                    entity: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
-                    state: towards
           - type: grid
             columns: 3
             square: false
@@ -2571,31 +2511,6 @@ views:
                   - condition: state
                     entity: sensor.family_arrivals_krishna_direction_of_travel
                     state: towards
-              - type: custom:button-card
-                template: family_commute
-                entity: sensor.abhimanyu_to_manzil_apartment
-                variables: { traveler: Abhimanyu, destination: Manzil Apartment, icon: mdi:home-heart, arrival_eta: true }
-                visibility:
-                  - condition: state
-                    entity: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
-                    state: towards
-              - type: custom:button-card
-                template: family_commute
-                entity: sensor.manisha_to_manzil_apartment
-                variables: { traveler: Manisha, destination: Manzil Apartment, icon: mdi:home-heart, arrival_eta: true }
-                visibility:
-                  - condition: state
-                    entity: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
-                    state: towards
-              - type: custom:button-card
-                template: family_commute
-                entity: sensor.krishna_to_manzil_apartment
-                variables: { traveler: Krishna, destination: Manzil Apartment, icon: mdi:home-heart, arrival_eta: true }
-                visibility:
-                  - condition: state
-                    entity: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
-                    state: towards
-            grid_options: { columns: 36, rows: auto }
           - type: markdown
             content: >-
               Shared family location is deliberately limited to home, named zones,

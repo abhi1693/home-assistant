@@ -174,10 +174,6 @@ class BootstrapTests(unittest.TestCase):
                     "direction_entity_id": (
                         "sensor.family_arrivals_owner_direction_of_travel"
                     ),
-                    "to_manzil_entity_id": "sensor.owner_to_manzil_apartment",
-                    "manzil_direction_entity_id": (
-                        "sensor.manzil_apartment_arrivals_owner_direction_of_travel"
-                    ),
                 },
                 {
                     "profile_key": "krishna",
@@ -186,10 +182,6 @@ class BootstrapTests(unittest.TestCase):
                     "to_home_entity_id": "sensor.krishna_to_home",
                     "direction_entity_id": (
                         "sensor.family_arrivals_krishna_direction_of_travel"
-                    ),
-                    "to_manzil_entity_id": "sensor.krishna_to_manzil_apartment",
-                    "manzil_direction_entity_id": (
-                        "sensor.manzil_apartment_arrivals_krishna_direction_of_travel"
                     ),
                 },
                 {
@@ -200,10 +192,6 @@ class BootstrapTests(unittest.TestCase):
                     "direction_entity_id": (
                         "sensor.family_arrivals_manisha_direction_of_travel"
                     ),
-                    "to_manzil_entity_id": "sensor.manisha_to_manzil_apartment",
-                    "manzil_direction_entity_id": (
-                        "sensor.manzil_apartment_arrivals_manisha_direction_of_travel"
-                    ),
                 },
             ],
             "proximities": [
@@ -211,12 +199,6 @@ class BootstrapTests(unittest.TestCase):
                     "entry_id": "proximity-entry",
                     "title": "Family arrivals",
                     "zone_entity_id": "zone.home",
-                    "tolerance": 100,
-                },
-                {
-                    "entry_id": "manzil-proximity-entry",
-                    "title": "Manzil Apartment arrivals",
-                    "zone_entity_id": "zone.manzil_apartment",
                     "tolerance": 100,
                 },
             ],
@@ -1656,7 +1638,7 @@ class BootstrapTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "found 0"):
             bootstrap.reconcile_home_location(self.source, self.config)
 
-    def test_commute_uses_mobile_gps_and_generates_dual_home_proximity(self):
+    def test_commute_uses_mobile_gps_and_generates_home_proximity(self):
         self.write(
             "location/commute.json",
             json.dumps(self.commute_desired()),
@@ -1707,37 +1689,6 @@ class BootstrapTests(unittest.TestCase):
                 ],
                 "ignored_zones": [],
                 "tolerance": 100,
-            },
-        )
-        manzil_proximity_entry = reconciled["data"]["entries"][2]
-        self.assertEqual(
-            manzil_proximity_entry,
-            {
-                "created_at": "2026-08-14T00:00:00+00:00",
-                "data": {
-                    "zone": "zone.manzil_apartment",
-                    "tracked_entities": [
-                        "person.owner",
-                        "person.krishna",
-                        "person.manisha",
-                    ],
-                    "ignored_zones": [],
-                    "tolerance": 100,
-                },
-                "disabled_by": None,
-                "discovery_keys": {},
-                "domain": "proximity",
-                "entry_id": "manzil-proximity-entry",
-                "minor_version": 1,
-                "modified_at": "2026-08-14T00:00:00+00:00",
-                "options": {},
-                "pref_disable_new_entities": False,
-                "pref_disable_polling": False,
-                "source": "user",
-                "subentries": [],
-                "title": "Manzil Apartment arrivals",
-                "unique_id": None,
-                "version": 1,
             },
         )
         private_package = json.loads(

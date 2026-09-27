@@ -1,11 +1,3 @@
-zone:
-  - name: Manzil Apartment
-    latitude: 28.5815757
-    longitude: 77.0663691
-    radius: 150
-    passive: false
-    icon: mdi:home-heart
-
 template:
   - binary_sensor:
       - name: Abhimanyu work commute window
@@ -129,254 +121,6 @@ template:
             {% set routes = travel_home.get('routes', []) if travel_home is defined else [] %}
             {{ routes[0].static_duration_text if routes else none }}
 
-  - triggers:
-      - trigger: homeassistant
-        event: start
-      - trigger: time_pattern
-        minutes: "/20"
-      - trigger: state
-        entity_id: person.abhimanyu
-        from: Manzil Apartment
-      - trigger: state
-        entity_id: person.abhimanyu
-        to: Manzil Apartment
-      - trigger: state
-        entity_id: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
-        to: towards
-      - trigger: state
-        entity_id: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
-        from: towards
-    actions:
-      - choose:
-          - conditions:
-              - condition: state
-                entity_id: person.abhimanyu
-                state: Manzil Apartment
-            sequence:
-              - variables:
-                  travel_manzil:
-                    routes:
-                      - duration: 0
-                        duration_text: 0 min
-                        static_duration_text: 0 min
-                        distance_meters: 0
-                        distance_text: 0 km
-          - conditions:
-              - condition: state
-                entity_id: sensor.manzil_apartment_arrivals_abhimanyu_direction_of_travel
-                state: towards
-              - condition: numeric_state
-                entity_id: device_tracker.abhimanyu_pixel_8_2
-                attribute: latitude
-                above: -91
-                below: 91
-              - condition: numeric_state
-                entity_id: device_tracker.abhimanyu_pixel_8_2
-                attribute: longitude
-                above: -181
-                below: 181
-            sequence:
-              - action: google_travel_time.get_travel_times
-                data:
-                  config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
-                  origin: device_tracker.abhimanyu_pixel_8_2
-                  destination: zone.manzil_apartment
-                  mode: driving
-                  units: metric
-                  traffic_model: best_guess
-                response_variable: travel_manzil
-        default:
-          - variables:
-              travel_manzil:
-                routes: []
-    sensor:
-      - name: Abhimanyu to Manzil Apartment
-        unique_id: abhimanyu_to_manzil_apartment
-        default_entity_id: sensor.abhimanyu_to_manzil_apartment
-        device_class: duration
-        state_class: measurement
-        unit_of_measurement: min
-        availability: >-
-          {{ travel_manzil is defined and travel_manzil.get('routes', []) | count > 0 }}
-        state: >-
-          {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
-          {{ (routes[0].duration | float(0) / 60) | round(1) if routes else none }}
-        attributes:
-          distance: >-
-            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
-            {{ routes[0].distance_text if routes else none }}
-          traffic_time: >-
-            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
-            {{ routes[0].duration_text if routes else none }}
-          static_time: >-
-            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
-            {{ routes[0].static_duration_text if routes else none }}
-
-  - triggers:
-      - trigger: homeassistant
-        event: start
-      - trigger: time_pattern
-        minutes: "/20"
-      - trigger: state
-        entity_id: person.krishna
-        from: Manzil Apartment
-      - trigger: state
-        entity_id: person.krishna
-        to: Manzil Apartment
-      - trigger: state
-        entity_id: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
-        to: towards
-      - trigger: state
-        entity_id: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
-        from: towards
-    actions:
-      - choose:
-          - conditions:
-              - condition: state
-                entity_id: person.krishna
-                state: Manzil Apartment
-            sequence:
-              - variables:
-                  travel_manzil:
-                    routes:
-                      - duration: 0
-                        duration_text: 0 min
-                        static_duration_text: 0 min
-                        distance_meters: 0
-                        distance_text: 0 km
-          - conditions:
-              - condition: state
-                entity_id: sensor.manzil_apartment_arrivals_krishna_direction_of_travel
-                state: towards
-              - condition: numeric_state
-                entity_id: device_tracker.pixel_10_pro_2
-                attribute: latitude
-                above: -91
-                below: 91
-              - condition: numeric_state
-                entity_id: device_tracker.pixel_10_pro_2
-                attribute: longitude
-                above: -181
-                below: 181
-            sequence:
-              - action: google_travel_time.get_travel_times
-                data:
-                  config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
-                  origin: device_tracker.pixel_10_pro_2
-                  destination: zone.manzil_apartment
-                  mode: driving
-                  units: metric
-                  traffic_model: best_guess
-                response_variable: travel_manzil
-        default:
-          - variables:
-              travel_manzil:
-                routes: []
-    sensor:
-      - name: Krishna to Manzil Apartment
-        unique_id: krishna_to_manzil_apartment
-        default_entity_id: sensor.krishna_to_manzil_apartment
-        device_class: duration
-        state_class: measurement
-        unit_of_measurement: min
-        availability: >-
-          {{ travel_manzil is defined and travel_manzil.get('routes', []) | count > 0 }}
-        state: >-
-          {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
-          {{ (routes[0].duration | float(0) / 60) | round(1) if routes else none }}
-        attributes:
-          distance: >-
-            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
-            {{ routes[0].distance_text if routes else none }}
-          traffic_time: >-
-            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
-            {{ routes[0].duration_text if routes else none }}
-          static_time: >-
-            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
-            {{ routes[0].static_duration_text if routes else none }}
-
-  - triggers:
-      - trigger: homeassistant
-        event: start
-      - trigger: time_pattern
-        minutes: "/20"
-      - trigger: state
-        entity_id: person.manisha
-        from: Manzil Apartment
-      - trigger: state
-        entity_id: person.manisha
-        to: Manzil Apartment
-      - trigger: state
-        entity_id: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
-        to: towards
-      - trigger: state
-        entity_id: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
-        from: towards
-    actions:
-      - choose:
-          - conditions:
-              - condition: state
-                entity_id: person.manisha
-                state: Manzil Apartment
-            sequence:
-              - variables:
-                  travel_manzil:
-                    routes:
-                      - duration: 0
-                        duration_text: 0 min
-                        static_duration_text: 0 min
-                        distance_meters: 0
-                        distance_text: 0 km
-          - conditions:
-              - condition: state
-                entity_id: sensor.manzil_apartment_arrivals_manisha_direction_of_travel
-                state: towards
-              - condition: numeric_state
-                entity_id: device_tracker.iphone
-                attribute: latitude
-                above: -91
-                below: 91
-              - condition: numeric_state
-                entity_id: device_tracker.iphone
-                attribute: longitude
-                above: -181
-                below: 181
-            sequence:
-              - action: google_travel_time.get_travel_times
-                data:
-                  config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
-                  origin: device_tracker.iphone
-                  destination: zone.manzil_apartment
-                  mode: driving
-                  units: metric
-                  traffic_model: best_guess
-                response_variable: travel_manzil
-        default:
-          - variables:
-              travel_manzil:
-                routes: []
-    sensor:
-      - name: Manisha to Manzil Apartment
-        unique_id: manisha_to_manzil_apartment
-        default_entity_id: sensor.manisha_to_manzil_apartment
-        device_class: duration
-        state_class: measurement
-        unit_of_measurement: min
-        availability: >-
-          {{ travel_manzil is defined and travel_manzil.get('routes', []) | count > 0 }}
-        state: >-
-          {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
-          {{ (routes[0].duration | float(0) / 60) | round(1) if routes else none }}
-        attributes:
-          distance: >-
-            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
-            {{ routes[0].distance_text if routes else none }}
-          traffic_time: >-
-            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
-            {{ routes[0].duration_text if routes else none }}
-          static_time: >-
-            {% set routes = travel_manzil.get('routes', []) if travel_manzil is defined else [] %}
-            {{ routes[0].static_duration_text if routes else none }}
 
   - triggers:
       - trigger: homeassistant
@@ -701,3 +445,106 @@ template:
           static_time: >-
             {% set routes = travel_work.get('routes', []) if travel_work is defined else [] %}
             {{ routes[0].static_duration_text if routes else none }}
+
+automation:
+  - id: abhimanyu_work_to_home_alexa_announcement
+    alias: Announce Abhimanyu's work commute ETA
+    triggers:
+      - trigger: state
+        entity_id: person.abhimanyu
+        from: Work
+    actions:
+      - variables:
+          alexa_announce_targets: >-
+            {% set ns = namespace(kitchen=[], other=[]) %}
+            {% set kitchen_devices = namespace(ids=[]) %}
+            {% for player in ['media_player.abhimanyu_s_echo_dot_2', 'media_player.abhimanyu_s_echo_dot'] %}
+              {% set device = device_id(player) %}
+              {% if device %}
+                {% set kitchen_devices.ids = kitchen_devices.ids + [device] %}
+              {% endif %}
+            {% endfor %}
+            {% for entity in integration_entities('alexa_devices')
+              | select('match', '^notify\\..*_announce$') | select('has_value') | list %}
+              {% if device_id(entity) in kitchen_devices.ids %}
+                {% set ns.kitchen = ns.kitchen + [entity] %}
+              {% else %}
+                {% set ns.other = ns.other + [entity] %}
+              {% endif %}
+            {% endfor %}
+            {{ (ns.kitchen + ns.other) | join(', ') }}
+      - if:
+          - condition: not
+            conditions:
+              - condition: state
+                entity_id: sensor.family_arrivals_abhimanyu_direction_of_travel
+                state: towards
+        then:
+          - wait_for_trigger:
+              - trigger: state
+                entity_id: sensor.family_arrivals_abhimanyu_direction_of_travel
+                to: towards
+            timeout: "00:15:00"
+            continue_on_timeout: false
+      - action: google_travel_time.get_travel_times
+        data:
+          config_entry_id: 01KZYG4SWHRFJBKQPFR4V2HDPV
+          origin: device_tracker.abhimanyu_pixel_8_2
+          destination: zone.home
+          mode: driving
+          units: metric
+          traffic_model: best_guess
+        response_variable: commute_eta
+      - if:
+          - condition: template
+            value_template: >-
+              {{ commute_eta is defined and commute_eta.get('routes', []) | count > 0 }}
+          - condition: template
+            value_template: "{{ alexa_announce_targets | trim != '' }}"
+        then:
+          - action: notify.send_message
+            target:
+              entity_id: "{{ alexa_announce_targets }}"
+            data:
+              message: >-
+                Abhimanyu has left work and should be home in about
+                {{ (commute_eta.routes[0].duration | float(0) / 60) | round(0) | int }}
+                minutes.
+    mode: single
+
+  - id: abhimanyu_arrives_home_alexa_announcement
+    alias: Announce Abhimanyu's arrival home
+    triggers:
+      - trigger: state
+        entity_id: person.abhimanyu
+        to: home
+    actions:
+      - variables:
+          alexa_announce_targets: >-
+            {% set ns = namespace(kitchen=[], other=[]) %}
+            {% set kitchen_devices = namespace(ids=[]) %}
+            {% for player in ['media_player.abhimanyu_s_echo_dot_2', 'media_player.abhimanyu_s_echo_dot'] %}
+              {% set device = device_id(player) %}
+              {% if device %}
+                {% set kitchen_devices.ids = kitchen_devices.ids + [device] %}
+              {% endif %}
+            {% endfor %}
+            {% for entity in integration_entities('alexa_devices')
+              | select('match', '^notify\\..*_announce$') | select('has_value') | list %}
+              {% if device_id(entity) in kitchen_devices.ids %}
+                {% set ns.kitchen = ns.kitchen + [entity] %}
+              {% else %}
+                {% set ns.other = ns.other + [entity] %}
+              {% endif %}
+            {% endfor %}
+            {{ (ns.kitchen + ns.other) | join(', ') }}
+      - if:
+          - condition: template
+            value_template: "{{ alexa_announce_targets | trim != '' }}"
+        then:
+          - action: notify.send_message
+            target:
+              entity_id: "{{ alexa_announce_targets }}"
+            data:
+              message: Abhimanyu has arrived home.
+    mode: single
