@@ -117,7 +117,9 @@ on wide screens and stack on phones. Days without readings remain gaps; these
 charts use existing movement records and do not enable additional health recording.
 All family movement charts show exact dates and values on hover, keyboard focus,
 or tap. Arrow keys move between days; Escape or tapping outside dismisses the
-tooltip, and missing days explicitly show “No recorded data”.
+tooltip, and missing days explicitly show “No recorded data”. The arrow button
+on each movement chart opens that sensor’s Home Assistant details and history
+dialog, using the signed-in account’s existing access permissions.
 
 Health privacy is enforced independently of Lovelace visibility. Every declared
 health entity belongs to exactly one family profile. The three declared daily

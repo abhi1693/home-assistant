@@ -30,6 +30,27 @@ const { chromium } = require('playwright');
             ]],
           };
         }, { entity, format, value });
+        await page.evaluate(() => {
+          window.detailEvents = [];
+          if (!window.detailsListenerInstalled) {
+            document.addEventListener('hass-more-info', event => window.detailEvents.push(event.detail.entityId));
+            window.detailsListenerInstalled = true;
+          }
+        });
+        const details = page.getByRole('button', { name: 'View Movement details and history' });
+        if (touch) await details.tap();
+        else await details.click();
+        assert.deepEqual(await page.evaluate(() => window.detailEvents), [entity], 'Arrow opens this sensor details');
+        const target = await details.boundingBox();
+        assert.ok(target.width >= 44 && target.height >= 44, 'Arrow has a touch-sized target');
+        if (!touch) {
+          await details.focus();
+          await page.keyboard.press('Enter');
+          await page.keyboard.press('Space');
+          assert.deepEqual(await page.evaluate(() => window.detailEvents), [entity, entity, entity], 'Keyboard activates arrow');
+          await page.evaluate(() => document.querySelector('family-daily-max-chart-card')._render());
+          assert.equal(await details.evaluate(el => el === el.getRootNode().activeElement), true, 'Refresh retains arrow focus');
+        }
         const bars = page.locator('.bar-wrap');
         const tooltip = page.locator('[role="tooltip"]');
         await bars.last().waitFor();

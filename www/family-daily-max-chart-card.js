@@ -28,6 +28,15 @@ class FamilyDailyMaxChartCard extends HTMLElement {
     });
     this.shadowRoot.addEventListener("focusout", () => this._showTooltip(this._pinnedDay));
     this.shadowRoot.addEventListener("click", (event) => {
+      if (event.target.closest(".more-info")) {
+        this._hideTooltip();
+        this.dispatchEvent(new CustomEvent("hass-more-info", {
+          bubbles: true,
+          composed: true,
+          detail: { entityId: this._config.entity },
+        }));
+        return;
+      }
       const bar = event.target.closest(".bar-wrap");
       if (!bar) return;
       this._pinnedDay = this._pinnedDay === bar.dataset.day ? null : bar.dataset.day;
@@ -220,6 +229,7 @@ class FamilyDailyMaxChartCard extends HTMLElement {
     if (!this._config) return;
     const activeDay = this._activeDay;
     const focusedDay = this.shadowRoot.activeElement?.dataset.day;
+    const focusedDetails = this.shadowRoot.activeElement?.classList.contains("more-info");
     const series = this._series();
     const values = series.map((item) => item.value).filter((value) => value !== null);
     const max = Math.max(1, ...values);
@@ -259,6 +269,22 @@ class FamilyDailyMaxChartCard extends HTMLElement {
         h3 { margin: 0; color: var(--contrast20); font-size: 24px; line-height: 1.1; font-weight: 500; }
         p { margin: 6px 0 0; color: var(--contrast10); font-size: 12px; }
         ha-icon { color: var(--contrast14); width: 24px; height: 24px; }
+        .more-info {
+          display: grid;
+          place-items: center;
+          flex: 0 0 44px;
+          width: 44px;
+          height: 44px;
+          padding: 0;
+          border: 0;
+          border-radius: 50%;
+          background: transparent;
+          color: var(--contrast14);
+          cursor: pointer;
+          touch-action: manipulation;
+        }
+        .more-info:hover { background: var(--contrast4, #263342); }
+        .more-info:focus-visible { outline: 2px solid var(--contrast20, #fff); outline-offset: 2px; }
         .bars {
           display: grid;
           grid-template-columns: repeat(${series.length}, minmax(0, 1fr));
@@ -330,7 +356,9 @@ class FamilyDailyMaxChartCard extends HTMLElement {
             <h3>${this._config.title || this._hass?.states?.[this._config.entity]?.attributes?.friendly_name || this._config.entity}</h3>
             <p>${subtitle}</p>
           </div>
-          <ha-icon icon="mdi:chevron-right"></ha-icon>
+          <button type="button" class="more-info" title="View details and history">
+            <ha-icon icon="mdi:chevron-right" aria-hidden="true"></ha-icon>
+          </button>
         </div>
         <div id="daily-tooltip" class="tooltip" role="tooltip" hidden></div>
         <div class="bars">${bars}</div>
@@ -343,6 +371,9 @@ class FamilyDailyMaxChartCard extends HTMLElement {
       });
       bar.setAttribute("aria-label", `${date}: ${item.value === null ? "No recorded data" : this._tooltipValue(item.value)}`);
     }
+    const details = this.shadowRoot.querySelector(".more-info");
+    details.setAttribute("aria-label", `View ${this._config.title || this._hass?.states?.[this._config.entity]?.attributes?.friendly_name || this._config.entity} details and history`);
+    if (focusedDetails) details.focus({ preventScroll: true });
     if (focusedDay) {
       this.shadowRoot.querySelector(`[data-day="${focusedDay}"]`)?.focus({ preventScroll: true });
     }
