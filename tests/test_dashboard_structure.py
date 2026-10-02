@@ -598,6 +598,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertEqual(camera_view.count("camera-outside-users.json"), 2)
         self.assertEqual(camera_view.count("camera-hallway-users.json"), 2)
         self.assertEqual(camera_view.count("camera-kitchen-users.json"), 2)
+        self.assertEqual(camera_view.count("camera-kitchen-sink-users.json"), 2)
         self.assertEqual(camera_view.count("camera-living-room-users.json"), 2)
         self.assertEqual(camera_view.count("camera-master-bedroom-users.json"), 2)
         self.assertEqual(home.count("  - title: Security\n    path: security"), 1)
@@ -1141,7 +1142,15 @@ class DashboardStructureTests(unittest.TestCase):
         package = (ROOT / "packages/household.yaml").read_text()
 
         self.assertEqual(streams["version"], 3)
-        self.assertEqual(len(streams["cameras"]), 5)
+        self.assertEqual(len(streams["cameras"]), 6)
+        sink = streams["cameras"]["kitchen-sink"]
+        self.assertEqual(sink["name"], "Kitchen Sink - G5 Turret Ultra")
+        self.assertEqual(
+            sink["high_entity_id"], "camera.g5_turret_ultra_high_resolution_channel_4"
+        )
+        self.assertEqual(
+            set(sink["notify_profiles"]), {"abhimanyu", "krishna", "manisha"}
+        )
         for camera in streams["cameras"].values():
             self.assertEqual(camera["qualities"], ["high", "medium", "low"])
             self.assertTrue(camera["low_entity_id"].startswith("camera."))

@@ -191,7 +191,7 @@ while room access is currently shared across authenticated family accounts.
 
 ### Security and cameras
 
-The combined Security surface presents household attention, five-camera
+The combined Security surface presents household attention, six-camera
 coverage, account-filtered live streams, and on-demand Protect clip history
 in one place. The wall keeps each live player mounted
 across Home Assistant state updates, balances each account's visible camera
@@ -242,7 +242,7 @@ the same grant as their camera, so a restricted room cannot leak metadata or
 controls through another entity domain. Protect console and NVR storage entities
 remain administrator-only. The Master Bedroom camera, event history, and clips
 are visible only to Krishna in the family Security surface; speaker controls are
-not exposed there. Kitchen, Kitchen Balcony, Living Room, and Outside are shared
+not exposed there. Kitchen, Kitchen Sink, Kitchen Balcony, Living Room, and Outside are shared
 with all three family accounts. The owner profile uses that explicit
 shared-camera allowlist rather than the optional `all_cameras` capability.
 

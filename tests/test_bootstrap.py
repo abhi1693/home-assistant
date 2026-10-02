@@ -1008,7 +1008,7 @@ class BootstrapTests(unittest.TestCase):
         self.assertFalse(profiles["abhimanyu"]["all_cameras"])
         self.assertEqual(
             profiles["abhimanyu"]["cameras"],
-            ["hallway", "kitchen", "living-room", "outside"],
+            ["hallway", "kitchen", "kitchen-sink", "living-room", "outside"],
         )
         self.assertEqual(
             profiles["krishna"]["device_trackers"],
@@ -1027,7 +1027,7 @@ class BootstrapTests(unittest.TestCase):
             profiles["krishna"]["notify_entity_id"], "notify.pixel_10_pro"
         )
         self.assertEqual(profiles["manisha"]["notify_entity_id"], "notify.iphone")
-        shared_cameras = ["hallway", "kitchen", "living-room", "outside"]
+        shared_cameras = ["hallway", "kitchen", "kitchen-sink", "living-room", "outside"]
         self.assertEqual(profiles["abhimanyu"]["cameras"], shared_cameras)
         self.assertEqual(profiles["manisha"]["cameras"], shared_cameras)
         self.assertEqual(
@@ -1042,7 +1042,7 @@ class BootstrapTests(unittest.TestCase):
         self.assertTrue(profiles["manisha"]["enforce_camera_policy"])
         self.assertEqual(
             profiles["krishna"]["cameras"],
-            ["master-bedroom", "hallway", "kitchen", "living-room", "outside"],
+            ["master-bedroom", "hallway", "kitchen", "kitchen-sink", "living-room", "outside"],
         )
         for camera_key, camera in streams["cameras"].items():
             for profile_key in camera["notify_profiles"]:

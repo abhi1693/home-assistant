@@ -3,6 +3,7 @@
   "default_dashboard": "home-tablet",
   "cameras": {
     "kitchen": "camera.g5_turret_ultra_high_resolution_channel_2",
+    "kitchen-sink": "camera.g5_turret_ultra_high_resolution_channel_4",
     "hallway": "camera.hallway_high_resolution_channel",
     "living-room": "camera.g5_turret_ultra_high_resolution_channel_3",
     "master-bedroom": "camera.living_room_high_resolution_channel",
@@ -30,6 +31,13 @@
       "select.kitchen_g5_turret_ultra_recording_mode",
       "number.kitchen_g5_turret_ultra_microphone_level",
       "sensor.family_camera_kitchen_activity"
+    ],
+    "kitchen-sink": [
+      "event.g5_turret_ultra_motion_detection_4",
+      "binary_sensor.g5_turret_ultra_motion_4",
+      "binary_sensor.g5_turret_ultra_is_dark_4",
+      "select.g5_turret_ultra_recording_mode",
+      "sensor.family_camera_kitchen_sink_activity"
     ],
     "master-bedroom": [
       "event.living_room_living_room_camera_motion_detection",
@@ -252,6 +260,7 @@
       "cameras": [
         "hallway",
         "kitchen",
+        "kitchen-sink",
         "living-room",
         "outside"
       ],
@@ -279,6 +288,7 @@
         "master-bedroom",
         "hallway",
         "kitchen",
+        "kitchen-sink",
         "living-room",
         "outside"
       ],
@@ -302,6 +312,7 @@
       "cameras": [
         "hallway",
         "kitchen",
+        "kitchen-sink",
         "living-room",
         "outside"
       ],

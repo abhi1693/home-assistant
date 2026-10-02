@@ -2298,6 +2298,15 @@ views:
                   - binary_sensor.kitchen_animal_detected
                   - binary_sensor.g5_turret_ultra_motion_2
                 users: !include ../access/generated/camera-kitchen-users.json
+              - key: kitchen-sink
+                name: Kitchen Sink - G5 Turret Ultra
+                high_entity: camera.g5_turret_ultra_high_resolution_channel_4
+                medium_entity: camera.kitchen_sink_medium_resolution_channel
+                low_entity: camera.kitchen_sink_low_resolution_channel
+                activity_entity: sensor.family_camera_kitchen_sink_activity
+                detectors:
+                  - binary_sensor.g5_turret_ultra_motion_4
+                users: !include ../access/generated/camera-kitchen-sink-users.json
               - key: hallway
                 name: Kitchen Balcony
                 high_entity: camera.hallway_high_resolution_channel
@@ -2365,6 +2374,11 @@ views:
                 high_entity: camera.g5_turret_ultra_high_resolution_channel_2
                 activity_entity: sensor.family_camera_kitchen_activity
                 users: !include ../access/generated/camera-kitchen-users.json
+              - key: kitchen-sink
+                name: Kitchen Sink - G5 Turret Ultra
+                high_entity: camera.g5_turret_ultra_high_resolution_channel_4
+                activity_entity: sensor.family_camera_kitchen_sink_activity
+                users: !include ../access/generated/camera-kitchen-sink-users.json
               - key: hallway
                 name: Kitchen Balcony
                 high_entity: camera.hallway_high_resolution_channel

@@ -35,6 +35,30 @@
         }
       }
     },
+    "kitchen-sink": {
+      "name": "Kitchen Sink - G5 Turret Ultra",
+      "high_entity_id": "camera.g5_turret_ultra_high_resolution_channel_4",
+      "medium_entity_id": "camera.kitchen_sink_medium_resolution_channel",
+      "low_entity_id": "camera.kitchen_sink_low_resolution_channel",
+      "activity_entity_id": "sensor.family_camera_kitchen_sink_activity",
+      "motion_entity_id": "binary_sensor.g5_turret_ultra_motion_4",
+      "recording_mode_entity_id": "select.g5_turret_ultra_recording_mode",
+      "is_dark_entity_id": "binary_sensor.g5_turret_ultra_is_dark_4",
+      "qualities": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "notify_profiles": [
+        "abhimanyu",
+        "krishna",
+        "manisha"
+      ],
+      "alerts": {
+        "always": {},
+        "when_empty": {}
+      }
+    },
     "hallway": {
       "name": "Kitchen Balcony",
       "high_entity_id": "camera.hallway_high_resolution_channel",
