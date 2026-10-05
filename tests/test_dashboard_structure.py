@@ -572,7 +572,10 @@ class DashboardStructureTests(unittest.TestCase):
 
         self.assertIn("action: notify.send_message", commute)
         self.assertIn("integration_entities('alexa_devices')", commute)
-        self.assertIn("select('has_value')", commute)
+        self.assertEqual(
+            commute.count("reject('is_state', 'unavailable')"), 2
+        )
+        self.assertNotIn("select('has_value')", commute)
         self.assertIn("media_player.abhimanyu_s_echo_dot_2", commute)
         self.assertIn("ns.kitchen + ns.other", commute)
         self.assertNotIn("notify.alexa_media", commute)

@@ -465,7 +465,7 @@ automation:
               {% endif %}
             {% endfor %}
             {% for entity in integration_entities('alexa_devices')
-              | select('match', '^notify\\..*_announce$') | select('has_value') | list %}
+              | select('match', '^notify\\..*_announce$') | reject('is_state', 'unavailable') | list %}
               {% if device_id(entity) in kitchen_devices.ids %}
                 {% set ns.kitchen = ns.kitchen + [entity] %}
               {% else %}
@@ -530,7 +530,7 @@ automation:
               {% endif %}
             {% endfor %}
             {% for entity in integration_entities('alexa_devices')
-              | select('match', '^notify\\..*_announce$') | select('has_value') | list %}
+              | select('match', '^notify\\..*_announce$') | reject('is_state', 'unavailable') | list %}
               {% if device_id(entity) in kitchen_devices.ids %}
                 {% set ns.kitchen = ns.kitchen + [entity] %}
               {% else %}
