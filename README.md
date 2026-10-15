@@ -217,6 +217,10 @@ in the rolling 31-day window; selecting one date narrows the query to that
 calendar day. Clips are grouped under readable day headings, camera filters
 remain account-aware, the first 12 clips render without scanning the full range,
 and additional pages load automatically as the timeline approaches the bottom.
+History and recovery backfill use Protect's raw event-list API and its typed
+event decoder, including on uiprotect 23 where `get_events` was removed. Failed
+history requests show a Retry button and wait for user input instead of retrying
+on every Home Assistant state update.
 The dashboard requests
 short-lived user-bound signed paths before loading either media type. Clip
 dialogs open immediately and defer timeline refreshes until playback closes, so

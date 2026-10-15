@@ -623,7 +623,7 @@ class DashboardStructureTests(unittest.TestCase):
             )
         for resource in (
             "/local/family-camera-wall-card.js?v=2.1.0",
-            "/local/family-camera-events-card.js?v=1.7.0",
+            "/local/family-camera-events-card.js?v=1.7.1",
         ):
             self.assertIn(resource, configuration)
         self.assertNotIn("family-camera-speaker-card.js", configuration)
@@ -1177,7 +1177,7 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertIn("api.subscribe_events_websocket_state", sensor)
         self.assertIn("state is not WebsocketState.CONNECTED", sensor)
         self.assertIn("self._entry_apis.get(entry_id) is not api", sensor)
-        self.assertIn("await api.get_events(", sensor)
+        self.assertIn("await api.get_events_raw(", sensor)
         self.assertIn("start=now - timedelta(hours=24)", sensor)
         self.assertIn('url = "/api/family_camera_events/history"', sensor)
         self.assertIn("validate_history_range(start, end)", sensor)

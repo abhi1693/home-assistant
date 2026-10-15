@@ -666,6 +666,31 @@ async function validate(page, viewport) {
     call.path.includes("family_camera_events/history?") && call.path.includes("cursor=page-2")));
   assert(pagedHistoryLoaded, "Infinite scroll did not send the server cursor");
 
+  const failedHistory = await cameraEvents.evaluate(async (card) => {
+    const callApi = card._hass.callApi;
+    window.__historyAttempts = 0;
+    card._hass.callApi = async () => {
+      window.__historyAttempts += 1;
+      throw new Error("Recorder unavailable");
+    };
+    card._historyLoaded = false;
+    await card._loadHistory();
+    for (let index = 0; index < 5; index += 1) card.hass = card._hass;
+    await new Promise((resolve) => setTimeout(resolve));
+    card._hass.callApi = async (...args) => {
+      window.__historyAttempts += 1;
+      return callApi(...args);
+    };
+    return { attempts:window.__historyAttempts, error:card._historyError };
+  });
+  assert.equal(failedHistory.attempts, 1, "State updates repeatedly retried a failed history request");
+  assert(failedHistory.error, "Failed history request did not expose an error");
+  assert.equal(await cameraEvents.locator(".history-retry").count(), 1, "Initial history failure has no Retry button");
+  await cameraEvents.locator(".history-retry").click();
+  await page.waitForFunction(() => document.querySelector("family-camera-events-card")._historyLoaded);
+  assert.equal(await page.evaluate(() => window.__historyAttempts), 2, "Retry did not issue exactly one new request");
+  assert.equal(await cameraEvents.locator(".history-retry").count(), 0, "Retry error remained after recovery");
+
   const calls = await page.evaluate(() => window.__calls);
   const invoked = new Set(calls.map((call) => `${call.domain}.${call.service}`));
   for (const service of [

@@ -30,7 +30,7 @@ class FamilyCameraEventsCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     this._render();
-    if (!this._historyLoaded && !this._historyLoading) void this._loadHistory();
+    if (!this._historyLoaded && !this._historyLoading && !this._historyError) void this._loadHistory();
   }
 
   disconnectedCallback() {
@@ -287,8 +287,8 @@ class FamilyCameraEventsCard extends HTMLElement {
     const resultStatus = this._historyLoading
       ? (events.length ? `Loading older clips… ${events.length} shown` : "Loading latest clips…")
       : this._historyError || `${events.length} clip${events.length === 1 ? "" : "s"} loaded${this._historyHasMore ? " · Scroll for older" : ""}`;
-    const historyTail = this._historyError && this._historyHasMore
-      ? `<button type="button" class="history-tail history-retry"><ha-icon icon="mdi:reload"></ha-icon><span>Retry loading older clips</span></button>`
+    const historyTail = this._historyError
+      ? `<button type="button" class="history-tail history-retry"><ha-icon icon="mdi:reload"></ha-icon><span>${this._historyHasMore ? "Retry loading older clips" : "Retry loading clips"}</span></button>`
       : this._historyHasMore || this._historyLoading
         ? `<div class="history-tail" role="status"><ha-icon icon="${this._historyLoading ? "mdi:loading" : "mdi:chevron-down"}"></ha-icon><span>${this._historyLoading ? "Loading older clips…" : "Scroll for older clips"}</span></div>` : "";
     const today = this._dateValue(new Date());
@@ -388,7 +388,7 @@ class FamilyCameraEventsCard extends HTMLElement {
       this._selectedCamera = button.dataset.cameraFilter; this._render(true);
     }));
     this.shadowRoot.querySelector(".history-retry")?.addEventListener("click", () => {
-      this._historyError = ""; void this._loadHistory({ append: true });
+      this._historyError = ""; void this._loadHistory({ append: Boolean(this._historyCursor) });
     });
     this.shadowRoot.querySelectorAll('button[data-live="true"]').forEach((button) => button.addEventListener("click", (event) => {
       event.preventDefault();

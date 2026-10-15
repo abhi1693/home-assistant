@@ -14,6 +14,7 @@ from urllib.parse import quote
 
 from aiohttp import web
 import voluptuous as vol
+from uiprotect.data import Event as ProtectHistoryEvent
 from uiprotect.data.types import EventType
 from uiprotect.websocket import WebsocketState
 
@@ -250,7 +251,7 @@ class FamilyCameraEventManager:
             group_key: str, api: Any, keys: set[str]
         ) -> tuple[str, list[tuple[dict[str, Any], int]], int, bool]:
             offset = offsets[group_key]
-            events = await api.get_events(
+            events = await api.get_events_raw(
                 start=start,
                 end=end,
                 limit=fetch_size,
@@ -260,7 +261,8 @@ class FamilyCameraEventManager:
                 descriptions=False,
             )
             records: list[tuple[dict[str, Any], int]] = []
-            for index, event in enumerate(events, start=1):
+            for index, raw_event in enumerate(events, start=1):
+                event = ProtectHistoryEvent.from_unifi_dict(api=api, **raw_event)
                 key = self._camera_by_device_id.get(
                     event.camera_id or event.device_id
                 )
@@ -504,14 +506,17 @@ class FamilyCameraEventManager:
         """Seed the timeline from recent local Protect history without alerts."""
         try:
             now = datetime.now(UTC)
-            events = await api.get_events(
+            events = await api.get_events_raw(
                 start=now - timedelta(hours=24),
                 end=now,
                 limit=200,
+                types=PROTECT_CLIP_EVENT_TYPES,
                 sorting="desc",
+                descriptions=False,
             )
             changed_keys: set[str] = set()
-            for event in events:
+            for raw_event in events:
+                event = ProtectHistoryEvent.from_unifi_dict(api=api, **raw_event)
                 key = self._camera_by_device_id.get(
                     event.camera_id or event.device_id
                 )
