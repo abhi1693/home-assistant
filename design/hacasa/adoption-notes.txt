@@ -111,8 +111,10 @@ https://github.com/abhi1693/home-assistant
 
 Draft branch validation: 31 dashboard structure tests pass with PYTHONUTF8=1.
 node tests/hacasa_profiles.cjs passes; official release checksum matches.
-Bootstrap suite: 24 tests run; 15 errors because Windows has no os.chown.
-The complete suite was interrupted after stalled discovery; no full-suite pass is claimed.
+Initial Windows bootstrap tests hit os.chown platform limitations.
+Native Linux validation of the draft commit: 116 tests, OK (skipped=18).
+The 18 skips require deployed Home Assistant/Protect libraries; no live checks ran.
+The Node profile/mapping checks also pass on the isolated Linux host.
 A draft PR is the review destination. Nothing is merged or deployed.
 Cross-page consistency is incomplete: retained views explicitly select Family Dark.
 community-research.json distinguishes inspected legacy adaptations from Nova.
