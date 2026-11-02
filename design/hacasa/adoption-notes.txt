@@ -1,0 +1,118 @@
+HaCasa adoption candidate - 3 November 2026
+
+Selected design
+Official HaCasa Nova v3.1.0 (released 29 October 2026), unchanged bundle,
+default mobile/desktop layout, navigation, cards, typography and palette.
+No custom styling, bottom-tab override, imaginary favorites or new device types.
+Rooms without photographs use HaCasa's own fallback background. No photographs
+of someone else's house are presented as yours.
+
+Preview
+From the checkout root, run node tools/hacasa/prepare-preview.cjs, then
+node design/hacasa/preview/serve.cjs.
+Open http://127.0.0.1:8765 in the in-app browser when available.
+The preview uses the official release bundle against in-memory sample states
+for your actual room/entity IDs. The account selector and warning sit outside
+HaCasa. There is no Home Assistant URL, token, websocket or command transport.
+Camera streams, history, appointments and health records are not fabricated.
+The preview requires network access for Iconify's HA-icon shim and the official
+panel's font; it falls back where unavailable. It has not been browser-verified
+because this session's in-app browser is unavailable. JavaScript syntax, release
+checksum, profile mapping and mock isolation checks passed.
+
+Candidate files (not installed)
+configuration.yaml: original config plus a parallel /hacasa panel and
+extra_module_url for its icon. Existing dashboard resources and defaults remain.
+bootstrap/manifest.json: original pinned assets plus the verified
+HaCasa release asset. This follows the repository's checksum installer pattern.
+themes/hacasa-nova.yaml: upstream optional matching HA theme, unchanged.
+The bundle is installed by bootstrap from the pinned manifest, not vendored.
+design/hacasa/generated/profiles/*.json: per-account import candidates, using upstream settings schema.
+They are deliberately not written to a public shared config.json or HA storage.
+tools/hacasa/prepare.cjs regenerates profile imports from the actual access files;
+it never contacts HA. Archived rejected mockups are research history only.
+
+Compatibility and migration
+Upstream documents HA 2024.4+; installed HA version has not been verified.
+HaCasa Nova is standalone and does not require Bubble/button-card/navbar-card.
+The existing pages still require their current resources, so none are removed.
+The optional HA-wide matching theme needs card-mod (already pinned in the repo)
+and Hanken Grotesk as a stylesheet resource if matching typography is desired.
+No profile theme or default dashboard is changed in this candidate.
+The existing bootstrap and Fleet deployment must carry approved files normally;
+do not run this candidate against /config or change source pins yet.
+Settings are stored per HA user under frontend user data (hacasa_nova). Profile
+imports need review per account. An update to a JSON source file does not keep
+overwriting already imported settings. No automatic storage edits are included.
+
+Current device mapping
+Living Room: two fans, their LED/sleep/timer entities; shared camera via Security.
+Office: fan and Office Echo group (first declared player selected provisionally).
+Master Bedroom: fan; camera access remains Krishna-only in existing Security.
+Bedroom: fan; pending TV excluded.
+Guest Room: fan; washer remains read-only through existing household/room page.
+Kitchen: fan, Home Connect dishwasher, Kitchen Echo Dot group, cameras via Security.
+Dining Room: fan.
+All eight fan IDs explicitly appear in pages[area_id].add because fresh HaCasa
+3.1 defaults do not add fans automatically. They retain native power/speed cards.
+Both Echo IDs per room may refer to one physical Echo through different
+integrations. The live device registry must determine the canonical entity.
+The first declared player is a candidate, not a verified deduplication result.
+
+Control parity limitations
+Native HaCasa fan popup offers power/percentage/presets/oscillation when exposed
+by the fan entity. Atomberg LED, sleep and timer are separate entities; upstream
+does not bind them as one fan control. The existing guarded full fan controls
+remain in More -> Full fan controls. Boost and six-step speed labels, timer
+duration/elapsed state, and sleep/timer mutual exclusion must be verified before
+declaring native replacement complete. Do not replace them with unchecked raw
+service action buttons. fan-control-coverage.json lists every relevant entity.
+HaCasa identifies appliance cards from device/translation metadata. The
+dishwasher's known device ID is added, but remote-start/door/interlock behavior
+must be compared with existing guarded controls before live use. Washer's
+current_status naming alone does not prove automatic appliance recognition;
+it stays available read-only in existing pages pending live registry inspection.
+
+Privacy and retained functionality
+No backend guard, entity policy, camera grant or private endpoint is changed.
+Per-user imports include only that user's Health route; Finance and Rack links
+are only in the owner's candidate. Links are presentation, never access control.
+HaCasa sees HA registries/states; test all three accounts before enabling it as
+their default, especially private camera metadata and personal health sensors.
+Existing signed camera streams/clip history stay in the existing Security page.
+HaCasa built-in camera UI does not replace your account-aware clip-history flow.
+Phones/presence, commute, shopping, announcements, requests, health, finance and
+infrastructure remain reachable through the retained pages. They are not silently
+rewritten to approximate upstream cards or presented as already migrated.
+
+Entrance console light
+Pending integration. No HA entity/model is verified. No fake control or new area
+is created. Need the Tapo model and read-only HA device/entity registry access to
+separate discovery/account/integration, disabled entity and dashboard mapping.
+
+Before live adoption
+Verify HA version, seven actual area IDs, device/entity registry bindings,
+duplicate Echo groups, washer translation metadata, dishwasher guards, and the
+three-account privacy behavior. Run existing bootstrap/dashboard/integration
+checks in an actual checkout (the local workspace is not a Git checkout).
+Review the official preview on phone and PC. Only then apply approved source
+changes through the normal deployment workflow. No live restart, source push,
+profile import, theme switch, service call or cluster mutation has occurred.
+
+Primary references
+https://github.com/damianeickhoff/HaCasa/releases/tag/v3.1.0
+https://github.com/damianeickhoff/HaCasa/blob/v3.1.0/README.md
+https://github.com/damianeickhoff/HaCasa/blob/v3.1.0/src/model.js
+https://github.com/damianeickhoff/HaCasa/blob/v3.1.0/src/panel.js
+https://github.com/damianeickhoff/HaCasa/blob/v3.1.0/src/popups.js
+https://github.com/damianeickhoff/HaCasa/blob/v3.1.0/docs/theme.md
+https://github.com/abhi1693/home-assistant
+
+
+Draft branch validation: 31 dashboard structure tests pass with PYTHONUTF8=1.
+node tests/hacasa_profiles.cjs passes; official release checksum matches.
+Bootstrap suite: 24 tests run; 15 errors because Windows has no os.chown.
+The complete suite was interrupted after stalled discovery; no full-suite pass is claimed.
+A draft PR is the review destination. Nothing is merged or deployed.
+Cross-page consistency is incomplete: retained views explicitly select Family Dark.
+community-research.json distinguishes inspected legacy adaptations from Nova.

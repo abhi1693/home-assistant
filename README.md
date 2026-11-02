@@ -367,6 +367,32 @@ site-specific files in `access/` and `location/` before publishing a fork.
 
 ## Development and validation
 
+A parallel HaCasa Nova adoption draft keeps the existing family dashboard as
+the default while adding a separately addressable `/hacasa` panel. Its official
+3.1.0 asset is checksum-pinned in `bootstrap/manifest.json`; no deployed source
+pin or runtime profile has been changed. Review
+[`design/hacasa/adoption-notes.txt`](design/hacasa/adoption-notes.txt) for the
+per-account imports, full Atomberg control fallback, appliance compatibility
+limits, privacy checks and pending Tapo entrance light. Public adaptations and
+visual references are attributed in
+[`design/hacasa/community-research.json`](design/hacasa/community-research.json).
+
+Prepare the isolated preview and validate the room mappings from this checkout:
+
+```sh
+node tools/hacasa/prepare-preview.cjs
+node tests/hacasa_profiles.cjs
+node design/hacasa/preview/serve.cjs
+```
+
+The preview server binds only to `127.0.0.1:8765`. It uses the unmodified upstream
+panel with illustrative states for this household's declared entities and never
+connects to Home Assistant. Open it in the in-app browser. Per-user import
+candidates are generated under `design/hacasa/generated/profiles`; importing
+them or choosing the optional HaCasa theme is a separate runtime step. The
+retained legacy views still explicitly select Family Dark, so visual consistency
+across those fallback pages remains migration work rather than a completed claim.
+
 Run the Python test suite:
 
 ```sh

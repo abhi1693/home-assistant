@@ -1,0 +1,542 @@
+{
+  "scope": "Repository-declared inventory, not live device or entity registry; disabled, duplicate, unmapped and discovered devices cannot be verified from source alone.",
+  "source": "https://github.com/abhi1693/home-assistant",
+  "rooms": [
+    {
+      "name": "Living Room",
+      "area_id": "living_room",
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fans",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "name": "Fan 1",
+              "fan": "fan.living_room_fan_1",
+              "led": "light.living_room_fan_1_led",
+              "sleep": "switch.living_room_fan_1_sleep_mode",
+              "timer": "select.living_room_fan_1_set_timer",
+              "timer_elapsed": "sensor.living_room_fan_1_timer_elapsed_time"
+            },
+            {
+              "name": "Fan 2",
+              "fan": "fan.living_room_fan_2",
+              "led": "light.living_room_fan_2_led",
+              "sleep": "switch.living_room_fan_2_sleep_mode",
+              "timer": "select.living_room_fan_2_set_timer",
+              "timer_elapsed": "sensor.living_room_fan_2_timer_elapsed_time"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Office",
+      "area_id": "computer_room",
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fan",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "fan": "fan.office_fan",
+              "led": "light.office_fan_led",
+              "sleep": "switch.office_fan_sleep_mode",
+              "timer": "select.office_fan_set_timer",
+              "timer_elapsed": "sensor.office_fan_timer_elapsed_time"
+            }
+          ]
+        },
+        {
+          "type": "media",
+          "name": "Office Echo",
+          "icon": "mdi:speaker",
+          "labels": [
+            "family_visible",
+            "media"
+          ],
+          "players": [
+            "media_player.abhimanyu_s_echo_2",
+            "media_player.abhimanyu_s_echo"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Master Bedroom",
+      "area_id": "manisha_bedroom",
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fan",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "fan": "fan.master_bedroom_fan",
+              "led": "light.master_bedroom_fan_led",
+              "sleep": "switch.master_bedroom_fan_sleep_mode",
+              "timer": "select.master_bedroom_fan_set_timer",
+              "timer_elapsed": "sensor.master_bedroom_fan_timer_elapsed_time"
+            }
+          ]
+        },
+        {
+          "type": "camera",
+          "name": "Master Bedroom",
+          "icon": "mdi:cctv",
+          "entity": "camera.living_room_high_resolution_channel",
+          "preview_entity": "camera.living_room_medium_resolution_channel",
+          "url": "/home-tablet/security",
+          "labels": [
+            "family_visible",
+            "security_sensitive"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bedroom",
+      "area_id": "mummy_bedroom",
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fan",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "fan": "fan.bedroom_fan",
+              "led": "light.bedroom_fan_led",
+              "sleep": "switch.bedroom_fan_sleep_mode",
+              "timer": "select.bedroom_fan_set_timer",
+              "timer_elapsed": "sensor.bedroom_fan_timer_elapsed_time"
+            }
+          ]
+        },
+        {
+          "type": "media",
+          "name": "Bedroom TV",
+          "icon": "mdi:television",
+          "players": [],
+          "optional": true,
+          "pending": true,
+          "labels": [
+            "family_visible",
+            "media"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Guest Room",
+      "area_id": "guest_bedroom",
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fan",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "fan": "fan.guest_fan",
+              "led": "light.guest_fan_led",
+              "sleep": "switch.guest_fan_sleep_mode",
+              "timer": "select.guest_fan_set_timer",
+              "timer_elapsed": "sensor.guest_fan_timer_elapsed_time"
+            }
+          ]
+        },
+        {
+          "type": "appliance",
+          "kind": "washer",
+          "name": "Washer",
+          "icon": "mdi:washing-machine",
+          "read_only": true,
+          "labels": [
+            "family_visible",
+            "appliance"
+          ],
+          "entities": {
+            "status": "sensor.front_load_washer_current_status",
+            "remaining": "sensor.front_load_washer_remaining_time",
+            "total": "sensor.front_load_washer_total_time",
+            "delayed_end": "sensor.front_load_washer_delayed_end",
+            "error": "event.front_load_washer_error",
+            "notification": "event.front_load_washer_notification"
+          }
+        },
+        {
+          "type": "media",
+          "name": "Guest Room TV",
+          "icon": "mdi:television",
+          "players": [],
+          "optional": true,
+          "pending": true,
+          "labels": [
+            "family_visible",
+            "media"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Kitchen",
+      "area_id": "kitchen",
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fan",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "fan": "fan.kitchen_fan",
+              "led": "light.kitchen_fan_led",
+              "sleep": "switch.kitchen_fan_sleep_mode",
+              "timer": "select.kitchen_fan_set_timer",
+              "timer_elapsed": "sensor.kitchen_fan_timer_elapsed_time"
+            }
+          ]
+        },
+        {
+          "type": "appliance",
+          "kind": "dishwasher",
+          "name": "Dishwasher",
+          "icon": "mdi:dishwasher",
+          "device_id": "caac28eb9c2b60695eb93468fab1c7b8",
+          "labels": [
+            "family_visible",
+            "appliance"
+          ],
+          "entities": {
+            "connectivity": "binary_sensor.dishwasher_connectivity",
+            "remote_control": "binary_sensor.dishwasher_remote_control",
+            "remote_start": "binary_sensor.dishwasher_remote_start",
+            "operation": "sensor.dishwasher_operation_state",
+            "door": "sensor.dishwasher_door",
+            "progress": "sensor.dishwasher_program_progress",
+            "finish_time": "sensor.dishwasher_program_finish_time",
+            "finished": "sensor.dishwasher_program_finished",
+            "salt": "sensor.dishwasher_salt_nearly_empty",
+            "rinse_aid": "sensor.dishwasher_rinse_aid_nearly_empty",
+            "active_program": "select.dishwasher_active_program",
+            "selected_program": "select.dishwasher_selected_program",
+            "start_in": "number.dishwasher_start_in_relative",
+            "stop": "button.dishwasher_stop_program",
+            "power": "switch.dishwasher_power"
+          }
+        },
+        {
+          "type": "media",
+          "name": "Kitchen Echo Dot",
+          "icon": "mdi:speaker",
+          "labels": [
+            "family_visible",
+            "media"
+          ],
+          "players": [
+            "media_player.abhimanyu_s_echo_dot_2",
+            "media_player.abhimanyu_s_echo_dot"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dining Room",
+      "area_id": "dining_room",
+      "modules": [
+        {
+          "type": "fans",
+          "name": "Fan",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "fans": [
+            {
+              "fan": "fan.dining_fan",
+              "led": "light.dining_fan_led",
+              "sleep": "switch.dining_fan_sleep_mode",
+              "timer": "select.dining_fan_set_timer",
+              "timer_elapsed": "sensor.dining_fan_timer_elapsed_time"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "cameras": {
+    "kitchen": {
+      "name": "Kitchen",
+      "high_entity_id": "camera.g5_turret_ultra_high_resolution_channel_2",
+      "medium_entity_id": "camera.kitchen_medium_resolution_channel",
+      "low_entity_id": "camera.kitchen_low_resolution_channel",
+      "activity_entity_id": "sensor.family_camera_kitchen_activity",
+      "motion_entity_id": "binary_sensor.g5_turret_ultra_motion_2",
+      "person_entity_id": "binary_sensor.kitchen_person_detected",
+      "vehicle_entity_id": "binary_sensor.kitchen_vehicle_detected",
+      "animal_entity_id": "binary_sensor.kitchen_animal_detected",
+      "recording_mode_entity_id": "select.kitchen_g5_turret_ultra_recording_mode",
+      "is_dark_entity_id": "binary_sensor.g5_turret_ultra_is_dark_2",
+      "microphone_level_entity_id": "number.kitchen_g5_turret_ultra_microphone_level",
+      "qualities": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "notify_profiles": [
+        "abhimanyu",
+        "krishna",
+        "manisha"
+      ],
+      "alerts": {
+        "always": {
+          "co": "critical",
+          "smoke": "critical"
+        },
+        "when_empty": {
+          "animal": "informational",
+          "person": "warning"
+        }
+      }
+    },
+    "kitchen-sink": {
+      "name": "Kitchen Sink - G5 Turret Ultra",
+      "high_entity_id": "camera.g5_turret_ultra_high_resolution_channel_4",
+      "medium_entity_id": "camera.kitchen_sink_medium_resolution_channel",
+      "low_entity_id": "camera.kitchen_sink_low_resolution_channel",
+      "activity_entity_id": "sensor.family_camera_kitchen_sink_activity",
+      "motion_entity_id": "binary_sensor.g5_turret_ultra_motion_4",
+      "recording_mode_entity_id": "select.g5_turret_ultra_recording_mode",
+      "is_dark_entity_id": "binary_sensor.g5_turret_ultra_is_dark_4",
+      "qualities": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "notify_profiles": [
+        "abhimanyu",
+        "krishna",
+        "manisha"
+      ],
+      "alerts": {
+        "always": {},
+        "when_empty": {}
+      }
+    },
+    "hallway": {
+      "name": "Kitchen Balcony",
+      "high_entity_id": "camera.hallway_high_resolution_channel",
+      "medium_entity_id": "camera.hallway_medium_resolution_channel",
+      "low_entity_id": "camera.kitchen_balcony_low_resolution_channel",
+      "activity_entity_id": "sensor.family_camera_kitchen_balcony_activity",
+      "motion_entity_id": "binary_sensor.hallway_motion",
+      "person_entity_id": "binary_sensor.hallway_person_detected",
+      "vehicle_entity_id": "binary_sensor.hallway_vehicle_detected",
+      "animal_entity_id": "binary_sensor.hallway_animal_detected",
+      "recording_mode_entity_id": "select.kitchen_kitchen_balcony_g5_flex_recording_mode",
+      "is_dark_entity_id": "binary_sensor.hallway_is_dark",
+      "microphone_level_entity_id": "number.kitchen_kitchen_balcony_g5_flex_microphone_level",
+      "qualities": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "notify_profiles": [
+        "abhimanyu",
+        "krishna",
+        "manisha"
+      ],
+      "alerts": {
+        "always": {
+          "co": "critical",
+          "smoke": "critical"
+        },
+        "when_empty": {
+          "animal": "informational",
+          "person": "warning",
+          "vehicle": "advisory"
+        }
+      }
+    },
+    "living-room": {
+      "name": "Living Room",
+      "high_entity_id": "camera.g5_turret_ultra_high_resolution_channel_3",
+      "medium_entity_id": "camera.living_room_camera_medium_resolution_channel",
+      "low_entity_id": "camera.living_room_camera_low_resolution_channel",
+      "activity_entity_id": "sensor.family_camera_living_room_activity",
+      "motion_entity_id": "binary_sensor.g5_turret_ultra_motion_3",
+      "person_entity_id": "binary_sensor.living_room_person_detected_2",
+      "vehicle_entity_id": "binary_sensor.living_room_vehicle_detected_2",
+      "animal_entity_id": "binary_sensor.living_room_animal_detected_2",
+      "recording_mode_entity_id": "select.living_room_g5_turret_ultra_recording_mode",
+      "is_dark_entity_id": "binary_sensor.g5_turret_ultra_is_dark_3",
+      "microphone_level_entity_id": "number.living_room_g5_turret_ultra_microphone_level",
+      "qualities": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "notify_profiles": [
+        "abhimanyu",
+        "krishna",
+        "manisha"
+      ],
+      "alerts": {
+        "always": {
+          "co": "critical",
+          "smoke": "critical"
+        },
+        "when_empty": {
+          "animal": "informational",
+          "person": "warning"
+        }
+      }
+    },
+    "master-bedroom": {
+      "name": "Master Bedroom",
+      "high_entity_id": "camera.living_room_high_resolution_channel",
+      "medium_entity_id": "camera.living_room_medium_resolution_channel",
+      "low_entity_id": "camera.master_bedroom_low_resolution_channel",
+      "activity_entity_id": "sensor.family_camera_master_bedroom_activity",
+      "motion_entity_id": "binary_sensor.living_room_motion",
+      "person_entity_id": "binary_sensor.living_room_person_detected",
+      "vehicle_entity_id": "binary_sensor.living_room_vehicle_detected",
+      "animal_entity_id": "binary_sensor.living_room_animal_detected",
+      "recording_mode_entity_id": "sensor.living_room_recording_mode",
+      "is_dark_entity_id": "binary_sensor.living_room_is_dark",
+      "microphone_level_entity_id": "sensor.living_room_microphone_level",
+      "speaker_entity_id": "media_player.living_room_speaker",
+      "qualities": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "notify_profiles": [
+        "krishna"
+      ],
+      "alerts": {
+        "always": {
+          "baby_cry": "warning",
+          "co": "critical",
+          "smoke": "critical"
+        },
+        "when_empty": {
+          "person": "warning"
+        }
+      }
+    },
+    "outside": {
+      "name": "Outside",
+      "high_entity_id": "camera.g5_turret_ultra_high_resolution_channel",
+      "medium_entity_id": "camera.g5_turret_ultra_medium_resolution_channel",
+      "low_entity_id": "camera.outside_low_resolution_channel",
+      "activity_entity_id": "sensor.family_camera_outside_activity",
+      "motion_entity_id": "binary_sensor.g5_turret_ultra_motion",
+      "person_entity_id": "binary_sensor.g5_turret_ultra_person_detected",
+      "vehicle_entity_id": "binary_sensor.g5_turret_ultra_vehicle_detected",
+      "animal_entity_id": "binary_sensor.g5_turret_ultra_animal_detected",
+      "recording_mode_entity_id": "select.outside_g5_turret_ultra_recording_mode",
+      "is_dark_entity_id": "binary_sensor.g5_turret_ultra_is_dark",
+      "microphone_level_entity_id": "number.outside_g5_turret_ultra_microphone_level",
+      "qualities": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "notify_profiles": [
+        "abhimanyu",
+        "krishna",
+        "manisha"
+      ],
+      "alerts": {
+        "always": {
+          "co": "critical",
+          "smoke": "critical"
+        },
+        "when_empty": {
+          "animal": "informational",
+          "person": "warning",
+          "vehicle": "advisory"
+        }
+      }
+    }
+  },
+  "phones": [
+    {
+      "name": "abhimanyu",
+      "trackers": [
+        "device_tracker.abhimanyu_pixel_8_2"
+      ],
+      "battery": "sensor.pixel_8_battery_level"
+    },
+    {
+      "name": "krishna",
+      "trackers": [
+        "device_tracker.pixel_10_pro",
+        "device_tracker.pixel_10_pro_2"
+      ],
+      "battery": "sensor.pixel_10_pro_battery_level"
+    },
+    {
+      "name": "manisha",
+      "trackers": [
+        "device_tracker.iphone"
+      ],
+      "battery": "sensor.iphone_battery_level"
+    }
+  ],
+  "pending": {
+    "entrance_console_light": {
+      "manufacturer": "Tapo (user reported)",
+      "entity": null,
+      "status": "Not declared in reviewed room registry; live integration and entity registry unverified",
+      "needed": "Exact Tapo model and the user's Home Assistant URL or accessible in-app session"
+    },
+    "televisions": "Bedroom and Guest Room modules are explicitly pending with empty players arrays; excluded from active controls"
+  },
+  "cautions": [
+    "Multiple Echo player IDs are declared per room. These may be alternate integration entities for one physical device; do not count as four Echo devices without live device registry.",
+    "Camera living_room_high_resolution_channel maps to Master Bedroom, not the shared Living Room. hallway maps to Kitchen Balcony. Preserve declared policy and friendly names.",
+    "Master Bedroom camera must remain restricted to Krishna.",
+    "Eight fan LED light entities are fan lights, not evidence of independent room lighting.",
+    "No Entrance area is declared; do not assign the new light to a room without confirmation."
+  ],
+  "surfaces": {
+    "home": "Briefing, room state, contextual appliance completion. No presumed favorites.",
+    "rooms": "Eight fans with power/speed; secondary LED, sleep and timer controls in room details. Washer read-only. Dishwasher guarded controls. Two Echo groups. Cameras follow permissions.",
+    "more": "Security (six cameras subject to grants), People (three phones/presence/commutes), Calendar, Shopping, Announcements, Media requests; account-specific Health/Finance; admin-only Rack.",
+    "environment": "Home weather, temperature, humidity, apparent temperature, AQI, thunderstorm and sunset stay in Home briefing/detail.",
+    "infrastructure": "UPS, temperatures, node/workload/backup and monitoring entities remain administrator Rack content."
+  },
+  "design": {
+    "palette": {
+      "background": "#101514",
+      "surface": "#1b2220",
+      "raised": "#252e2a",
+      "text": "#f2f0e8",
+      "secondary": "#a5afa7",
+      "accent": "#d4e8a6"
+    },
+    "tokens": "One shared theme supplies colors, typography, spacing (8/12/16/24), corners (18/22), touch size >=44px, focus and state semantics.",
+    "components": "Only current needs: room overview, fan control, appliance status/control, media row, permitted camera surface, three-item navigation. Same tokens across Health, Finance and Rack.",
+    "mock_data": "Room names and module capabilities are sourced; shown on/off/speed/completion values are illustrative, not asserted current state."
+  }
+}

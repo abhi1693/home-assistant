@@ -48,6 +48,8 @@ recorder:
       - sensor.*daily_hydration*
 
 frontend:
+  extra_module_url:
+    - /local/community/hacasa-nova/hacasa-nova.js?v=3.1.0
   themes: !include_dir_merge_named themes
 
 family_dashboard_guard:
@@ -124,3 +126,11 @@ lovelace:
 automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
+
+# Parallel HaCasa preview panel. Existing family dashboards and defaults remain.
+panel_custom:
+  - name: hacasa-nova
+    url_path: hacasa
+    sidebar_title: HaCasa
+    sidebar_icon: hacasa:logo
+    module_url: /local/community/hacasa-nova/hacasa-nova.js?v=3.1.0

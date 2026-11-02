@@ -1,0 +1,57 @@
+{
+  "reviewed_on": "2026-11-03",
+  "selected_anchor": "HaCasa Nova mobile composition; original default components and desktop behavior",
+  "evidence_caveat": "Most independently shared adaptations found are for legacy HaCasa v1/v2, not Nova v3.1. Do not treat their YAML or custom-card APIs as compatible Nova extensions.",
+  "references": [
+    {
+      "creator": "sam_y14",
+      "title": "My new dashboard using HaCasa",
+      "date": "2025-07-23",
+      "source": "https://www.reddit.com/r/homeassistant/comments/1m7azvg/my_new_dashboard_using_hacasa/",
+      "image": "https://i.redd.it/wbixk3h0ymef1.jpg",
+      "visually_inspected": true,
+      "observed": "Compact date/weather header, household avatars, summary strip and gold active surfaces; room control groups below.",
+      "application": "Keep household context concise; use the existing three persons if adding presence. Do not copy its energy, waste or TV cards: this home's matching sensors/devices are not established. Retain selected Nova navigation instead of importing legacy YAML."
+    },
+    {
+      "creator": "markwdw",
+      "title": "HaCasa Washing Machine Card",
+      "date": "2025-08-08",
+      "source": "https://www.reddit.com/r/homeassistant/comments/1ml685r/hacasa_washing_machine_card/",
+      "image": "https://i.redd.it/3anxbkqrvuhf1.jpeg",
+      "visually_inspected": true,
+      "observed": "Wide appliance card with a readable program label, finish time and restrained progress bar.",
+      "application": "Use this information hierarchy when adapting existing LG washer readings. Its Gorenje/ConnectLife numeric programs and extra options are incompatible evidence for this home's washer. Keep the existing washer read-only; no invented program or finish state."
+    },
+    {
+      "creator": "chintito4ever",
+      "title": "Community HaCasa lock and cover cards",
+      "date": "2024-12-01 / 2024-12-07",
+      "source": "https://community.home-assistant.io/t/hacasa-a-new-modern-dashboard/744334/44",
+      "images": ["https://community-assets.home-assistant.io/original/4X/2/8/9/2898fa2c3375f0f9b15969c9b6025b75948b4a9c.png", "https://community-assets.home-assistant.io/original/4X/c/5/c/c5ced17848cbd5c597bbd86d9eea93f38dbc693c.png"],
+      "visually_inspected": true,
+      "observed": "New device controls keep the existing typography, warm active fill and simple state/action arrangement.",
+      "application": "Extend only genuine missing capabilities, using one existing visual language. No locks or covers are added to this home; no adoption of the legacy card code."
+    },
+    {
+      "creator": "jlnbln",
+      "title": "Rounded-Bubble: HaCasa-derived media, room and server pages",
+      "source": "https://github.com/jlnbln/My-HA-Dashboard",
+      "image": "https://raw.githubusercontent.com/jlnbln/My-HA-Dashboard/main/images/home_mobil.PNG",
+      "visually_inspected": true,
+      "observed": "Combines Rounded and HaCasa with a dense mobile navigation bar and large room tiles.",
+      "application": "Existing project inspiration; useful evidence of cross-page consistency but not the chosen layout. Do not reintroduce this crowded navigation."
+    },
+    {
+      "creator": "Damian Eickhoff",
+      "title": "HaCasa Nova creator showcase and 3.1 update",
+      "date": "2026-10-09 / 2026-10-30",
+      "source": "https://community.home-assistant.io/t/hacasa-nova-beta-the-hacasa-reboot/1028070",
+      "image": "https://raw.githubusercontent.com/damianeickhoff/HaCasa/v3.1.0/docs/assets/screenshots/phones.png",
+      "visually_inspected": true,
+      "application": "Primary layout anchor. Pin v3.1.0, use current per-user settings and explicit Add card entries, and keep the existing dashboard available during compatibility testing."
+    }
+  ],
+  "concrete_choice_for_draft": "Retain upstream Nova mobile/desktop UI; explicitly add eight fan entities and the declared Echo groups and dishwasher; retain existing guarded Atomberg and private household flows through More. No speculative controls or forced theme override on legacy views.",
+  "still_unverified": ["live HA version", "all seven actual area assignments", "Echo device deduplication", "LG appliance metadata", "three-account privacy", "entrance console Tapo model/entity", "rendered iPhone/Pixel/desktop behavior"]
+}

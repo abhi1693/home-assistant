@@ -1,0 +1,88 @@
+{
+  "rooms": [
+    "living_room",
+    "computer_room",
+    "manisha_bedroom",
+    "mummy_bedroom",
+    "guest_bedroom",
+    "kitchen",
+    "dining_room"
+  ],
+  "pages": {
+    "living_room": {
+      "add": [
+        "fan.living_room_fan_1",
+        "fan.living_room_fan_2"
+      ]
+    },
+    "computer_room": {
+      "add": [
+        "fan.office_fan",
+        "media_player.abhimanyu_s_echo_2"
+      ]
+    },
+    "manisha_bedroom": {
+      "add": [
+        "fan.master_bedroom_fan"
+      ]
+    },
+    "mummy_bedroom": {
+      "add": [
+        "fan.bedroom_fan"
+      ]
+    },
+    "guest_bedroom": {
+      "add": [
+        "fan.guest_fan"
+      ]
+    },
+    "kitchen": {
+      "add": [
+        "fan.kitchen_fan",
+        "device:caac28eb9c2b60695eb93468fab1c7b8",
+        "media_player.abhimanyu_s_echo_dot_2"
+      ]
+    },
+    "dining_room": {
+      "add": [
+        "fan.dining_fan"
+      ]
+    }
+  },
+  "home": {
+    "weather": "weather.home",
+    "temperature": "sensor.home_temperature",
+    "humidity": "sensor.home_humidity",
+    "calendars": [
+      "calendar.birthdays"
+    ]
+  },
+  "more": [
+    {
+      "label": "Full fan controls",
+      "sub": "Existing sleep, timer, LED and Boost controls",
+      "icon": "mdi:fan",
+      "path": "/home-tablet/rooms"
+    },
+    {
+      "label": "Security & clips",
+      "icon": "mdi:shield-home-outline",
+      "path": "/home-tablet/security"
+    },
+    {
+      "label": "People & household",
+      "icon": "mdi:account-group-outline",
+      "path": "/home-tablet/people"
+    },
+    {
+      "label": "Household lists & announcements",
+      "icon": "mdi:home-outline",
+      "path": "/home-tablet/home"
+    },
+    {
+      "label": "My health",
+      "icon": "mdi:heart-pulse",
+      "path": "/home-tablet/health"
+    }
+  ]
+}

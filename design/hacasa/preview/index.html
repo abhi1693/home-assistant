@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Your home · HaCasa default preview</title><script src="https://cdn.jsdelivr.net/npm/iconify-icon@2.1.0/dist/iconify-icon.min.js"></script><style>html,body{margin:0;height:100%;background:#222}#preview-notice{position:relative;z-index:10000;background:#fff4de;color:#403522;font:12px/1.5 system-ui;padding:8px 16px}#preview-notice select{font:inherit;margin-left:12px}hacasa-nova{display:block;height:calc(100% - 52px)}</style></head><body>
+<div id="preview-notice">OFFLINE PREVIEW · Official HaCasa 3.1.0, default styling/navigation. Real room/entity IDs; illustrative states. No device connection.<select aria-label="Preview account"><option value="abhimanyu">Abhimanyu</option><option value="krishna">Krishna</option><option value="manisha">Manisha</option></select></div>
+<script type="module">
+import {makeHass} from './mock-hass.js';
+if(!customElements.get('ha-icon'))customElements.define('ha-icon',class extends HTMLElement{static get observedAttributes(){return ['icon']}constructor(){super();this.attachShadow({mode:'open'})}connectedCallback(){this.render()}attributeChangedCallback(){if(this.shadowRoot)this.render()}render(){const i=document.createElement('iconify-icon');i.setAttribute('icon',this.getAttribute('icon')||'');i.style.fontSize='24px';this.shadowRoot.replaceChildren(i)}});
+await import('./vendor/hacasa-nova.js');
+const rooms=await (await fetch('./rooms.json')).json();const configs=await (await fetch('./profiles.json')).json();
+const select=document.querySelector('select');let panel;
+function mount(){if(panel)panel.remove();panel=document.createElement('hacasa-nova');const config={...configs[select.value],setupDone:true,hintSeen:true};panel.userConfig=config;panel.loadConfig=async()=>panel.applyConfig();panel.loadUser=async()=>{panel.userConfig=config;panel.applyConfig()};panel.hass=makeHass(rooms,select.value,h=>panel.hass={...h});panel.panel={url_path:'hacasa'};panel.route={prefix:'/hacasa',path:location.hash.slice(1)||'/'};panel.applyConfig();document.body.append(panel);}
+const originalPush=history.pushState.bind(history);history.pushState=(state,title,url)=>{const s=String(url);if(s.startsWith('/hacasa'))location.hash=s.slice('/hacasa'.length)||'/';else alert('Preview only: this opens your existing '+s+' page in the live deployment.');};
+addEventListener('hashchange',()=>{panel.route={prefix:'/hacasa',path:location.hash.slice(1)||'/'}});select.addEventListener('change',()=>{location.hash='';mount()});mount();
+</script></body></html>
