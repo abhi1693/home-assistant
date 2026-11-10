@@ -1,8 +1,10 @@
 import hashlib
 import json
+import shutil
 import tarfile
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -34,6 +36,52 @@ class BootstrapTests(unittest.TestCase):
         path = self.source / relative_path
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content)
+
+    def test_builtin_marketplace_preserves_legacy_state_without_downloading_hacs(self):
+        legacy = self.config / "custom_components/hacs"
+        legacy.mkdir(parents=True)
+        (legacy / "manifest.json").write_text('{"domain":"hacs"}')
+        storage = self.config / ".storage"
+        storage.mkdir()
+        state = storage / "hacs.repositories"
+        state.write_text("retained migration input")
+        with patch("bootstrap.importlib.util.find_spec", return_value=object()), patch(
+            "bootstrap.download_verified"
+        ) as download:
+            bootstrap.install_hacs({}, self.config)
+        download.assert_not_called()
+        self.assertTrue((legacy / "manifest.json").exists())
+        self.assertEqual(state.read_text(), "retained migration input")
+        # Core may remove the legacy directory after adopting its data. A later
+        # init must still avoid reinstalling it.
+        shutil.rmtree(legacy)
+        with patch("bootstrap.importlib.util.find_spec", return_value=object()), patch(
+            "bootstrap.download_verified"
+        ) as download:
+            bootstrap.install_hacs({}, self.config)
+        download.assert_not_called()
+        self.assertFalse(legacy.exists())
+
+    def test_older_core_still_installs_verified_legacy_hacs(self):
+        archive = self.root / "hacs.zip"
+        with zipfile.ZipFile(archive, "w") as bundle:
+            bundle.writestr("manifest.json", '{"domain":"hacs"}')
+        manifest = {"hacs": {"url": archive.as_uri(), "sha256": hashlib.sha256(
+            archive.read_bytes()).hexdigest(), "version": "fixture"}}
+        with patch("bootstrap.importlib.util.find_spec", return_value=None):
+            bootstrap.install_hacs(manifest, self.config)
+        self.assertEqual(json.loads((self.config / "custom_components/hacs/manifest.json").read_text()),
+                         {"domain": "hacs"})
+
+    def test_bootstrap_without_core_preserves_existing_hacs(self):
+        legacy = self.config / "custom_components/hacs"
+        legacy.mkdir(parents=True)
+        (legacy / "manifest.json").write_text('{"domain":"hacs"}')
+        with patch("bootstrap.importlib.util.find_spec", side_effect=ModuleNotFoundError), patch(
+            "bootstrap.download_verified"
+        ) as download:
+            bootstrap.install_hacs({"hacs": {}}, self.config)
+        download.assert_not_called()
 
     def test_retired_household_entities_are_removed_exactly(self):
         storage = self.config / ".storage"
