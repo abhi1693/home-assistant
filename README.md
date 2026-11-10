@@ -299,7 +299,9 @@ The bootstrap:
 
 - Atomically installs source-managed YAML, themes, dashboards, packages, custom
   components, and frontend cards.
-- Downloads HACS only when it is missing.
+- Downloads legacy HACS only when it is missing and Core does not provide the
+  built-in Marketplace (2026.11+). Core owns migration of existing HACS state;
+  later init runs preserve that migration and do not reinstall legacy HACS.
 - Verifies pinned frontend assets and custom integration archives before
   installation.
 - Reconciles rooms, labels, people, account policy, dashboard defaults,

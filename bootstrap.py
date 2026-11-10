@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import shutil
@@ -502,6 +503,16 @@ def download_verified(url: str, expected_hash: str, destination: Path) -> None:
 
 
 def install_hacs(manifest: dict, config: Path) -> None:
+    # Core 2026.11 adopts HACS state and removes the legacy integration itself.
+    # A later init must not download that unsupported integration again.
+    try:
+        builtin_marketplace = importlib.util.find_spec("homeassistant.components.marketplace")
+    except ModuleNotFoundError:
+        builtin_marketplace = None
+    if builtin_marketplace is not None:
+        print("Home Assistant provides Marketplace; leaving legacy HACS migration to Core")
+        return
+
     hacs = manifest["hacs"]
     destination = config / "custom_components/hacs"
     if (destination / "manifest.json").exists():
