@@ -331,6 +331,15 @@ integration dependencies, including:
 - Auto Entities
 - Todo Swipe Card
 - The household Atomberg integration fork
+- Dyson HushJet HJ10 support from [ha-dyson PR #321](https://github.com/libdyson-wg/ha-dyson/pull/321),
+  pinned to `de7cf57bab409892850ccb1af0b115728a24c9d8` (integration 1.8.0,
+  `libdyson-neon==1.6.0`, installed by Home Assistant). The bootstrap verifies the
+  archive checksum and replaces the full `dyson_local` file tree, removing the
+  obsolete vendored library. This pin is reapplied on startup; avoid Marketplace
+  updates until an upstream release includes HushJet support. Retain a backup of
+  `custom_components/dyson_local` and `.storage/core.config_entries` before rollout.
+  To roll back, restore the old integration files and deploy the previous source
+  pin; reverting the pin alone does not remove an already installed integration.
 
 The configuration also expects existing Home Assistant integrations for the
 devices and services used by the household, such as UniFi Protect, Google

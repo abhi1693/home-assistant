@@ -12,6 +12,14 @@
       "sha256": "29d5331c0a302d5ce98e928c3b4e74eefb63e3eb545205d53b6dd341b0fe7747",
       "source_subdirectory": "custom_components/atomberg",
       "destination": "custom_components/atomberg"
+    },
+    {
+      "name": "Dyson",
+      "version": "1.8.0-pr321-de7cf57",
+      "url": "https://codeload.github.com/mike-nott/ha-dyson/tar.gz/de7cf57bab409892850ccb1af0b115728a24c9d8",
+      "sha256": "8ceba1470406bdb8cec9fb7023a55234c8bb851fb447a2e85ddf03366ebb7067",
+      "source_subdirectory": "custom_components/dyson_local",
+      "destination": "custom_components/dyson_local"
     }
   ],
   "assets": [
