@@ -423,3 +423,25 @@ Before deploying a source revision:
   control.
 - Home Assistant remains a singleton to avoid duplicate automations and shared
   storage contention.
+
+## Home air quality (WAQI)
+
+The Home dashboard uses `sensor.home_waqi_aqi` from the existing World Air
+Quality Index integration, configured for station 8685 (Indiabulls Centrum
+Park, Gurgaon, India). Keep its credential in Home Assistant integration
+storage, never in Git. The Home coordinates in configuration.yaml remain the
+source of truth; core configuration storage should agree with them.
+
+WAQI uses the US AQI scale: 0–50 Good, 51–100 Moderate, 101–150 Unhealthy for
+sensitive groups, 151–200 Unhealthy, 201–300 Very unhealthy, and above 300
+Hazardous. This is not the Indian NAQI scale formerly supplied by Google.
+WAQI pollutant entities are pollutant-specific index values, not measured
+concentrations, so they must not replace Google's concentration entity IDs.
+See https://www.home-assistant.io/integrations/waqi/ for scale details.
+
+The WAQI device uses the `sensor.home_waqi_` prefix. Rename its entities through
+the supported entity-registry API before deploying this dashboard. After
+verifying the deployed dashboard and readings, disable (do not delete) Google
+Air Quality through its config-entry API, retaining its configuration and
+history for rollback. To roll back, re-enable Google Air Quality and restore
+the previous source revision/checksum in the Fleet deployment repository.

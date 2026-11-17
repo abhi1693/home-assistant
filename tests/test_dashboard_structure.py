@@ -78,8 +78,9 @@ class DashboardStructureTests(unittest.TestCase):
         self.assertNotIn("state_attr('calendar.family',", header)
         self.assertIn("sensor.home_apparent_temperature", header)
         self.assertIn("sensor.home_thunderstorm_probability", header)
-        self.assertIn("sensor.home_naqi_in_aqi", header)
-        self.assertIn("sensor.home_naqi_in_category", header)
+        self.assertIn("sensor.home_waqi_aqi", header)
+        self.assertNotIn("sensor.home_naqi_in_category", header)
+        self.assertIn("unhealthy for sensitive groups", header)
         self.assertIn("Air is {{ air_category }}", header)
         self.assertIn("anyone sensitive should take it easy outdoors", header)
         self.assertIn("todo.shopping_list", header)
@@ -121,15 +122,16 @@ class DashboardStructureTests(unittest.TestCase):
         )[0]
         self.assertNotIn("sensor.home_humidity", activity)
         self.assertIn("name: 'Activity', label: 'All quiet'", activity)
-        self.assertIn("entity: sensor.home_naqi_in_aqi", home)
+        self.assertIn("entity: sensor.home_waqi_aqi", home)
         air_quality = home.split("  family_ribbon_air_quality:", 1)[1].split(
             "\n  family_ribbon_presence:", 1
         )[0]
-        self.assertIn("sensor.home_naqi_in_category", air_quality)
+        self.assertNotIn("sensor.home_naqi_in_category", air_quality)
+        self.assertIn("value <= 150", air_quality)
         self.assertIn("`${category} · ${Math.round(value)}`", air_quality)
-        self.assertIn("poor_air_quality: 'Poor'", air_quality)
+        self.assertIn("Very unhealthy", air_quality)
         self.assertIn("value <= 100", air_quality)
-        self.assertIn("var(--red)", air_quality)
+        self.assertIn("#7e0023", air_quality)
         self.assertLess(
             home_view.index("template: family_ribbon_humidity"),
             home_view.index("template: family_ribbon_air_quality"),
