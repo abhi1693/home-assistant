@@ -389,6 +389,7 @@ Run the responsive component suite with Playwright available on `NODE_PATH`:
 ```sh
 NODE_PATH=/path/to/node_modules node tests/mobile_dashboard_components.js
 NODE_PATH=/path/to/node_modules node tests/health_chart_tooltips.js
+NODE_PATH=/path/to/node_modules node tests/office_purifier_components.js
 ```
 
 The browser suite exercises phone, landscape, tablet, and desktop viewports
@@ -445,3 +446,17 @@ verifying the deployed dashboard and readings, disable (do not delete) Google
 Air Quality through its config-entry API, retaining its configuration and
 history for rollback. To roll back, re-enable Google Air Quality and restore
 the previous source revision/checksum in the Fleet deployment repository.
+
+## Office purifier controls
+
+The Office room page includes its Dyson HushJet as a dedicated purifier module,
+separate from the ceiling fan. It shows indoor PM2.5 and PM10 concentrations
+in the sensors' own units, power, Auto/Normal mode, manual speed, night mode,
+and expandable HEPA/carbon filter details. Unknown measurements remain unknown;
+Auto mode does not imply a numeric speed. Changing manual speed uses the
+integration's percentage control, which leaves Auto mode.
+
+Only the Office ceiling-fan module opts into the compact unavailable state.
+Its unavailability does not imply that the purifier or the whole room is off.
+Other room layouts and household automations are unchanged. The device's
+continuous-monitoring configuration is not automatically modified.

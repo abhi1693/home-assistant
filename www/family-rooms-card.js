@@ -19,7 +19,8 @@ class FamilyRoomsCard extends HTMLElement {
   async _makeCards(configs){const helpers=await window.loadCardHelpers();const cards=configs.map((config)=>helpers.createCardElement(config));if(this._hass)cards.forEach((card)=>card.hass=this._hass);this._cards=cards;return cards;}
   _moduleConfig(module){
     if(module.pending||module.optional&&(module.players||[]).length===0)return null;
-    if(module.type==="fans")return {type:"custom:family-fan-card",name:module.name,embedded:true,fans:module.fans};
+    if(module.type==="fans")return {type:"custom:family-fan-card",name:module.name,embedded:true,fans:module.fans,compact_unavailable:module.compact_unavailable===true};
+    if(module.type==="purifier")return {type:"custom:family-purifier-card",module};
     if(module.type==="media")return {type:"custom:family-media-card",module};
     if(module.type==="appliance")return {type:"custom:family-appliance-card",module};
     if(module.type==="camera")return {type:"picture-entity",entity:module.preview_entity||module.entity,name:module.name,camera_view:"live",show_state:false,show_name:true,tap_action:{action:"navigate",navigation_path:module.url||"/home-tablet/security"},hold_action:{action:"more-info",entity:module.entity}};

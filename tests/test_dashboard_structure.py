@@ -965,14 +965,15 @@ class DashboardStructureTests(unittest.TestCase):
         media_card = (ROOT / "www/family-media-card.js").read_text()
         room_model = json.loads((ROOT / "access/rooms.json").read_text())
 
-        self.assertIn("/local/family-fan-card.js?v=3.3.1", configuration)
+        self.assertIn("/local/family-fan-card.js?v=3.3.2", configuration)
+        self.assertIn("/local/family-purifier-card.js?v=1.0.0", configuration)
         self.assertIn("/local/family-room-card.js?v=1.2.0", configuration)
         self.assertIn("/local/family-room-summary-card.js?v=1.0.0", configuration)
         self.assertIn("/local/family-appliance-card.js?v=1.0.0", configuration)
         self.assertIn("/local/family-media-card.js?v=1.0.0", configuration)
-        self.assertIn("/local/family-rooms-card.js?v=1.0.0", configuration)
+        self.assertIn("/local/family-rooms-card.js?v=1.1.0", configuration)
         self.assertLess(
-            configuration.index("/local/family-fan-card.js?v=3.3.1"),
+            configuration.index("/local/family-fan-card.js?v=3.3.2"),
             configuration.index("/local/family-room-card.js?v=1.2.0"),
         )
         self.assertEqual(rooms.count("type: custom:family-rooms-card"), 1)
@@ -1087,7 +1088,8 @@ class DashboardStructureTests(unittest.TestCase):
         for resource in (
             "/local/family-announcements-card.js?v=2.3.0",
             "/local/family-responsive-grid-card.js?v=1.1.0",
-            "/local/family-fan-card.js?v=3.3.1",
+            "/local/family-fan-card.js?v=3.3.2",
+            "/local/family-purifier-card.js?v=1.0.0",
             "/local/family-agenda-card.js?v=1.1.0",
             "/local/family-seerr-requests-card.js?v=1.1.0",
             "/local/family-daily-max-chart-card.js?v=1.1.1",
@@ -1095,7 +1097,7 @@ class DashboardStructureTests(unittest.TestCase):
             "/local/family-room-summary-card.js?v=1.0.0",
             "/local/family-appliance-card.js?v=1.0.0",
             "/local/family-media-card.js?v=1.0.0",
-            "/local/family-rooms-card.js?v=1.0.0",
+            "/local/family-rooms-card.js?v=1.1.0",
         ):
             self.assertIn(resource, configuration)
 

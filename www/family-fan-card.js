@@ -175,6 +175,13 @@ class FamilyFanCard extends HTMLElement {
 
   _unavailableUnit(unit, index) {
     const fanName = this._fanName(unit, index);
+    if (this._config.compact_unavailable) return `
+      <section class="fan-tile compact-unavailable" aria-disabled="true">
+        <div class="tile-heading">
+          <span class="tile-icon"><ha-icon icon="mdi:fan-off"></ha-icon></span>
+          <span class="tile-copy"><strong>${this._escape(fanName)}</strong><small>Unavailable · check power or connection</small></span>
+        </div>
+      </section>`;
     return `
       <section class="fan-tile unavailable" aria-disabled="true">
         <div class="tile-heading">
@@ -368,6 +375,8 @@ class FamilyFanCard extends HTMLElement {
         .chevron { width:16px; height:16px; margin-left:auto; }
         button:disabled { cursor:not-allowed; opacity:.44; }
         .feature:disabled { opacity:.5; }
+        .compact-unavailable { min-height:80px; }
+        .compact-unavailable .tile-copy small { white-space:normal; }
         .unavailable { min-height:300px; background:color-mix(in srgb,var(--contrast1) 28%,transparent); }
         .unavailable .tile-icon { color:var(--contrast8); }
         .unavailable-body { display:grid; min-height:216px; place-content:center; justify-items:center; gap:7px; padding:20px; text-align:center; }

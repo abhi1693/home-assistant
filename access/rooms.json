@@ -114,8 +114,24 @@
       ],
       "modules": [
         {
+          "type": "purifier",
+          "name": "Dyson HushJet",
+          "labels": [
+            "family_visible",
+            "primary_control"
+          ],
+          "entities": {
+            "fan": "fan.office_hushjet_office_room",
+            "pm25": "sensor.office_hushjet_office_room_pm_2_5",
+            "pm10": "sensor.office_hushjet_office_room_pm_10",
+            "night": "switch.office_hushjet_office_room_night_mode",
+            "hepa": "sensor.office_hushjet_office_room_hepa_filter_life",
+            "carbon": "sensor.office_hushjet_office_room_carbon_filter_life"
+          }
+        },
+        {
           "type": "fans",
-          "name": "Fan",
+          "name": "Ceiling fan",
           "labels": [
             "family_visible",
             "primary_control"
@@ -126,9 +142,11 @@
               "led": "light.office_fan_led",
               "sleep": "switch.office_fan_sleep_mode",
               "timer": "select.office_fan_set_timer",
-              "timer_elapsed": "sensor.office_fan_timer_elapsed_time"
+              "timer_elapsed": "sensor.office_fan_timer_elapsed_time",
+              "name": "Ceiling fan"
             }
-          ]
+          ],
+          "compact_unavailable": true
         },
         {
           "type": "media",

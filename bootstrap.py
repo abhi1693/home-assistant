@@ -235,10 +235,18 @@ def validate_room_model(source: Path) -> dict:
                 f"{sorted(unknown_occupants)}"
             )
         for module in modules:
-            if module.get("type") not in {"fans", "media", "appliance", "camera"}:
+            if module.get("type") not in {"fans", "media", "appliance", "camera", "purifier"}:
                 raise RuntimeError(
                     f"Family room {room['slug']} has an unsupported module"
                 )
+            if module.get("type") == "purifier":
+                expected = {"fan": "fan.", "pm25": "sensor.", "pm10": "sensor.",
+                            "night": "switch.", "hepa": "sensor.", "carbon": "sensor."}
+                entities = module.get("entities", {})
+                if any(not isinstance(entities.get(key), str)
+                       or not entities[key].startswith(prefix)
+                       for key, prefix in expected.items()):
+                    raise RuntimeError("Purifier module requires valid control and sensor entities")
             unknown_labels = set(module.get("labels", [])) - set(
                 room_model.get("labels", {})
             )

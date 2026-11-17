@@ -104,6 +104,7 @@ async function installComponents(page) {
   for (const source of [
     "family-responsive-grid-card.js",
     "family-fan-card.js",
+    "family-purifier-card.js",
     "family-room-card.js",
     "family-room-summary-card.js",
     "family-appliance-card.js",
