@@ -966,7 +966,7 @@ class DashboardStructureTests(unittest.TestCase):
         room_model = json.loads((ROOT / "access/rooms.json").read_text())
 
         self.assertIn("/local/family-fan-card.js?v=3.3.2", configuration)
-        self.assertIn("/local/family-purifier-card.js?v=1.0.0", configuration)
+        self.assertIn("/local/family-purifier-card.js?v=1.1.0", configuration)
         self.assertIn("/local/family-room-card.js?v=1.2.0", configuration)
         self.assertIn("/local/family-room-summary-card.js?v=1.0.0", configuration)
         self.assertIn("/local/family-appliance-card.js?v=1.0.0", configuration)
@@ -1089,7 +1089,7 @@ class DashboardStructureTests(unittest.TestCase):
             "/local/family-announcements-card.js?v=2.3.0",
             "/local/family-responsive-grid-card.js?v=1.1.0",
             "/local/family-fan-card.js?v=3.3.2",
-            "/local/family-purifier-card.js?v=1.0.0",
+            "/local/family-purifier-card.js?v=1.1.0",
             "/local/family-agenda-card.js?v=1.1.0",
             "/local/family-seerr-requests-card.js?v=1.1.0",
             "/local/family-daily-max-chart-card.js?v=1.1.1",

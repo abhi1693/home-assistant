@@ -452,11 +452,20 @@ the previous source revision/checksum in the Fleet deployment repository.
 The Office room page includes its Dyson HushJet as a dedicated purifier module,
 separate from the ceiling fan. It shows indoor PM2.5 and PM10 concentrations
 in the sensors' own units, power, Auto/Normal mode, manual speed, night mode,
-and expandable HEPA/carbon filter details. Unknown measurements remain unknown;
+and expandable electrostatic/carbon filter details. Unknown measurements remain unknown;
 Auto mode does not imply a numeric speed. Changing manual speed uses the
 integration's percentage control, which leaves Auto mode.
 
 Only the Office ceiling-fan module opts into the compact unavailable state.
 Its unavailability does not imply that the purifier or the whole room is off.
 Other room layouts and household automations are unchanged. The device's
-continuous-monitoring configuration is not automatically modified.
+continuous-monitoring configuration is not automatically modified. The card now
+exposes that existing switch explicitly, alongside sleep-timer requests from
+0 to 540 minutes. A successful timer request is not a remaining-time reading: the
+integration exposes no countdown entity. Timer controls never manufacture one.
+
+The Office air-history panel shows the past 24 hours with units, availability,
+and clearly labeled summary statistics. Missing history is shown as missing,
+not zero; freshness labels distinguish last reports from last changes when
+Home Assistant supplies them. The integration's HEPA-named entity represents
+the HJ10 electrostatic filter and is labeled accordingly on this page.

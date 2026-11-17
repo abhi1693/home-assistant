@@ -241,7 +241,7 @@ def validate_room_model(source: Path) -> dict:
                 )
             if module.get("type") == "purifier":
                 expected = {"fan": "fan.", "pm25": "sensor.", "pm10": "sensor.",
-                            "night": "switch.", "hepa": "sensor.", "carbon": "sensor."}
+                            "night": "switch.", "monitoring": "switch.", "hepa": "sensor.", "carbon": "sensor."}
                 entities = module.get("entities", {})
                 if any(not isinstance(entities.get(key), str)
                        or not entities[key].startswith(prefix)

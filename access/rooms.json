@@ -126,7 +126,8 @@
             "pm10": "sensor.office_hushjet_office_room_pm_10",
             "night": "switch.office_hushjet_office_room_night_mode",
             "hepa": "sensor.office_hushjet_office_room_hepa_filter_life",
-            "carbon": "sensor.office_hushjet_office_room_carbon_filter_life"
+            "carbon": "sensor.office_hushjet_office_room_carbon_filter_life",
+            "monitoring": "switch.office_hushjet_office_room_continuous_monitoring"
           }
         },
         {

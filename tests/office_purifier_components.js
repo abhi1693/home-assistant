@@ -27,10 +27,18 @@ const office = JSON.parse(fs.readFileSync(path.join(ROOT, "access/rooms.json")))
       const states = {
         [e.fan]:state("on",{preset_modes:["Auto","Normal"],preset_mode:"Auto",percentage:null}),
         [e.pm25]:state("26",{unit_of_measurement:"µg/m³"}),[e.pm10]:state("26",{unit_of_measurement:"µg/m³"}),
-        [e.night]:state("off"),[e.hepa]:state("100"),[e.carbon]:state("100"),
+        [e.night]:state("off"),[e.monitoring]:state("on"),[e.hepa]:state("100"),[e.carbon]:state("100"),
         "fan.office_fan":state("unavailable"),"media_player.abhimanyu_s_echo":state("idle",{friendly_name:"Abhimanyu’s Echo",volume_level:0.2,supported_features:0})
       };
-      window.hass = {states,callService:async (...args) => {window.calls.push(args);}};
+      window.historyCalls=[];
+      window.hass = {states,callService:async (...args) => {window.calls.push(args);},callApi:async (...args)=>{
+        window.historyCalls.push(args);
+        const end=Date.now(),start=end-86400000;
+        const rows=id=>[{entity_id:id,state:"10",last_changed:new Date(start).toISOString()},{state:"30",last_changed:new Date(start+43200000).toISOString()},{state:"unavailable",last_changed:new Date(start+64800000).toISOString()}];
+        return [rows(e.pm10),rows(e.pm25)];
+      }};
+      states[e.pm25].last_reported=new Date().toISOString();
+      states[e.pm25].last_updated=new Date(Date.now()-3600000).toISOString();
       const router = document.createElement("family-rooms-card");
       const room = document.createElement("family-room-card");
       room.setConfig({name:"Office",icon:"mdi:desk",accent:"var(--teal)",occupants:["Primary: Abhimanyu"],cards:office.modules.map(m=>router._moduleConfig(m))});
@@ -38,6 +46,28 @@ const office = JSON.parse(fs.readFileSync(path.join(ROOT, "access/rooms.json")))
     }, office);
     const purifier = page.locator("family-purifier-card");
     await purifier.getByRole("button",{name:"Auto",exact:true}).waitFor();
+    await purifier.getByRole("img",{name:/PM2.5, 24-hour trend/}).waitFor();
+    assert.match(await purifier.locator(".trends").innerText(),/16.7/);
+    assert.match(await purifier.locator(".trends").innerText(),/18.0h recorded/);
+    assert.match(await purifier.locator(".freshness").innerText(),/PM2.5: HA last report just now/);
+    assert.equal(await page.evaluate(()=>window.historyCalls.length),1);
+    await page.evaluate(()=>{for(let i=0;i<10;i++)window.room.hass={...window.hass};});
+    assert.equal(await page.evaluate(()=>window.historyCalls.length),1);
+    await purifier.getByRole("button",{name:"Continuous monitoring on",exact:true}).click();
+    assert.deepEqual(await page.evaluate(()=>window.calls.pop()),["switch","turn_off",{entity_id:office.modules[0].entities.monitoring}]);
+    await purifier.getByLabel("Sleep timer minutes").fill("540");
+    await page.evaluate(()=>{window.hass.states[window.e.pm25].state="28";window.room.hass={...window.hass};});
+    await purifier.getByRole("button",{name:"Set timer",exact:true}).click();
+    assert.deepEqual(await page.evaluate(()=>window.calls.pop()),["dyson_local","set_timer",{entity_id:office.modules[0].entities.fan,timer:540}]);
+    assert.match(await purifier.locator(".notice").innerText(),/Requested a 540-minute sleep timer/);
+    await purifier.getByRole("button",{name:"Cancel timer",exact:true}).click();
+    assert.deepEqual(await page.evaluate(()=>window.calls.pop()),["dyson_local","set_timer",{entity_id:office.modules[0].entities.fan,timer:0}]);
+    await purifier.getByLabel("Sleep timer minutes").fill("541");
+    await purifier.getByRole("button",{name:"Set timer",exact:true}).click();
+    assert.equal(await page.evaluate(()=>window.calls.length),0);
+    await purifier.getByLabel("Sleep timer minutes").fill("60");
+    await purifier.getByRole("button",{name:"Auto",exact:true}).focus();
+
     assert.equal(await purifier.getByLabel("Purifier fan speed").isEnabled(),false);
     assert.equal(await purifier.getByLabel("Purifier fan speed").inputValue(),"");
     await purifier.getByRole("button",{name:"Manual",exact:true}).click();
@@ -51,6 +81,7 @@ const office = JSON.parse(fs.readFileSync(path.join(ROOT, "access/rooms.json")))
     assert.deepEqual(await page.evaluate(()=>window.calls.pop()),["fan","turn_off",{entity_id:office.modules[0].entities.fan}]);
     await purifier.locator("summary").focus();await page.keyboard.press("Enter");
     assert.equal(await purifier.locator("details").getAttribute("open"),"");
+    assert.match(await purifier.locator("details").innerText(),/Electrostatic filter/);
     assert.match(await purifier.locator("details").innerText(),/100% remaining/);
     const fanHeight = await page.locator("family-fan-card").boundingBox();
     assert.ok(fanHeight.height < 150,`compact fan too large ${fanHeight.height}`);
@@ -76,6 +107,17 @@ const office = JSON.parse(fs.readFileSync(path.join(ROOT, "access/rooms.json")))
       window.hass.states[window.e.pm10].state = "27"; window.room.hass = {...window.hass};
     });
     assert.equal(await page.evaluate(() => document.activeElement.id), "outside");
+    // Reversed and missing groups map by entity ID; empty/error history is explicit.
+    await page.evaluate(async()=>{
+      const card=document.querySelector("family-room-card").shadowRoot.querySelector("family-purifier-card");
+      window.card=card;
+      const result=card._summarize([{state:"unknown",last_changed:new Date(0).toISOString()}],0,86400000);
+      if(result.mean!==null || result.duration!==0)throw Error("Unknown history became zero");
+      window.hass.callApi=async()=>[];window.room.hass={...window.hass};card._historyAttempt=0;await card._loadHistory();
+    });
+    assert.match(await purifier.locator(".trends").innerText(),/No recorded data/);
+    await page.evaluate(async()=>{window.hass.callApi=async()=>{throw Error("offline");};window.room.hass={...window.hass};window.card._historyAttempt=0;await window.card._loadHistory();});
+    assert.match(await purifier.locator(".trends").innerText(),/History unavailable/);
     // Service failure is visible without optimistic device state.
     await page.evaluate(()=>{window.hass.states[window.e.fan].state="on";window.hass.callService=async()=>{throw new Error("Device did not respond");};window.room.hass={...window.hass};});
     await purifier.getByRole("button",{name:"Turn purifier off"}).click();
